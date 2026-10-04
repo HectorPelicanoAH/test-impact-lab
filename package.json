@@ -1,0 +1,12 @@
+{
+  "name": "test-impact-lab",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "validate:plan": "node scripts/validate-plan.mjs"
+  }
+}
