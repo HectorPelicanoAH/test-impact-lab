@@ -1,0 +1,110 @@
+[
+  {
+    "id": "BU1",
+    "name": "[BU1] User authenticates the correct password",
+    "kind": "backend-unit",
+    "nodeId": "test:BU1",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/domain/User.test.ts",
+    "title": "[BU1] User authenticates the correct password"
+  },
+  {
+    "id": "BU2",
+    "name": "[BU2] User rejects an incorrect password",
+    "kind": "backend-unit",
+    "nodeId": "test:BU2",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/domain/User.test.ts",
+    "title": "[BU2] User rejects an incorrect password"
+  },
+  {
+    "id": "BU3",
+    "name": "[BU3] Locked user rejects the correct password",
+    "kind": "backend-unit",
+    "nodeId": "test:BU3",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/domain/User.test.ts",
+    "title": "[BU3] Locked user rejects the correct password"
+  },
+  {
+    "id": "BU4",
+    "name": "[BU4] Use case queries the port and returns public identity",
+    "kind": "backend-unit",
+    "nodeId": "test:BU4",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/application/AuthenticateUser.test.ts",
+    "title": "[BU4] Use case queries the port and returns public identity"
+  },
+  {
+    "id": "BU5",
+    "name": "[BU5] Use case hides unknown user identity",
+    "kind": "backend-unit",
+    "nodeId": "test:BU5",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/application/AuthenticateUser.test.ts",
+    "title": "[BU5] Use case hides unknown user identity"
+  },
+  {
+    "id": "C1",
+    "name": "[C1] LoginButton disables submission while loading",
+    "kind": "component",
+    "nodeId": "test:C1",
+    "runner": "vitest",
+    "file": "apps/frontend/src/components/LoginButton.test.tsx",
+    "title": "[C1] LoginButton disables submission while loading"
+  },
+  {
+    "id": "C2",
+    "name": "[C2] LoginForm displays service errors without navigating",
+    "kind": "component",
+    "nodeId": "test:C2",
+    "runner": "vitest",
+    "file": "apps/frontend/src/components/LoginForm.test.tsx",
+    "title": "[C2] LoginForm displays service errors without navigating"
+  },
+  {
+    "id": "CT1",
+    "name": "[CT1] POST login satisfies the success consumer contract",
+    "kind": "contract",
+    "nodeId": "test:CT1",
+    "runner": "vitest",
+    "file": "tests/contract/login.test.ts",
+    "title": "[CT1] POST login satisfies the success consumer contract"
+  },
+  {
+    "id": "E1",
+    "name": "[E1] Login journey rejects wrong credentials then reaches home",
+    "kind": "e2e",
+    "nodeId": "test:E1",
+    "runner": "playwright",
+    "file": "tests/e2e/login.spec.ts",
+    "title": "[E1] Login journey rejects wrong credentials then reaches home"
+  },
+  {
+    "id": "FU1",
+    "name": "[FU1] Email normalization trims and lowercases",
+    "kind": "frontend-unit",
+    "nodeId": "test:FU1",
+    "runner": "vitest",
+    "file": "apps/frontend/src/auth/normalizeEmail.test.ts",
+    "title": "[FU1] Email normalization trims and lowercases"
+  },
+  {
+    "id": "I1",
+    "name": "[I1] HTTP login composes the real repository and aggregate",
+    "kind": "integration",
+    "nodeId": "test:I1",
+    "runner": "vitest",
+    "file": "tests/integration/login.test.ts",
+    "title": "[I1] HTTP login composes the real repository and aggregate"
+  },
+  {
+    "id": "I2",
+    "name": "[I2] HTTP login rejects the wrong password",
+    "kind": "integration",
+    "nodeId": "test:I2",
+    "runner": "vitest",
+    "file": "tests/integration/login.test.ts",
+    "title": "[I2] HTTP login rejects the wrong password"
+  }
+]

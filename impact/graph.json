@@ -1,0 +1,1007 @@
+{
+  "schemaVersion": 1,
+  "nodes": [
+    {
+      "id": "AuthClient",
+      "label": "AuthClient",
+      "kind": "entity",
+      "side": "frontend",
+      "layer": "API client",
+      "source": {
+        "path": "apps/frontend/src/auth/AuthClient.ts",
+        "startLine": 1,
+        "endLine": 19
+      }
+    },
+    {
+      "id": "AuthenticateUser",
+      "label": "AuthenticateUser",
+      "kind": "entity",
+      "side": "backend",
+      "layer": "Application",
+      "source": {
+        "path": "apps/backend/src/auth/application/AuthenticateUser.ts",
+        "startLine": 1,
+        "endLine": 20
+      }
+    },
+    {
+      "id": "Composition",
+      "label": "Composition",
+      "kind": "entity",
+      "side": "backend",
+      "layer": "Composition root",
+      "source": {
+        "path": "apps/backend/src/composition.ts",
+        "startLine": 1,
+        "endLine": 16
+      }
+    },
+    {
+      "id": "Email",
+      "label": "Email",
+      "kind": "entity",
+      "side": "backend",
+      "layer": "Domain",
+      "source": {
+        "path": "apps/backend/src/auth/domain/Email.ts",
+        "startLine": 1,
+        "endLine": 12
+      }
+    },
+    {
+      "id": "EmailInput",
+      "label": "EmailInput",
+      "kind": "entity",
+      "side": "frontend",
+      "layer": "UI",
+      "source": {
+        "path": "apps/frontend/src/components/EmailInput.tsx",
+        "startLine": 1,
+        "endLine": 4
+      }
+    },
+    {
+      "id": "HttpServer",
+      "label": "HttpServer",
+      "kind": "entity",
+      "side": "backend",
+      "layer": "HTTP transport",
+      "source": {
+        "path": "apps/backend/src/http.ts",
+        "startLine": 1,
+        "endLine": 41
+      }
+    },
+    {
+      "id": "InMemoryUserRepository",
+      "label": "InMemoryUserRepository",
+      "kind": "entity",
+      "side": "backend",
+      "layer": "Secondary adapter",
+      "source": {
+        "path": "apps/backend/src/auth/infrastructure/outbound/persistence/InMemoryUserRepository.ts",
+        "startLine": 1,
+        "endLine": 17
+      }
+    },
+    {
+      "id": "LoginButton",
+      "label": "LoginButton",
+      "kind": "entity",
+      "side": "frontend",
+      "layer": "UI",
+      "source": {
+        "path": "apps/frontend/src/components/LoginButton.tsx",
+        "startLine": 1,
+        "endLine": 6
+      }
+    },
+    {
+      "id": "LoginController",
+      "label": "LoginController",
+      "kind": "entity",
+      "side": "backend",
+      "layer": "Primary adapter",
+      "source": {
+        "path": "apps/backend/src/auth/infrastructure/inbound/http/LoginController.ts",
+        "startLine": 1,
+        "endLine": 25
+      }
+    },
+    {
+      "id": "LoginForm",
+      "label": "LoginForm",
+      "kind": "entity",
+      "side": "frontend",
+      "layer": "UI",
+      "source": {
+        "path": "apps/frontend/src/components/LoginForm.tsx",
+        "startLine": 1,
+        "endLine": 22
+      }
+    },
+    {
+      "id": "LoginPage",
+      "label": "LoginPage",
+      "kind": "entity",
+      "side": "frontend",
+      "layer": "UI",
+      "source": {
+        "path": "apps/frontend/src/LoginPage.tsx",
+        "startLine": 1,
+        "endLine": 12
+      }
+    },
+    {
+      "id": "POST /login",
+      "label": "POST /login",
+      "kind": "contract",
+      "side": "boundary",
+      "layer": "API contract",
+      "source": {
+        "path": "packages/api-contract/src/login.ts",
+        "startLine": 1,
+        "endLine": 38
+      }
+    },
+    {
+      "id": "PasswordHash",
+      "label": "PasswordHash",
+      "kind": "entity",
+      "side": "backend",
+      "layer": "Domain",
+      "source": {
+        "path": "apps/backend/src/auth/domain/PasswordHash.ts",
+        "startLine": 1,
+        "endLine": 23
+      }
+    },
+    {
+      "id": "PasswordInput",
+      "label": "PasswordInput",
+      "kind": "entity",
+      "side": "frontend",
+      "layer": "UI",
+      "source": {
+        "path": "apps/frontend/src/components/PasswordInput.tsx",
+        "startLine": 1,
+        "endLine": 4
+      }
+    },
+    {
+      "id": "User",
+      "label": "User",
+      "kind": "entity",
+      "side": "backend",
+      "layer": "Domain",
+      "source": {
+        "path": "apps/backend/src/auth/domain/User.ts",
+        "startLine": 1,
+        "endLine": 21
+      }
+    },
+    {
+      "id": "UserRepository",
+      "label": "UserRepository",
+      "kind": "entity",
+      "side": "backend",
+      "layer": "Port",
+      "source": {
+        "path": "apps/backend/src/auth/domain/UserRepository.ts",
+        "startLine": 1,
+        "endLine": 7
+      }
+    },
+    {
+      "id": "normalizeEmail",
+      "label": "normalizeEmail",
+      "kind": "entity",
+      "side": "frontend",
+      "layer": "Frontend application",
+      "source": {
+        "path": "apps/frontend/src/auth/normalizeEmail.ts",
+        "startLine": 1,
+        "endLine": 4
+      }
+    },
+    {
+      "id": "test:BU1",
+      "label": "[BU1] User authenticates the correct password",
+      "kind": "test",
+      "side": "backend",
+      "layer": "backend-unit",
+      "testId": "BU1"
+    },
+    {
+      "id": "test:BU2",
+      "label": "[BU2] User rejects an incorrect password",
+      "kind": "test",
+      "side": "backend",
+      "layer": "backend-unit",
+      "testId": "BU2"
+    },
+    {
+      "id": "test:BU3",
+      "label": "[BU3] Locked user rejects the correct password",
+      "kind": "test",
+      "side": "backend",
+      "layer": "backend-unit",
+      "testId": "BU3"
+    },
+    {
+      "id": "test:BU4",
+      "label": "[BU4] Use case queries the port and returns public identity",
+      "kind": "test",
+      "side": "backend",
+      "layer": "backend-unit",
+      "testId": "BU4"
+    },
+    {
+      "id": "test:BU5",
+      "label": "[BU5] Use case hides unknown user identity",
+      "kind": "test",
+      "side": "backend",
+      "layer": "backend-unit",
+      "testId": "BU5"
+    },
+    {
+      "id": "test:C1",
+      "label": "[C1] LoginButton disables submission while loading",
+      "kind": "test",
+      "side": "frontend",
+      "layer": "component",
+      "testId": "C1"
+    },
+    {
+      "id": "test:C2",
+      "label": "[C2] LoginForm displays service errors without navigating",
+      "kind": "test",
+      "side": "frontend",
+      "layer": "component",
+      "testId": "C2"
+    },
+    {
+      "id": "test:CT1",
+      "label": "[CT1] POST login satisfies the success consumer contract",
+      "kind": "test",
+      "side": "boundary",
+      "layer": "contract",
+      "testId": "CT1"
+    },
+    {
+      "id": "test:E1",
+      "label": "[E1] Login journey rejects wrong credentials then reaches home",
+      "kind": "test",
+      "side": "frontend",
+      "layer": "e2e",
+      "testId": "E1"
+    },
+    {
+      "id": "test:FU1",
+      "label": "[FU1] Email normalization trims and lowercases",
+      "kind": "test",
+      "side": "frontend",
+      "layer": "frontend-unit",
+      "testId": "FU1"
+    },
+    {
+      "id": "test:I1",
+      "label": "[I1] HTTP login composes the real repository and aggregate",
+      "kind": "test",
+      "side": "backend",
+      "layer": "integration",
+      "testId": "I1"
+    },
+    {
+      "id": "test:I2",
+      "label": "[I2] HTTP login rejects the wrong password",
+      "kind": "test",
+      "side": "backend",
+      "layer": "integration",
+      "testId": "I2"
+    },
+    {
+      "id": "useLogin",
+      "label": "useLogin",
+      "kind": "entity",
+      "side": "frontend",
+      "layer": "Frontend application",
+      "source": {
+        "path": "apps/frontend/src/auth/useLogin.ts",
+        "startLine": 1,
+        "endLine": 24
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "exercises:test:BU1->User",
+      "from": "test:BU1",
+      "to": "User",
+      "type": "exercises",
+      "evidence": {
+        "kind": "test-coverage",
+        "source": "apps/backend/src/auth/domain/User.test.ts",
+        "reason": "Reviewed local subject of [BU1]; explicit metadata, not measured runtime coverage."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "exercises:test:BU2->User",
+      "from": "test:BU2",
+      "to": "User",
+      "type": "exercises",
+      "evidence": {
+        "kind": "test-coverage",
+        "source": "apps/backend/src/auth/domain/User.test.ts",
+        "reason": "Reviewed local subject of [BU2]; explicit metadata, not measured runtime coverage."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "exercises:test:BU3->User",
+      "from": "test:BU3",
+      "to": "User",
+      "type": "exercises",
+      "evidence": {
+        "kind": "test-coverage",
+        "source": "apps/backend/src/auth/domain/User.test.ts",
+        "reason": "Reviewed local subject of [BU3]; explicit metadata, not measured runtime coverage."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "exercises:test:BU4->AuthenticateUser",
+      "from": "test:BU4",
+      "to": "AuthenticateUser",
+      "type": "exercises",
+      "evidence": {
+        "kind": "test-coverage",
+        "source": "apps/backend/src/auth/application/AuthenticateUser.test.ts",
+        "reason": "Reviewed local subject of [BU4]; explicit metadata, not measured runtime coverage."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "exercises:test:BU5->AuthenticateUser",
+      "from": "test:BU5",
+      "to": "AuthenticateUser",
+      "type": "exercises",
+      "evidence": {
+        "kind": "test-coverage",
+        "source": "apps/backend/src/auth/application/AuthenticateUser.test.ts",
+        "reason": "Reviewed local subject of [BU5]; explicit metadata, not measured runtime coverage."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "exercises:test:C1->LoginButton",
+      "from": "test:C1",
+      "to": "LoginButton",
+      "type": "exercises",
+      "evidence": {
+        "kind": "test-coverage",
+        "source": "apps/frontend/src/components/LoginButton.test.tsx",
+        "reason": "Reviewed local subject of [C1]; explicit metadata, not measured runtime coverage."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "exercises:test:C2->LoginForm",
+      "from": "test:C2",
+      "to": "LoginForm",
+      "type": "exercises",
+      "evidence": {
+        "kind": "test-coverage",
+        "source": "apps/frontend/src/components/LoginForm.test.tsx",
+        "reason": "Reviewed local subject of [C2]; explicit metadata, not measured runtime coverage."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "exercises:test:CT1->POST /login",
+      "from": "test:CT1",
+      "to": "POST /login",
+      "type": "exercises",
+      "evidence": {
+        "kind": "contract",
+        "source": "tests/contract/login.test.ts",
+        "reason": "Reviewed local subject of [CT1]; explicit metadata, not measured runtime coverage."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "exercises:test:E1->LoginPage",
+      "from": "test:E1",
+      "to": "LoginPage",
+      "type": "exercises",
+      "evidence": {
+        "kind": "test-coverage",
+        "source": "tests/e2e/login.spec.ts",
+        "reason": "Reviewed local subject of [E1]; explicit metadata, not measured runtime coverage."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "exercises:test:FU1->normalizeEmail",
+      "from": "test:FU1",
+      "to": "normalizeEmail",
+      "type": "exercises",
+      "evidence": {
+        "kind": "test-coverage",
+        "source": "apps/frontend/src/auth/normalizeEmail.test.ts",
+        "reason": "Reviewed local subject of [FU1]; explicit metadata, not measured runtime coverage."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "exercises:test:I1->HttpServer",
+      "from": "test:I1",
+      "to": "HttpServer",
+      "type": "exercises",
+      "evidence": {
+        "kind": "test-coverage",
+        "source": "tests/integration/login.test.ts",
+        "reason": "Reviewed local subject of [I1]; explicit metadata, not measured runtime coverage."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "exercises:test:I2->HttpServer",
+      "from": "test:I2",
+      "to": "HttpServer",
+      "type": "exercises",
+      "evidence": {
+        "kind": "test-coverage",
+        "source": "tests/integration/login.test.ts",
+        "reason": "Reviewed local subject of [I2]; explicit metadata, not measured runtime coverage."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "exposes:POST /login->HttpServer",
+      "from": "POST /login",
+      "to": "HttpServer",
+      "type": "exposes",
+      "evidence": {
+        "kind": "architecture",
+        "source": "apps/backend/src/http.ts",
+        "reason": "The POST /login contract is served by the HTTP route, which delegates to LoginController."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": true
+      }
+    },
+    {
+      "id": "implements:InMemoryUserRepository->UserRepository",
+      "from": "InMemoryUserRepository",
+      "to": "UserRepository",
+      "type": "implements",
+      "evidence": {
+        "kind": "architecture",
+        "source": "apps/backend/src/auth/infrastructure/outbound/persistence/InMemoryUserRepository.ts",
+        "reason": "The secondary adapter explicitly implements the domain-owned repository port."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "imports:AuthClient->POST /login",
+      "from": "AuthClient",
+      "to": "POST /login",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/frontend/src/auth/AuthClient.ts",
+        "reason": "TypeScript module reference @test-impact/api-contract resolves to packages/api-contract/src/login.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": true,
+        "contractExposure": true
+      }
+    },
+    {
+      "id": "imports:AuthClient->normalizeEmail",
+      "from": "AuthClient",
+      "to": "normalizeEmail",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/frontend/src/auth/AuthClient.ts",
+        "reason": "TypeScript module reference ./normalizeEmail resolves to apps/frontend/src/auth/normalizeEmail.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": true
+      }
+    },
+    {
+      "id": "imports:AuthenticateUser->Email",
+      "from": "AuthenticateUser",
+      "to": "Email",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/backend/src/auth/application/AuthenticateUser.ts",
+        "reason": "TypeScript module reference ../domain/Email resolves to apps/backend/src/auth/domain/Email.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": true
+      }
+    },
+    {
+      "id": "imports:AuthenticateUser->UserRepository",
+      "from": "AuthenticateUser",
+      "to": "UserRepository",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/backend/src/auth/application/AuthenticateUser.ts",
+        "reason": "TypeScript module reference ../domain/UserRepository resolves to apps/backend/src/auth/domain/UserRepository.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": true
+      }
+    },
+    {
+      "id": "imports:Composition->AuthenticateUser",
+      "from": "Composition",
+      "to": "AuthenticateUser",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/backend/src/composition.ts",
+        "reason": "TypeScript module reference ./auth/application/AuthenticateUser resolves to apps/backend/src/auth/application/AuthenticateUser.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "imports:Composition->Email",
+      "from": "Composition",
+      "to": "Email",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/backend/src/composition.ts",
+        "reason": "TypeScript module reference ./auth/domain/Email resolves to apps/backend/src/auth/domain/Email.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "imports:Composition->InMemoryUserRepository",
+      "from": "Composition",
+      "to": "InMemoryUserRepository",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/backend/src/composition.ts",
+        "reason": "TypeScript module reference ./auth/infrastructure/outbound/persistence/InMemoryUserRepository resolves to apps/backend/src/auth/infrastructure/outbound/persistence/InMemoryUserRepository.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "imports:Composition->LoginController",
+      "from": "Composition",
+      "to": "LoginController",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/backend/src/composition.ts",
+        "reason": "TypeScript module reference ./auth/infrastructure/inbound/http/LoginController resolves to apps/backend/src/auth/infrastructure/inbound/http/LoginController.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "imports:Composition->PasswordHash",
+      "from": "Composition",
+      "to": "PasswordHash",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/backend/src/composition.ts",
+        "reason": "TypeScript module reference ./auth/domain/PasswordHash resolves to apps/backend/src/auth/domain/PasswordHash.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "imports:Composition->User",
+      "from": "Composition",
+      "to": "User",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/backend/src/composition.ts",
+        "reason": "TypeScript module reference ./auth/domain/User resolves to apps/backend/src/auth/domain/User.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "imports:Composition->UserRepository",
+      "from": "Composition",
+      "to": "UserRepository",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/backend/src/composition.ts",
+        "reason": "TypeScript module reference ./auth/domain/UserRepository resolves to apps/backend/src/auth/domain/UserRepository.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "imports:HttpServer->LoginController",
+      "from": "HttpServer",
+      "to": "LoginController",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/backend/src/http.ts",
+        "reason": "TypeScript module reference ./auth/infrastructure/inbound/http/LoginController resolves to apps/backend/src/auth/infrastructure/inbound/http/LoginController.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": true
+      }
+    },
+    {
+      "id": "imports:HttpServer->POST /login",
+      "from": "HttpServer",
+      "to": "POST /login",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/backend/src/http.ts",
+        "reason": "TypeScript module reference @test-impact/api-contract resolves to packages/api-contract/src/login.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "imports:InMemoryUserRepository->Email",
+      "from": "InMemoryUserRepository",
+      "to": "Email",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/backend/src/auth/infrastructure/outbound/persistence/InMemoryUserRepository.ts",
+        "reason": "TypeScript module reference ../../../domain/Email resolves to apps/backend/src/auth/domain/Email.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "imports:InMemoryUserRepository->User",
+      "from": "InMemoryUserRepository",
+      "to": "User",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/backend/src/auth/infrastructure/outbound/persistence/InMemoryUserRepository.ts",
+        "reason": "TypeScript module reference ../../../domain/User resolves to apps/backend/src/auth/domain/User.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "imports:InMemoryUserRepository->UserRepository",
+      "from": "InMemoryUserRepository",
+      "to": "UserRepository",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/backend/src/auth/infrastructure/outbound/persistence/InMemoryUserRepository.ts",
+        "reason": "TypeScript module reference ../../../domain/UserRepository resolves to apps/backend/src/auth/domain/UserRepository.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "imports:LoginController->AuthenticateUser",
+      "from": "LoginController",
+      "to": "AuthenticateUser",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/backend/src/auth/infrastructure/inbound/http/LoginController.ts",
+        "reason": "TypeScript module reference ../../../application/AuthenticateUser resolves to apps/backend/src/auth/application/AuthenticateUser.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": true
+      }
+    },
+    {
+      "id": "imports:LoginController->POST /login",
+      "from": "LoginController",
+      "to": "POST /login",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/backend/src/auth/infrastructure/inbound/http/LoginController.ts",
+        "reason": "TypeScript module reference @test-impact/api-contract resolves to packages/api-contract/src/login.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "imports:LoginForm->EmailInput",
+      "from": "LoginForm",
+      "to": "EmailInput",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/frontend/src/components/LoginForm.tsx",
+        "reason": "TypeScript module reference ./EmailInput resolves to apps/frontend/src/components/EmailInput.tsx."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "imports:LoginForm->LoginButton",
+      "from": "LoginForm",
+      "to": "LoginButton",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/frontend/src/components/LoginForm.tsx",
+        "reason": "TypeScript module reference ./LoginButton resolves to apps/frontend/src/components/LoginButton.tsx."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "imports:LoginForm->PasswordInput",
+      "from": "LoginForm",
+      "to": "PasswordInput",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/frontend/src/components/LoginForm.tsx",
+        "reason": "TypeScript module reference ./PasswordInput resolves to apps/frontend/src/components/PasswordInput.tsx."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "imports:LoginForm->useLogin",
+      "from": "LoginForm",
+      "to": "useLogin",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/frontend/src/components/LoginForm.tsx",
+        "reason": "TypeScript module reference ../auth/useLogin resolves to apps/frontend/src/auth/useLogin.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "imports:LoginPage->LoginForm",
+      "from": "LoginPage",
+      "to": "LoginForm",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/frontend/src/LoginPage.tsx",
+        "reason": "TypeScript module reference ./components/LoginForm resolves to apps/frontend/src/components/LoginForm.tsx."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "imports:User->Email",
+      "from": "User",
+      "to": "Email",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/backend/src/auth/domain/User.ts",
+        "reason": "TypeScript module reference ./Email resolves to apps/backend/src/auth/domain/Email.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": true
+      }
+    },
+    {
+      "id": "imports:User->PasswordHash",
+      "from": "User",
+      "to": "PasswordHash",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/backend/src/auth/domain/User.ts",
+        "reason": "TypeScript module reference ./PasswordHash resolves to apps/backend/src/auth/domain/PasswordHash.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": true
+      }
+    },
+    {
+      "id": "imports:UserRepository->Email",
+      "from": "UserRepository",
+      "to": "Email",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/backend/src/auth/domain/UserRepository.ts",
+        "reason": "TypeScript module reference ./Email resolves to apps/backend/src/auth/domain/Email.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": false
+      }
+    },
+    {
+      "id": "imports:UserRepository->User",
+      "from": "UserRepository",
+      "to": "User",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/backend/src/auth/domain/UserRepository.ts",
+        "reason": "TypeScript module reference ./User resolves to apps/backend/src/auth/domain/User.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": true
+      }
+    },
+    {
+      "id": "imports:useLogin->AuthClient",
+      "from": "useLogin",
+      "to": "AuthClient",
+      "type": "imports",
+      "evidence": {
+        "kind": "static",
+        "source": "apps/frontend/src/auth/useLogin.ts",
+        "reason": "TypeScript module reference ./AuthClient resolves to apps/frontend/src/auth/AuthClient.ts."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": true,
+        "contractExposure": true
+      }
+    },
+    {
+      "id": "injects:AuthenticateUser->InMemoryUserRepository",
+      "from": "AuthenticateUser",
+      "to": "InMemoryUserRepository",
+      "type": "injects",
+      "evidence": {
+        "kind": "architecture",
+        "source": "apps/backend/src/composition.ts",
+        "reason": "The composition root injects this concrete repository through the UserRepository port."
+      },
+      "policy": {
+        "reverseImpact": true,
+        "forwardBoundaryEvidence": false,
+        "contractExposure": true
+      }
+    }
+  ]
+}

@@ -1,4 +1,12 @@
-# Architecture decisions — Phase 0
+# Architecture decisions
+
+## Implementation status after Phase 1
+
+The login vertical slice, pure traversal engine, import-derived graph, small real test catalogue and CLI subset execution are implemented. The design below also describes later phases: automated diff mapping, immutable browser snapshots, HTTP analysis/run APIs, the explorer and isolated source-overlay execution are still pending. `apps/demo` remains a scaffold.
+
+The initial graph uses one entity per source module, with explicit architectural relationships and literal top-level test IDs. The CLI accepts changed entity IDs; it does not claim to calculate source diffs yet. `test:selected` executes the current checkout only and verifies reporter results, while the planned browser runner will execute immutable edited copies.
+
+Node 24.15+ (24.x) or 26+ matches the installed test-tool requirements. TypeScript 5.9 provides the stable compiler API used for imports and architecture checks; the application is still ordinary TypeScript. Playwright allocates ports once in a launcher, then shares them through environment variables, because configuration is loaded again in worker processes.
 
 ## Scope and SDD review
 

@@ -1,4 +1,4 @@
-/** Phase 0 design contract. All serialized collections use stable ordering. */
+/** Graph/selection types are implemented in Phase 1; snapshot/run APIs remain planned. */
 export type TestKind = 'e2e' | 'component' | 'frontend-unit' | 'contract' | 'integration' | 'backend-unit';
 export type Side = 'frontend' | 'backend' | 'boundary' | 'shared';
 export interface EntityRange { path: string; startLine: number; endLine: number }
@@ -75,7 +75,7 @@ export interface RunRecord {
   setupTimeMs?: number;
   error?: string;
 }
-/** Planned pure engine input: mapped diffs and validated graph, never scenario names. */
+/** Pure engine input: Phase 1 accepts explicit entity IDs; automatic diff mapping is pending. */
 export interface ImpactInput {
   diff: FileDiff[];
   changedEntityIds: string[];

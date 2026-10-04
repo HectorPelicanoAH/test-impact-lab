@@ -1,0 +1,316 @@
+{
+  "schemaVersion": 1,
+  "nodes": [
+    {
+      "id": "Email",
+      "path": "apps/backend/src/auth/domain/Email.ts",
+      "side": "backend",
+      "layer": "Domain",
+      "kind": "entity"
+    },
+    {
+      "id": "PasswordHash",
+      "path": "apps/backend/src/auth/domain/PasswordHash.ts",
+      "side": "backend",
+      "layer": "Domain",
+      "kind": "entity"
+    },
+    {
+      "id": "User",
+      "path": "apps/backend/src/auth/domain/User.ts",
+      "side": "backend",
+      "layer": "Domain",
+      "kind": "entity"
+    },
+    {
+      "id": "UserRepository",
+      "path": "apps/backend/src/auth/domain/UserRepository.ts",
+      "side": "backend",
+      "layer": "Port",
+      "kind": "entity"
+    },
+    {
+      "id": "AuthenticateUser",
+      "path": "apps/backend/src/auth/application/AuthenticateUser.ts",
+      "side": "backend",
+      "layer": "Application",
+      "kind": "entity"
+    },
+    {
+      "id": "LoginController",
+      "path": "apps/backend/src/auth/infrastructure/inbound/http/LoginController.ts",
+      "side": "backend",
+      "layer": "Primary adapter",
+      "kind": "entity"
+    },
+    {
+      "id": "InMemoryUserRepository",
+      "path": "apps/backend/src/auth/infrastructure/outbound/persistence/InMemoryUserRepository.ts",
+      "side": "backend",
+      "layer": "Secondary adapter",
+      "kind": "entity"
+    },
+    {
+      "id": "Composition",
+      "path": "apps/backend/src/composition.ts",
+      "side": "backend",
+      "layer": "Composition root",
+      "kind": "entity"
+    },
+    {
+      "id": "HttpServer",
+      "path": "apps/backend/src/http.ts",
+      "side": "backend",
+      "layer": "HTTP transport",
+      "kind": "entity"
+    },
+    {
+      "id": "LoginPage",
+      "path": "apps/frontend/src/LoginPage.tsx",
+      "side": "frontend",
+      "layer": "UI",
+      "kind": "entity"
+    },
+    {
+      "id": "LoginForm",
+      "path": "apps/frontend/src/components/LoginForm.tsx",
+      "side": "frontend",
+      "layer": "UI",
+      "kind": "entity"
+    },
+    {
+      "id": "LoginButton",
+      "path": "apps/frontend/src/components/LoginButton.tsx",
+      "side": "frontend",
+      "layer": "UI",
+      "kind": "entity"
+    },
+    {
+      "id": "EmailInput",
+      "path": "apps/frontend/src/components/EmailInput.tsx",
+      "side": "frontend",
+      "layer": "UI",
+      "kind": "entity"
+    },
+    {
+      "id": "PasswordInput",
+      "path": "apps/frontend/src/components/PasswordInput.tsx",
+      "side": "frontend",
+      "layer": "UI",
+      "kind": "entity"
+    },
+    {
+      "id": "useLogin",
+      "path": "apps/frontend/src/auth/useLogin.ts",
+      "side": "frontend",
+      "layer": "Frontend application",
+      "kind": "entity"
+    },
+    {
+      "id": "AuthClient",
+      "path": "apps/frontend/src/auth/AuthClient.ts",
+      "side": "frontend",
+      "layer": "API client",
+      "kind": "entity"
+    },
+    {
+      "id": "normalizeEmail",
+      "path": "apps/frontend/src/auth/normalizeEmail.ts",
+      "side": "frontend",
+      "layer": "Frontend application",
+      "kind": "entity"
+    },
+    {
+      "id": "POST /login",
+      "path": "packages/api-contract/src/login.ts",
+      "side": "boundary",
+      "layer": "API contract",
+      "kind": "contract"
+    }
+  ],
+  "policies": [
+    {
+      "from": "POST /login",
+      "to": "HttpServer",
+      "contractExposure": true
+    },
+    {
+      "from": "HttpServer",
+      "to": "LoginController",
+      "contractExposure": true
+    },
+    {
+      "from": "LoginController",
+      "to": "AuthenticateUser",
+      "contractExposure": true
+    },
+    {
+      "from": "AuthenticateUser",
+      "to": "Email",
+      "contractExposure": true
+    },
+    {
+      "from": "AuthenticateUser",
+      "to": "UserRepository",
+      "contractExposure": true
+    },
+    {
+      "from": "UserRepository",
+      "to": "User",
+      "contractExposure": true
+    },
+    {
+      "from": "User",
+      "to": "Email",
+      "contractExposure": true
+    },
+    {
+      "from": "User",
+      "to": "PasswordHash",
+      "contractExposure": true
+    },
+    {
+      "from": "AuthenticateUser",
+      "to": "InMemoryUserRepository",
+      "contractExposure": true
+    },
+    {
+      "from": "AuthClient",
+      "to": "POST /login",
+      "contractExposure": true,
+      "forwardBoundaryEvidence": true
+    },
+    {
+      "from": "AuthClient",
+      "to": "normalizeEmail",
+      "contractExposure": true
+    },
+    {
+      "from": "useLogin",
+      "to": "AuthClient",
+      "contractExposure": true,
+      "forwardBoundaryEvidence": true
+    }
+  ],
+  "relationships": [
+    {
+      "from": "POST /login",
+      "to": "HttpServer",
+      "type": "exposes",
+      "source": "apps/backend/src/http.ts",
+      "reason": "The POST /login contract is served by the HTTP route, which delegates to LoginController."
+    },
+    {
+      "from": "AuthenticateUser",
+      "to": "InMemoryUserRepository",
+      "type": "injects",
+      "source": "apps/backend/src/composition.ts",
+      "reason": "The composition root injects this concrete repository through the UserRepository port."
+    },
+    {
+      "from": "InMemoryUserRepository",
+      "to": "UserRepository",
+      "type": "implements",
+      "source": "apps/backend/src/auth/infrastructure/outbound/persistence/InMemoryUserRepository.ts",
+      "reason": "The secondary adapter explicitly implements the domain-owned repository port."
+    }
+  ],
+  "tests": [
+    {
+      "id": "BU1",
+      "kind": "backend-unit",
+      "file": "apps/backend/src/auth/domain/User.test.ts",
+      "exercises": [
+        "User"
+      ]
+    },
+    {
+      "id": "BU2",
+      "kind": "backend-unit",
+      "file": "apps/backend/src/auth/domain/User.test.ts",
+      "exercises": [
+        "User"
+      ]
+    },
+    {
+      "id": "BU3",
+      "kind": "backend-unit",
+      "file": "apps/backend/src/auth/domain/User.test.ts",
+      "exercises": [
+        "User"
+      ]
+    },
+    {
+      "id": "BU4",
+      "kind": "backend-unit",
+      "file": "apps/backend/src/auth/application/AuthenticateUser.test.ts",
+      "exercises": [
+        "AuthenticateUser"
+      ]
+    },
+    {
+      "id": "BU5",
+      "kind": "backend-unit",
+      "file": "apps/backend/src/auth/application/AuthenticateUser.test.ts",
+      "exercises": [
+        "AuthenticateUser"
+      ]
+    },
+    {
+      "id": "FU1",
+      "kind": "frontend-unit",
+      "file": "apps/frontend/src/auth/normalizeEmail.test.ts",
+      "exercises": [
+        "normalizeEmail"
+      ]
+    },
+    {
+      "id": "C1",
+      "kind": "component",
+      "file": "apps/frontend/src/components/LoginButton.test.tsx",
+      "exercises": [
+        "LoginButton"
+      ]
+    },
+    {
+      "id": "C2",
+      "kind": "component",
+      "file": "apps/frontend/src/components/LoginForm.test.tsx",
+      "exercises": [
+        "LoginForm"
+      ]
+    },
+    {
+      "id": "CT1",
+      "kind": "contract",
+      "file": "tests/contract/login.test.ts",
+      "exercises": [
+        "POST /login"
+      ]
+    },
+    {
+      "id": "I1",
+      "kind": "integration",
+      "file": "tests/integration/login.test.ts",
+      "exercises": [
+        "HttpServer"
+      ]
+    },
+    {
+      "id": "I2",
+      "kind": "integration",
+      "file": "tests/integration/login.test.ts",
+      "exercises": [
+        "HttpServer"
+      ]
+    },
+    {
+      "id": "E1",
+      "kind": "e2e",
+      "file": "tests/e2e/login.spec.ts",
+      "exercises": [
+        "LoginPage"
+      ]
+    }
+  ]
+}
