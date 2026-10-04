@@ -1,5 +1,5 @@
 import { LOGIN_PATH, isLoginError, isLoginSuccess, type LoginSuccess } from '@test-impact/api-contract';
-import { normalizeEmail } from './normalizeEmail';
+import { buildLoginRequest } from './buildLoginRequest';
 
 export class AuthClient {
   constructor(private readonly fetcher: typeof fetch = (...args) => fetch(...args)) {}
@@ -8,7 +8,7 @@ export class AuthClient {
     const response = await this.fetcher(LOGIN_PATH, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: normalizeEmail(email), password }),
+      body: JSON.stringify(buildLoginRequest(email, password)),
     });
     const body: unknown = await response.json();
     if (response.status === 200 && isLoginSuccess(body)) return body;

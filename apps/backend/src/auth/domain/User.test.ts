@@ -17,3 +17,13 @@ test('[BU3] Locked user rejects the correct password', async () => {
   const user = new User('u1', new Email('demo@example.com'), await PasswordHash.fromPassword('secret'), true);
   expect(await user.authenticate('secret')).toBe('locked');
 });
+
+test('[BU4] User requires a non-empty identity', async () => {
+  const hash = await PasswordHash.fromPassword('secret');
+  expect(() => new User('  ', new Email('demo@example.com'), hash)).toThrow('identity');
+});
+
+test('[BU5] User exposes its normalized email identity', async () => {
+  const user = new User('u1', new Email(' Demo@EXAMPLE.COM '), await PasswordHash.fromPassword('secret'));
+  expect(user.email.value).toBe('demo@example.com');
+});

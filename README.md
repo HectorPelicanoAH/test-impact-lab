@@ -1,6 +1,6 @@
 # Test Impact Lab
 
-A real login application and deterministic test-impact engine in a TypeScript monorepo. **Phase 1 complete:** the vertical slice runs, its tests execute, and graph traversal selects explainable subsets. The Monaco/React Flow explorer and browser-triggered snapshot runner are later phases.
+A real login application and deterministic test-impact engine in a TypeScript monorepo. **Phase 2 complete:** 39 meaningful product tests and four boundary scenarios run against an explainable graph. The Monaco/React Flow explorer and browser-triggered snapshot runner are later phases.
 
 ## Run
 
@@ -22,7 +22,7 @@ pnpm test                          # Vitest: product, engine and architecture ch
 pnpm test:e2e                      # Chromium + real frontend/backend on free ports
 pnpm validate                      # Build, graph consistency, Vitest and E2E
 pnpm impact LoginButton            # Explain a hypothetical entity change
-pnpm impact User
+pnpm impact 'User.authenticate'
 pnpm impact 'POST /login'
 pnpm test:selected LoginButton     # Physically run the computed subset
 ```
@@ -47,7 +47,7 @@ flowchart TD
 
 ## Test catalogue and impact
 
-The vertical slice has **12 product tests**: 5 backend unit, 1 frontend unit, 2 component, 1 contract, 2 HTTP integration, 1 Playwright E2E. There are also 10 engine and 2 architecture checks; these are quality checks, outside the demo catalogue. Phase 2 expands the product catalogue toward 39 meaningful cases.
+The catalogue has **39 product tests**: 17 backend unit, 4 frontend unit, 8 component, 3 contract, 6 HTTP integration and 1 Playwright E2E. Engine and architecture checks sit outside the demo catalogue.
 
 Graph edges point consumer → dependency. Normal impact travels in reverse. Explicit evidence paths reach API contracts; unchanged contracts permit contract and E2E journey evidence across the boundary while stopping implementation test propagation. Changed contracts expose relevant code on both sides. Every selected test has a causal path, and every excluded test has a reason. No AI runs in the engine.
 
@@ -55,10 +55,10 @@ Current graph-derived examples (not engine rules):
 
 | Changed entity | Product tests selected |
 | --- | ---: |
-| `LoginButton` | 3 / 12 |
-| `normalizeEmail` | 4 / 12 |
-| `User` | 9 / 12 |
-| `POST /login` | 11 / 12 |
+| `LoginButton` | 4 / 39: 3 component + E2E |
+| `normalizeEmail` | 11 / 39: frontend unit/component + contract + E2E |
+| `User.authenticate` | 13 / 39: 5 backend unit + 4 integration + 3 contract + E2E |
+| `POST /login` | 29 / 39 across both sides of the boundary |
 
 Inputs currently use explicit changed entity IDs. File ranges are coarse, covering each entity's source module; automatic diff-to-entity mapping and snapshot hashes are pending. Unknown entities conservatively select the full catalogue. Completeness depends on the reviewed graph evidence, not a claim of universal coverage.
 
@@ -67,6 +67,6 @@ Inputs currently use explicit changed entity IDs. File ranges are coarse, coveri
 To add a node/test: register its stable ID, file, architectural layer and local subjects in the metadata; add a real top-level test with a unique `[ID]` title; run `pnpm graph:generate`, `pnpm graph:check`, and relevant tests. Never add scenario-to-test lists. TypeScript 5.9 is retained for its stable compiler API.
 
 - [Architecture and algorithm](docs/ARCHITECTURE.md)
-- [Implementation state and Phase 2 handoff](docs/IMPLEMENTATION_STATE.md)
+- [Implementation state and Phase 3 handoff](docs/IMPLEMENTATION_STATE.md)
 - [Graph, catalogue and planned API types](packages/impact-engine/src/schema.ts)
 - [Supplied SDD](docs/SDD.md)

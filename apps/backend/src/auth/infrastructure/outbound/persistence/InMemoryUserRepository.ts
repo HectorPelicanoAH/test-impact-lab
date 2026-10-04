@@ -13,4 +13,8 @@ export class InMemoryUserRepository implements UserRepository {
   async findByEmail(email: Email): Promise<User | undefined> {
     return this.users.get(email.value);
   }
+
+  get size(): number {
+    return this.users.size;
+  }
 }

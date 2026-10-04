@@ -29,12 +29,13 @@ const edges: GraphEdge[] = [];
 function add(from: string, to: string, type: GraphEdge['type'], kind: GraphEdge['evidence']['kind'], source: string, reason: string) {
   const override = metadata.policies.find(policy => policy.from === from && policy.to === to);
   edges.push({ id: `${type}:${from}->${to}`, from, to, type, evidence: { kind, source, reason }, policy: {
-    reverseImpact: true,
+    reverseImpact: override && 'reverseImpact' in override ? (override.reverseImpact ?? true) : true,
     forwardBoundaryEvidence: override?.forwardBoundaryEvidence ?? false,
     contractExposure: override?.contractExposure ?? false,
   } });
 }
 for (const node of metadata.nodes) {
+  if ('analyzeImports' in node && node.analyzeImports === false) continue;
   for (const specifier of moduleReferences(sourceFile(node.path))) {
     const targetPath = resolveModule(specifier, node.path);
     const target = metadata.nodes.find(candidate => candidate.path === targetPath);
