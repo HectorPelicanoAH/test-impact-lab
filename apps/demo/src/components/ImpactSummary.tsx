@@ -1,4 +1,5 @@
 import type { ImpactGraph, ImpactResult, TestKind, TestMetadata } from '@test-impact/impact-engine';
+import type { FederatedImpact } from '../../../../packages/impact-engine/src/federated';
 
 const labels: Record<TestKind, string> = {
   e2e: 'E2E', component: 'Component', 'frontend-unit': 'Frontend unit', contract: 'Contract', integration: 'Integration', 'backend-unit': 'Backend unit',
@@ -17,8 +18,8 @@ export function pathLabels(testId: string, result: ImpactResult, graph: ImpactGr
   return labels;
 }
 
-export function ImpactSummary({ result, catalogue, graph, onWhy }: {
-  result?: ImpactResult; catalogue: TestMetadata[]; graph: ImpactGraph; onWhy: (id: string) => void;
+export function ImpactSummary({ result, federated, catalogue, graph, onWhy }: {
+  result?: ImpactResult; federated?: FederatedImpact; catalogue: TestMetadata[]; graph: ImpactGraph; onWhy: (id: string) => void;
 }) {
   if (!result) return <section className="impact-empty"><span>01</span><h2>Make a code change</h2><p>Edit a file or choose a suggested change, then calculate regression.</p></section>;
   return <section className="impact-summary">
@@ -29,6 +30,9 @@ export function ImpactSummary({ result, catalogue, graph, onWhy }: {
       return <div key={kind}><span>{labels[kind]}</span><strong>{selected} / {tests.length}</strong><i style={{ width: `${tests.length ? selected / tests.length * 100 : 0}%` }} /></div>;
     })}</div>
     <div className="avoidance"><strong>{catalogue.length - result.selectedTests.length}</strong><span>tests avoided</span></div>
+    {federated && <div className="boundary-note"><b>DISTRIBUTED SUITES · {federated.suites.filter(item => item.selected).length} / {federated.suites.length}</b>
+      {federated.mode === 'conservative-full' ? 'Unresolved evidence expands the available catalogue.' : 'Selected from versioned code, HTTP and event relationships.'}
+      {' '}Unavailable external or broker suites remain pending.</div>}
     {result.boundaries.length > 0 && <div className="boundary-stack"><div className="panel-title">CONTRACT BOUNDARIES</div>{result.boundaries.map(boundary => <div key={`${boundary.contractId}:${boundary.origin}`} className={`boundary-note ${boundary.crossed ? 'crossed' : ''}`}><b>{boundary.crossed ? 'BOUNDARY CHANGED' : 'BOUNDARY HELD'}</b>{boundary.reason}</div>)}</div>}
     <div className="selected-list"><div className="panel-title">SELECTED TESTS</div>{result.selectedTests.map(id => {
       const test = catalogue.find(item => item.id === id)!;

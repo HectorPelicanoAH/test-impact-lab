@@ -11,6 +11,7 @@ import { authorizedPath, applyEdits } from '../../scripts/graph/files';
 import { analyzeOverlay } from '../../scripts/graph/analyze';
 import { canonical, hash } from '../../scripts/graph/core';
 import { locateSource } from '../../scripts/graph/locator';
+import { readFederatedSuites } from '../../packages/impact-engine/src/federated';
 
 const root = resolve(process.cwd());
 function demoSnapshot(archive: DiscoveryArchive, sessionToken: string): DemoSnapshot {
@@ -136,7 +137,7 @@ export function createDemoApi(executor: Executor = executeTests, workspace = new
         const analysis = analyzeOverlay(current, canonicalEdits);
         const id = hash(`${snapshotId}:${canonical(canonicalEdits)}`);
         const result: DemoAnalysis = { id, snapshotId, result: analysis.result, diff: analysis.diff, graph: analysis.graph,
-          beforeGraphId: current.graph.id, afterGraphId: analysis.after.graph.id, delta: analysis.delta, discovery: analysis.after.graph };
+          beforeGraphId: current.graph.id, afterGraphId: analysis.after.graph.id, delta: analysis.delta, discovery: analysis.after.graph, federated: analysis.federated };
         workspace.store.publish(analysis.after, false);
         analyses.set(id, { analysis: result, edits: canonicalEdits, after: analysis.after });
         if (analyses.size > 32) analyses.delete(analyses.keys().next().value!);
@@ -156,15 +157,20 @@ export function createDemoApi(executor: Executor = executeTests, workspace = new
         }
         const selectedIds = new Set(stored.analysis.result.selectedTests);
         const tests = body.mode === 'full' ? current.catalogue : current.catalogue.filter(test => selectedIds.has(test.id));
-        if (!tests.length) throw new Error('The analysis selected no tests.');
+        const suiteIds = new Set(stored.analysis.federated.suites.filter(item => item.selected).map(item => item.id));
+        const federatedSuites = readFederatedSuites(current).filter(item => body.mode === 'full' || suiteIds.has(item.id));
+        if (!tests.length && !federatedSuites.length) throw new Error('The analysis selected no tests.');
         const id = randomUUID();
         const queued: DemoExecution = {
           id, analysisId: body.analysisId, snapshotId, mode: body.mode, status: 'queued',
           results: tests.map(test => ({ testId: test.id, name: test.name.replace(/^\[[^\]]+\]\s*/, ''), kind: test.kind, status: 'queued' })),
+          suiteResults: federatedSuites.map(item => ({ id: item.id, file: item.file,
+            availability: stored.analysis.federated.suites.find(decision => decision.id === item.id)!.availability, status: 'queued' })),
         };
         executions.set(id, queued);
         void executor({ id, analysisId: body.analysisId, snapshotId, mode: body.mode, root: workspace.root, edits: stored.edits,
-          sourceSnapshot: current.executionFiles, discoveryConfig: current.config, tests, onUpdate: execution => executions.set(id, execution) })
+          sourceSnapshot: current.executionFiles, discoveryConfig: current.config, tests, federatedSuites,
+          onUpdate: execution => executions.set(id, execution) })
           .catch(error => executions.set(id, { ...queued, status: 'failed', error: error instanceof Error ? error.message : 'Execution failed.' }));
         return json(response, 202, executions.get(id));
       } catch (error) {

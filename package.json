@@ -33,6 +33,7 @@
     "validate": "pnpm build && pnpm graph:check && pnpm test:all",
     "test:impact": "vitest run packages/impact-engine",
     "test:execution": "node --import tsx scripts/verify-demo-execution.ts",
+    "test:federated-execution": "node --import tsx scripts/verify-federated-execution.ts",
     "test:discovery-execution": "node --import tsx scripts/verify-discovery-execution.ts",
     "test:discovery-browser": "node --import tsx scripts/verify-discovery-browser.ts",
     "test:evidence-browser": "node --import tsx scripts/verify-evidence-browser.ts",

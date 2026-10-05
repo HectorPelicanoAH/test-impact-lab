@@ -34,8 +34,8 @@ function SourcePreview({ source, onBack }: { source: LocatedSource; onBack: () =
   </section>;
 }
 
-export function DiscoveryExplorer({ snapshot, analysis, focusTest, onFocusTest }: {
-  snapshot: DemoSnapshot; analysis?: DemoAnalysis; focusTest?: string; onFocusTest: (id?: string) => void;
+export function DiscoveryExplorer({ snapshot, analysis, focusTest, focusEdge, onFocusTest }: {
+  snapshot: DemoSnapshot; analysis?: DemoAnalysis; focusTest?: string; focusEdge?: string; onFocusTest: (id?: string) => void;
 }) {
   const [level, setLevel] = useState<Level>('code');
   const [side, setSide] = useState<RevisionSide>('after');
@@ -62,6 +62,12 @@ export function DiscoveryExplorer({ snapshot, analysis, focusTest, onFocusTest }
   const paths = focusTest && analysis ? analysis.result.explanations.find(item => item.testId === focusTest)?.path ?? [] : [];
   const labels = focusTest && analysis ? pathLabels(focusTest, analysis.result, analysis.graph) : [];
   useEffect(() => { requestVersion.current++; setSelection(undefined); setSource(undefined); setSourceError(undefined); setSide('after'); }, [snapshot.id, analysis?.id]);
+  useEffect(() => {
+    if (!focusEdge || !analysis) return;
+    const revision = analysis.discovery.edges.some(edge => edge.id === focusEdge) ? 'after' : 'before';
+    setSide(revision); setLevel('code'); setScope('all'); setRelation('all'); setProvenance('all');
+    setSelection({ kind: 'edge', id: focusEdge }); setSource(undefined);
+  }, [focusEdge, analysis?.id]);
 
   function select(kind: Selection['kind'], id: string, revision: RevisionSide = currentSide) {
     requestVersion.current++; setSide(revision); setSelection({ kind, id }); setSource(undefined); setSourceError(undefined);

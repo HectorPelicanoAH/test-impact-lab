@@ -60,16 +60,25 @@ export class WorkspaceSnapshots {
   }
   watch(onChange: (archive: DiscoveryArchive) => void, onError: (error: Error) => void): () => void {
     let timer: NodeJS.Timeout | undefined;
-    const watcher: FSWatcher = watch(this.root, { recursive: true }, (_event, filename) => {
+    // Filesystem events can be dropped under resource pressure; periodic refresh is a safety net.
+    const polling = setInterval(() => rebuild(), 2_000);
+    let watcher: FSWatcher | undefined;
+    const rebuild = () => {
+      try { const before = this.current.graph.id; const after = this.refresh(); if (after.graph.id !== before) onChange(after); }
+      catch (error) { onError(error instanceof Error ? error : new Error(String(error))); }
+    };
+    const fallBackOnFileLimit = (error: Error) => {
+      if ((error as NodeJS.ErrnoException).code !== 'EMFILE') { onError(error); return; }
+      watcher?.close(); watcher = undefined;
+    };
+    try { watcher = watch(this.root, { recursive: true }, (_event, filename) => {
       const path = filename?.toString().replaceAll('\\', '/') ?? '';
       if (path.split('/').some(part => part.startsWith('.') || ['node_modules', 'dist', 'dist-server', 'test-results'].includes(part))) return;
       if (timer) clearTimeout(timer);
-      timer = setTimeout(() => {
-        try { const before = this.current.graph.id; const after = this.refresh(); if (after.graph.id !== before) onChange(after); }
-        catch (error) { onError(error instanceof Error ? error : new Error(String(error))); }
-      }, 100);
-    });
-    watcher.on('error', onError);
-    return () => { if (timer) clearTimeout(timer); watcher.close(); };
+      timer = setTimeout(rebuild, 100);
+    }); }
+    catch (error) { fallBackOnFileLimit(error instanceof Error ? error : new Error(String(error))); }
+    watcher?.on('error', fallBackOnFileLimit);
+    return () => { if (timer) clearTimeout(timer); clearInterval(polling); watcher?.close(); };
   }
 }

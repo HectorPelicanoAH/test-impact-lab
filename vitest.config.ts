@@ -8,5 +8,6 @@ export default defineConfig({
     exclude: ['tests/e2e/**', '**/node_modules/**'],
     testTimeout: 10_000,
     hookTimeout: 10_000,
+    maxWorkers: 2,
   },
 });

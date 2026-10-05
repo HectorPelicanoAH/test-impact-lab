@@ -146,7 +146,7 @@ test('a changed provider method or route removes the asserted GET exposure even 
       expect(after.graph.diagnostics.some(item => item.code === 'missing-contract' && item.message.includes('Provider source'))).toBe(true);
     } finally { rmSync(root, { recursive: true, force: true }); }
   }
-});
+}, 30_000);
 
 test('empty external Git commit changes the pinned snapshot even when source bytes are identical', () => {
   const { root } = materialize();

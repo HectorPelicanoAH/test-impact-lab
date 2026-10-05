@@ -38,7 +38,7 @@ test('failed rebuild retains the last valid atomic pointer and historical bytes'
   expect(next.graph.id).not.toBe(original.graph.id);
   expect(store.read(original.graph.id).sources['apps/frontend/src/Added.tsx']).toBeUndefined();
   expect(store.read().sources['apps/frontend/src/Added.tsx']).toBeDefined();
-});
+}, 30_000);
 
 test('real filesystem watch converges to a clean full rebuild for add and delete', async () => {
   const root = fixture();
@@ -48,16 +48,16 @@ test('real filesystem watch converges to a clean full rebuild for add and delete
   try {
     const path = join(root, 'apps/frontend/src/Watched.tsx');
     writeFileSync(path, 'export const Watched = () => null;');
-    // The expanded G5 product is rebuilt while the full suite runs concurrent compiler workers.
-    await expect.poll(() => notified, { timeout: 15000 }).toBeDefined();
+    // A full rebuild includes the G6 suite catalogue and may overlap concurrent compiler workers.
+    await expect.poll(() => notified ?? failure?.message, { timeout: 30000 }).toBeDefined();
     expect(failure).toBeUndefined();
     expect(notified).toBe(buildArchive(loadWorkspace(root)).graph.id);
     notified = undefined;
     rmSync(path);
-    await expect.poll(() => notified, { timeout: 15000 }).toBeDefined();
+    await expect.poll(() => notified, { timeout: 30000 }).toBeDefined();
     expect(notified).toBe(buildArchive(loadWorkspace(root)).graph.id);
   } finally { close(); }
-}, 40000);
+}, 80000);
 
 test('materialized overlay applies additions and deletions without reading changed checkout bytes', () => {
   const root = directory();

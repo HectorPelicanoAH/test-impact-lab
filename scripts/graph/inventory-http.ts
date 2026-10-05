@@ -157,6 +157,7 @@ export function extractExternalRepository(builder: GraphBuilder, allSources: Sou
   extractTypescript(externalBuilder);
   for (const node of externalBuilder.nodes.values()) builder.nodes.set(node.id, node);
   for (const edge of externalBuilder.edges.values()) builder.edges.set(edge.id, edge);
+  for (const policy of externalBuilder.policies.values()) builder.policies.set(policy.id, policy);
   for (const proof of externalBuilder.evidence.values()) builder.evidence.set(proof.id, { ...proof, extractor: { ...proof.extractor, configurationHash: builder.configurationHash } });
   for (const diagnostic of externalBuilder.diagnostics.values()) builder.diagnostics.set(diagnostic.id, diagnostic);
   for (const test of externalTests(allSources)) {

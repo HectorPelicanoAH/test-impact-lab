@@ -10,6 +10,7 @@
 - Autorización humana adicional del 2026-10-05: «sigue», exclusivamente G3. No se inicia G4 ni se cambia automáticamente de modelo.
 - Autorización humana adicional del 2026-10-05: «sigue», exclusivamente G4. G5 no está autorizada; sin cambio automático de modelo ni agentes adicionales.
 - Autorización humana del 2026-10-05: «siguiente», interpretada como siguiente fase pendiente, exclusivamente G5. No se crean agentes ni se cambia automáticamente el modelo. G6 no autorizada.
+- Autorización humana del 2026-10-05: «sigue», exclusivamente G6. El usuario acordó GPT-6 Sol / high para conservar tokens; G7 no está autorizada. Sin agentes, commit/push ni despliegue.
 
 | Fase | Estado |
 | --- | --- |
@@ -18,7 +19,7 @@
 | G3 — Inspector de evidencias | Completada |
 | G4 — Pedidos y producto externo HTTP | Completada |
 | G5 — Eventos, broker y consumidores | Completada |
-| G6 — Impacto distribuido y runners | Pendiente; no autorizada |
+| G6 — Impacto distribuido y runners | Completada |
 | G7 — Trazas y correlación | Pendiente; no autorizada |
 | G8 — Service mesh | Pendiente; no autorizada |
 | G9 — Recorridos y auditoría final | Pendiente; no autorizada |
@@ -288,3 +289,28 @@ SQLite experimental en Node 24; sin HA, exactamente una vez, reserva distribuida
 **Detenerse antes de G6.** La siguiente fase requiere autorización humana separada para políticas distribuidas y runners. Modelo recomendado: **GPT-6 Astra / xhigh**.
 
 **Fase G5 completada. Para iniciar G6, selecciona GPT-6 Astra / xhigh y escribe «sigue».**
+
+## G6 — Impacto distribuido y ejecución federada
+
+Autorización: «sigue» del 2026-10-05, solo G6. Por preferencia expresa de ahorro de tokens, se acordó GPT-6 Sol / high para G6–G9. No se ha iniciado G7, cambiado automáticamente de modelo, creado agentes, hecho commit/push ni desplegado.
+
+### Entrega y decisiones
+
+- [Políticas y motor](../packages/impact-engine/src/federated.ts): usa la unión de grafos anterior/posterior, ciclo visitado y recorridos por relación. La inversión normal lleva de dependencia a consumidor; publicación, exposición HTTP y realización de handler tienen pasos adicionales explícitos. `contains` es solo estructural. Una suscripción retirada nace de evidencia previa; compartir broker no propaga de un consumidor al otro. Las políticas por tipo quedan referenciadas en aristas v2. Diagnósticos nuevos o fuente no resuelta amplían la selección conservadoramente.
+- [Catálogo federado revisado](../impact/evidence/federated-tests.json): 12 suites de pedidos, inventario, contrato de evento, transporte, ambos consumidores y recorridos Chromium. Los sujetos declaran intención de prueba, no cobertura de assertions medida. El manifiesto y las fuentes externas fijadas forman parte del snapshot.
+- [Runner](../apps/demo/execution.ts): el servidor deriva suites de snapshot/análisis; el navegador solo envía IDs y modo. Comandos Vitest, Playwright y Node test son fijos y se ejecutan sobre bytes capturados en overlays. Se distinguen afectación, disponibilidad, ejecución, fallo y omisión. Broker ausente y fuente externa inaccesible figuran como no ejecutables; informes vacíos o parciales nunca cuentan como éxito. `dev:events` proporciona el identificador de su broker propio al runner.
+- [Web](../apps/demo/src/App.tsx): lista decisiones distribuidas, causa, recorrido de relaciones, evidencia navegable incluso de relaciones retiradas y resultado físico de cada suite. El catálogo antiguo de 39 tests sigue separado por compatibilidad; no se interpreta como cobertura de los proyectos nuevos.
+
+### Aceptación y validación
+
+Los [tests del motor](../tests/dependency-graph/federated.test.ts) comprueban pantalla de pedidos→journey, contrato de inventario→cliente/proveedor inaccesible, schema OrderCreated→productor/ambos consumidores, comportamiento de publicador sin cambio de schema, implementación de notificaciones sin arrastrar preparación, suscripción retirada con arista histórica, destino HTTP no verificable y archivo sin sujeto. Las suites reales de notificaciones y preparación verifican efectos locales. La verificación [selected/full](../scripts/verify-federated-execution.ts) muta el resultado de notificaciones con snapshots y datos iniciales iguales y compara fallos observados.
+
+- `CI=true PLAYWRIGHT_BROWSERS_PATH=/private/tmp/test-impact-lab-browsers pnpm validate`: typecheck, compilación, grafo v2 (334 nodos / 450 aristas), comprobación de snapshot, 169 tests Vitest correctos / 5 omitidos y 3 Chromium correctos / 1 omitido.
+- `CI=true pnpm exec vitest run tests/dependency-graph/federated.test.ts --maxWorkers=2`: 7 correctos, incluidos productor y ambos consumidores.
+- `node --experimental-strip-types --test --test-reporter=tap examples/external-inventory/test/inventory.test.ts`: 1 test externo correcto y resumen TAP verificado.
+- `CI=true PLAYWRIGHT_BROWSERS_PATH=/private/tmp/test-impact-lab-browsers pnpm test:federated-execution`: correcto. Mutación controlada: selected (39 login + 3 suites federadas) y full (39 login + 12 suites) detectan exactamente `notifications-consumer` como fallo relevante. El proveedor externo y los dos recorridos de pedidos pasan en full; 2 suites broker constan como no ejecutables en ambos modos. Informes auditables en `.impact-runs/g6-selected-e9dfeff3-0619-4dae-b00c-1227a35c05f1/` y `.impact-runs/g6-full-91965aed-59a6-4b43-b706-3a3f382f62bc/` (ignorados por Git).
+- `git diff --check`: correcto.
+
+El runner requiere paquetes disponibles para overlays; si falta un tarball offline, usa instalación con lockfile fijo. El perfil RabbitMQ no se pudo ejecutar en este PC porque no hay comando Docker; las suites broker se informan como no disponibles, no aprobadas. G5 ya documentó su ejecución física en un equipo con Docker. El inventario externo sí se materializa en un checkout independiente y se ejecuta desde bytes fijados. Los imports/sujetos de tests no equivalen a cobertura observada. La selección heredada puede ampliar a los 39 tests login para nuevos archivos: es segura, aunque menos precisa; el ahorro de G6 se observa en suites distribuidas. El runner sigue siendo local de confianza, sin sandbox del sistema operativo. Monaco mantiene el aviso de tamaño de bundle.
+
+**Detenerse antes de G7.** Modelo recomendado por la preferencia acordada: **GPT-6 Sol / high**. G7 necesita otro «sigue» humano.

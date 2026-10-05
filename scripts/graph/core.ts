@@ -16,6 +16,20 @@ const encode = (value: string) => encodeURIComponent(value).replace(/[!'()*]/g, 
 export const nodeId = (config: Pick<DiscoveryConfig, 'productId' | 'repositoryId'>, kind: NodeKind, key: string) =>
   `urn:impact:${encode(config.productId)}:${encode(config.repositoryId)}:${kind}:${encode(key)}`;
 export const ordered = <T extends { id: string }>(values: Iterable<T>) => [...values].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+const distributedRules: Record<EdgeKind, string> = {
+  imports: 'Reverse: importers depend on the imported module.', calls: 'Reverse: callers depend on the callee.',
+  renders: 'Reverse: rendering views depend on the rendered component.', routes: 'Reverse: route owners depend on their screen.',
+  implements: 'Reverse: implementations depend on the contract or schema.',
+  'invokes-endpoint': 'Reverse: the HTTP client depends on the qualified endpoint.',
+  publishes: 'Reverse for publisher discovery; forward from a changed publisher to its event channel, then reverse through subscribers.',
+  subscribes: 'Reverse from a changed channel to each bound subscription. A changed subscription does not reach sibling subscriptions.',
+  processes: 'Reverse from a changed subscription to its registered consumer.',
+  exercises: 'Reverse: reviewed test subject, not measured coverage.',
+  contains: 'Structural grouping only; it does not propagate impact.',
+  realizes: 'Reverse from consumer to handler; forward from a changed handler to its consumer.',
+  injects: 'Reverse: composition depends on its injected implementation.',
+  exposes: 'Reverse from changed provider to endpoint; forward from changed endpoint to provider.',
+};
 
 export class GraphBuilder {
   nodes = new Map<string, NodeV2>();
@@ -44,6 +58,8 @@ export class GraphBuilder {
     options: { qualifiers?: EdgeV2['qualifiers']; policyRef?: string; kind?: EvidenceV2['kind']; extractor?: string;
       repository?: { productId: string; repositoryId: string }; revision?: string } = {}) {
     const qualifiers = options.qualifiers ?? {};
+    const policyRef = options.policyRef ?? `distributed:${type}:v1`;
+    if (!this.policies.has(policyRef)) this.policies.set(policyRef, { id: policyRef, version: '1', kind: 'distributed-v1', configuration: { reason: distributedRules[type] } });
     const id = hash([type, from, to, qualifiers]);
     const evidence: EvidenceV2 = {
       id: '', kind: options.kind ?? 'static', extractor: { id: options.extractor ?? 'typescript-discovery', version: '2', configurationHash: this.configurationHash },
@@ -53,7 +69,7 @@ export class GraphBuilder {
     evidence.id = hash([id, evidence.kind, { ...locator, ...('sourceHash' in locator ? { sourceHash: '' } : {}) }, evidence.extractor.id, reason]);
     this.evidence.set(evidence.id, evidence);
     const previous = this.edges.get(id);
-    this.edges.set(id, { id, type, from, to, qualifiers, evidenceIds: [...new Set([...(previous?.evidenceIds ?? []), evidence.id])].sort(), policyRef: options.policyRef ?? 'discovery-conservative-v1' });
+    this.edges.set(id, { id, type, from, to, qualifiers, evidenceIds: [...new Set([...(previous?.evidenceIds ?? []), evidence.id])].sort(), policyRef });
     return id;
   }
   diagnostic(code: string, message: string, locator?: EvidenceLocator) {
@@ -97,7 +113,7 @@ export function validateSnapshot(graph: GraphSnapshotV2, sources: SourceFiles, c
   const nodes = unique(graph.nodes), evidence = unique(graph.evidence), policies = unique(graph.policies);
   unique(graph.edges); unique(graph.diagnostics);
   for (const policy of graph.policies) {
-    if (!['legacy-login-v1', 'conservative-full'].includes(policy.kind) || policy.version !== '1') throw new Error('Unsupported policy version.');
+    if (!['legacy-login-v1', 'conservative-full', 'distributed-v1'].includes(policy.kind) || policy.version !== '1') throw new Error('Unsupported policy version.');
     if (policy.kind === 'legacy-login-v1' && !['reverseImpact', 'forwardBoundaryEvidence', 'contractExposure'].every(key => typeof (policy.configuration as unknown as Record<string, unknown>)[key] === 'boolean')) throw new Error('Invalid compatibility policy.');
   }
   function location(locator: EvidenceLocator) {

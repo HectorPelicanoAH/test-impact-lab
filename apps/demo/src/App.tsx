@@ -33,6 +33,7 @@ export function App() {
   const [newPath, setNewPath] = useState('apps/frontend/src/NewPage.tsx');
   const [analysis, setAnalysis] = useState<DemoAnalysis>();
   const [focusTest, setFocusTest] = useState<string>();
+  const [focusEdge, setFocusEdge] = useState<string>();
   const [pending, setPending] = useState(false);
   const [executions, setExecutions] = useState<Partial<Record<ExecutionMode, DemoExecution>>>({});
   const [error, setError] = useState<string>();
@@ -261,17 +262,26 @@ export function App() {
             : <Editor path={selectedPath} language={languageFor(selectedPath)} theme="vs-dark" value={content} onChange={value => updateFile(value ?? '')}
               options={{ readOnly: !selectedPath || deleted.has(selectedPath), minimap: { enabled: false }, fontSize: 13, lineHeight: 21, fontLigatures: true, padding: { top: 14 }, scrollBeyondLastLine: false, automaticLayout: true, tabSize: 2 }} />}
         </div>
-        <aside className="impact-panel panel"><div className="panel-title">REGRESSION IMPACT</div><ImpactSummary result={analysis?.result} catalogue={snapshot.catalogue} graph={activeGraph!} onWhy={explain} /></aside>
+        <aside className="impact-panel panel"><div className="panel-title">REGRESSION IMPACT</div><ImpactSummary result={analysis?.result} federated={analysis?.federated} catalogue={snapshot.catalogue} graph={activeGraph!} onWhy={explain} /></aside>
       </section>}
 
-      {view === 'graph' && <section className="graph-view"><DiscoveryExplorer snapshot={snapshot} analysis={analysis} focusTest={focusTest} onFocusTest={setFocusTest} /></section>}
+      {view === 'graph' && <section className="graph-view"><DiscoveryExplorer snapshot={snapshot} analysis={analysis} focusTest={focusTest} focusEdge={focusEdge} onFocusTest={setFocusTest} /></section>}
 
-      {view === 'tests' && <section className="tests-view"><div className="tests-heading"><div><span>TEST CATALOGUE</span><h1>{snapshot.catalogue.length} real tests, one application.</h1></div>{analysis && <div><strong>{analysis.result.selectedTests.length}</strong><span>selected</span></div>}</div>
-        <div className="discovery-summary"><h3>EXTERNAL INVENTORY TESTS · {snapshot.externalCatalogue.length || 'SOURCE INACCESSIBLE'}</h3><p>{snapshot.externalCatalogue.length ? 'Registered in the independent Git repository. These tests are NOT part of the available login runner catalogue and are not executed or reported as passed; federation is reserved for G6.' : 'Contract-only inventory: external source/tests unavailable. No external pass or coverage is claimed.'}</p>
-          {snapshot.externalCatalogue.map(test => <p key={test.id}>{test.title} · {test.path} · {test.execution}</p>)}</div>
+      {view === 'tests' && <section className="tests-view"><div className="tests-heading"><div><span>TEST CATALOGUE</span><h1>Local and distributed regression suites.</h1></div>{analysis && <div><strong>{analysis.result.selectedTests.length + analysis.federated.suites.filter(item => item.selected).length}</strong><span>selected</span></div>}</div>
+        <div className="discovery-summary"><h3>EXTERNAL INVENTORY TESTS · {snapshot.externalCatalogue.length || 'SOURCE INACCESSIBLE'}</h3><p>{snapshot.externalCatalogue.length ? 'Registered in the independent Git repository. G6 selects its reviewed suite and executes the pinned source when available.' : 'Contract-only inventory: external source/tests unavailable. No external pass or coverage is claimed.'}</p>
+          {snapshot.externalCatalogue.map(test => <p key={test.id}>{test.title} · {test.path} · G6 suite: inventory-provider</p>)}</div>
         <TestLegend />
         {modified.size > 0 && <div className="changed-files"><b>CHANGED SOURCE</b>{[...modified].sort().map(path => <button key={path} onClick={() => showChange(path)}>{path} <span>VIEW RED / GREEN DIFF ↗</span></button>)}</div>}
-        <ExecutionPanel selectedCount={analysis?.result.selectedTests.length ?? 0} totalCount={snapshot.catalogue.length} executions={executions}
+        {analysis && <div className="panel"><div className="panel-title">DISTRIBUTED IMPACT · {analysis.federated.mode.toUpperCase()}</div>
+          {analysis.federated.warnings.map(warning => <p key={warning}>{warning}</p>)}
+          {analysis.federated.suites.map(suite => <div className="selected-row" key={suite.id}><div><b>{suite.id}</b><span>{suite.selected ? 'Affected' : 'Excluded'} · {suite.availability}</span><small>{suite.reason}</small>
+            <small>{suite.path.map(step => {
+              const edge = analysis.discovery.edges.find(item => item.id === step.edgeId) ?? snapshot.discovery.edges.find(item => item.id === step.edgeId);
+              return `${step.direction} ${edge?.type ?? 'historical edge'}`;
+            }).join(' → ')}</small></div>{suite.path.length > 0 && <button onClick={() => { setFocusEdge(suite.path.at(-1)!.edgeId); setView('graph'); }}>INSPECT EVIDENCE</button>}</div>)}
+        </div>}
+        <ExecutionPanel selectedCount={(analysis?.result.selectedTests.length ?? 0) + (analysis?.federated.suites.filter(item => item.selected).length ?? 0)}
+          totalCount={snapshot.catalogue.length + (analysis?.federated.suites.length ?? 0)} executions={executions}
           busy={Object.values(executions).some(execution => execution?.status === 'queued' || execution?.status === 'running')} disabled={!analysis} onRun={runExecution} onInspect={inspectTest} />
         {inspectedTest && <div ref={inspectorRef}><TestInspector test={inspectedTest} snapshot={snapshot} analysis={analysis} execution={activeExecution} onShowChange={showChange} /></div>}
         <div className="test-table"><div className="test-table-head"><span>STATUS</span><span>ID / TEST</span><span>TYPE</span><span>EVIDENCE</span></div>{snapshot.catalogue.map(test => {

@@ -31,7 +31,7 @@ export interface DiagnosticV2 {
   selectionAction: 'expand-scope' | 'full-available-catalogue'; evidenceIds: string[];
 }
 export interface PolicyV2 {
-  id: string; version: string; kind: 'legacy-login-v1' | 'conservative-full';
+  id: string; version: string; kind: 'legacy-login-v1' | 'conservative-full' | 'distributed-v1';
   configuration: GraphEdge['policy'] | { reason: string };
 }
 export interface ObservationV2 {

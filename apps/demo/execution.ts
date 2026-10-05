@@ -6,6 +6,7 @@ import { performance } from 'node:perf_hooks';
 import type { TestMetadata } from '@test-impact/impact-engine';
 import type { DemoExecution, ExecutionMode, TestExecution } from './src/types';
 import type { DiscoveryConfig, OverlayEdit, SourceFiles } from '../../packages/impact-engine/src/schema-v2';
+import type { FederatedSuite } from '../../packages/impact-engine/src/federated';
 import discoveryConfig from '../../impact/discovery.json';
 import { applyEdits, authorizedPath, readTree, safePath } from '../../scripts/graph/files';
 import { executionEntries, ignoreExecution } from '../../scripts/graph/snapshot';
@@ -20,6 +21,7 @@ export interface RunInput {
   sourceSnapshot?: SourceFiles;
   discoveryConfig?: DiscoveryConfig;
   tests: TestMetadata[];
+  federatedSuites?: FederatedSuite[];
   onUpdate: (execution: DemoExecution) => void;
 }
 
@@ -49,7 +51,8 @@ export function materializeOverlay(directory: string, captured: SourceFiles, edi
 }
 
 function snapshot(execution: DemoExecution): DemoExecution {
-  return { ...execution, results: execution.results.map(result => ({ ...result })) };
+  return { ...execution, results: execution.results.map(result => ({ ...result })),
+    suiteResults: execution.suiteResults?.map(result => ({ ...result })) };
 }
 
 function publish(execution: DemoExecution, onUpdate: RunInput['onUpdate']) {
@@ -157,6 +160,29 @@ function parsePlaywright(path: string, tests: TestMetadata[], output: string): T
   return results;
 }
 
+function federatedReportStatus(path: string, browser: boolean, exitCode: number): 'passed' | 'failed' | 'skipped' {
+  const report = JSON.parse(readFileSync(path, 'utf8')) as {
+    testResults?: { assertionResults?: { status: string }[] }[];
+    suites?: { suites?: unknown[]; specs?: { tests?: { results?: { status: string }[] }[] }[] }[];
+  };
+  const statuses: string[] = [];
+  if (browser) {
+    const visit = (suite: { suites?: unknown[]; specs?: { tests?: { results?: { status: string }[] }[] }[] }) => {
+      for (const spec of suite.specs ?? []) {
+        for (const test of spec.tests ?? []) statuses.push(test.results?.at(-1)?.status ?? 'missing');
+      }
+      for (const child of suite.suites ?? []) visit(child as typeof suite);
+    };
+    visit(report);
+  } else {
+    for (const file of report.testResults ?? []) for (const assertion of file.assertionResults ?? []) statuses.push(assertion.status);
+  }
+  if (!statuses.length) throw new Error('No tests were reported by the federated runner.');
+  if (exitCode !== 0 || statuses.some(status => !['passed', 'skipped', 'pending'].includes(status))) return 'failed';
+  return statuses.every(status => status === 'skipped' || status === 'pending') ? 'skipped'
+    : statuses.some(status => status === 'skipped' || status === 'pending') ? 'skipped' : 'passed';
+}
+
 export async function executeTests(input: RunInput): Promise<DemoExecution> {
   if (!/^[a-zA-Z0-9-]+$/.test(input.id)) throw new Error('Invalid execution ID.');
   const execution: DemoExecution = {
@@ -166,6 +192,11 @@ export async function executeTests(input: RunInput): Promise<DemoExecution> {
     mode: input.mode,
     status: 'queued',
     results: input.tests.map(test => ({ testId: test.id, name: test.name.replace(/^\[[^\]]+\]\s*/, ''), kind: test.kind, status: 'queued' })),
+    suiteResults: (input.federatedSuites ?? []).map(item => ({ id: item.id, file: item.file,
+      availability: item.file.startsWith('external/inventory/') && input.sourceSnapshot?.[item.file] === undefined ? 'source-inaccessible' as const
+        : item.runner.startsWith('broker-') && (!process.env.BROKER_URL || (item.runner === 'broker-vitest' && !process.env.G5_BROKER_CONTAINER))
+          ? 'broker-required' as const : 'available' as const,
+      status: 'queued' as const })),
   };
   publish(execution, input.onUpdate);
   const overlay = mkdtempSync(join(tmpdir(), 'test-impact-lab-'));
@@ -176,7 +207,11 @@ export async function executeTests(input: RunInput): Promise<DemoExecution> {
   try {
     materializeOverlay(overlay, input.sourceSnapshot ?? readTree(input.root, executionEntries, ignoreExecution), input.edits, input.discoveryConfig ?? discoveryConfig);
     const environment = runnerEnvironment();
-    const install = await command(overlay, 'pnpm', ['install', '--offline', '--frozen-lockfile', '--ignore-scripts'], environment);
+    const installEnvironment = runnerEnvironment(environment, { CI: 'true' });
+    let install = await command(overlay, 'pnpm', ['install', '--offline', '--frozen-lockfile', '--ignore-scripts'], installEnvironment);
+    if (install.code !== 0 && install.output.includes('ERR_PNPM_NO_OFFLINE_TARBALL')) {
+      install = await command(overlay, 'pnpm', ['install', '--frozen-lockfile', '--ignore-scripts'], installEnvironment);
+    }
     if (install.code !== 0) throw new Error(`Unable to prepare isolated workspace.\n${install.output}`);
 
     execution.status = 'running';
@@ -202,11 +237,48 @@ export async function executeTests(input: RunInput): Promise<DemoExecution> {
       if (result.code !== 0 && parsed.every(test => test.status !== 'failed')) throw new Error(`${runner} exited with code ${result.code} without reporting a failed requested test.\n${result.output}`);
       publish(execution, input.onUpdate);
     }
-    execution.status = execution.results.every(result => result.status === 'passed' || result.status === 'skipped') ? 'passed' : 'failed';
+    for (const suite of input.federatedSuites ?? []) {
+      const entry = execution.suiteResults?.find(item => item.id === suite.id)!;
+      if (entry.availability !== 'available') {
+        entry.status = 'unavailable'; entry.output = entry.availability === 'broker-required' ? 'RabbitMQ profile is not available for this execution.' : 'External repository source is inaccessible.';
+        publish(execution, input.onUpdate); continue;
+      }
+      entry.status = 'running'; publish(execution, input.onUpdate);
+      const reportPath = resolve(evidence, `suite-${suite.id}.json`);
+      const external = suite.runner === 'node-test';
+      const browser = suite.runner === 'playwright' || suite.runner === 'broker-playwright';
+      const env = runnerEnvironment(environment, {
+        ...(input.sourceSnapshot?.['external/inventory/package.json'] ? { INVENTORY_ROOT: resolve(overlay, 'external/inventory') } : {}),
+        ...(suite.runner.startsWith('broker-') && process.env.BROKER_URL ? { BROKER_URL: process.env.BROKER_URL,
+          ...(process.env.G5_BROKER_CONTAINER ? { G5_BROKER_CONTAINER: process.env.G5_BROKER_CONTAINER } : {}) } : {}),
+      });
+      const result = external
+        ? await command(resolve(overlay, 'external/inventory'), process.execPath, ['--experimental-strip-types', '--test', '--test-reporter=tap', suite.file.slice('external/inventory/'.length)], env)
+        : browser
+          ? await command(overlay, process.execPath, ['scripts/e2e.mjs', suite.file, '--reporter=list,json'], runnerEnvironment(env, { PLAYWRIGHT_JSON_OUTPUT_FILE: reportPath }))
+          : await command(overlay, 'pnpm', ['exec', 'vitest', 'run', suite.file, '--reporter=default', '--reporter=json', `--outputFile.json=${reportPath}`], env);
+      entry.durationMs = result.durationMs;
+      try {
+        if (!external) {
+          entry.status = federatedReportStatus(reportPath, browser, result.code);
+        } else {
+          const count = Number(result.output.match(/^# tests (\d+)$/m)?.[1] ?? 0);
+          if (!count) throw new Error('No tests were reported by the external runner.');
+          entry.status = result.code === 0 ? 'passed' : 'failed';
+        }
+      } catch (error) { entry.status = 'failed'; entry.output = error instanceof Error ? error.message : 'Invalid runner report.'; }
+      if (entry.status !== 'passed') entry.output = entry.output ?? result.output;
+      publish(execution, input.onUpdate);
+    }
+    execution.status = execution.results.some(result => result.status === 'failed') || (execution.suiteResults ?? []).some(result => result.status === 'failed')
+      ? 'failed' : (execution.suiteResults ?? []).some(result => result.status === 'unavailable' || result.status === 'skipped')
+        ? 'incomplete' : 'passed';
   } catch (error) {
     execution.status = 'failed';
     execution.error = error instanceof Error ? error.message : 'Test execution failed.';
     execution.results = execution.results.map(result => result.status === 'passed' || result.status === 'failed' || result.status === 'skipped'
+      ? result : { ...result, status: 'failed', output: execution.error });
+    execution.suiteResults = execution.suiteResults?.map(result => result.status === 'passed' || result.status === 'failed' || result.status === 'skipped' || result.status === 'unavailable'
       ? result : { ...result, status: 'failed', output: execution.error });
   } finally {
     execution.completedAt = new Date().toISOString();

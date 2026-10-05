@@ -29,7 +29,7 @@ export function loadWorkspace(root: string, inventoryRoot = process.env.INVENTOR
   validateGraph(legacyGraph, catalogue);
   const sources = inventory(root, config);
   for (const test of catalogue) sources[test.file] = read(test.file);
-  const configuration = Object.fromEntries(['impact/discovery.json', 'impact/inventory-binding.json', 'impact/evidence/architecture.json', 'impact/graph.json', 'impact/catalogue.json', 'tsconfig.json', 'package.json', 'pnpm-lock.yaml']
+  const configuration = Object.fromEntries(['impact/discovery.json', 'impact/inventory-binding.json', 'impact/evidence/architecture.json', 'impact/evidence/federated-tests.json', 'impact/graph.json', 'impact/catalogue.json', 'tsconfig.json', 'package.json', 'pnpm-lock.yaml']
     .map(path => [path, read(path)]));
   const executionFiles = readTree(root, executionEntries, ignoreExecution);
   let inventoryRevision: string | undefined;

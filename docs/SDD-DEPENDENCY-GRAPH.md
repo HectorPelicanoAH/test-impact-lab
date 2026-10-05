@@ -1,6 +1,6 @@
 # SDD — Descubrimiento de dependencias y sistemas distribuidos
 
-Fecha: 2026-10-05. Estado: G1–G5 completadas. G6 no autorizada. Evidencias y siguiente acción en [el registro de estado](DEPENDENCY-GRAPH-STATE.md).
+Fecha: 2026-10-05. Estado: G1–G6 completadas; G7 pendiente de autorización. Evidencias y siguiente acción en [el registro de estado](DEPENDENCY-GRAPH-STATE.md).
 
 Este documento amplía [el SDD original](SDD.md). Conserva el login, el motor determinista, las explicaciones causales y las ejecuciones reales. Las fases G1–G9 pertenecen a esta ampliación y no renumeran las fases históricas.
 
@@ -32,12 +32,12 @@ Las asignaciones son recomendaciones de ingeniería, no garantías de rendimient
 | G3 | Inspector de evidencias y navegación al código | GPT-6 Sol | high |
 | G4 | Pedidos, inventario externo y contratos HTTP | GPT-6 Sol | high |
 | G5 | Broker, eventos, consumidores y fallos | GPT-6 Astra | high |
-| G6 | Reglas de impacto distribuidas y ejecución entre proyectos | GPT-6 Astra | xhigh |
+| G6 | Reglas de impacto distribuidas y ejecución entre proyectos | GPT-6 Sol | high |
 | G7 | Trazas y correlación con código | GPT-6 Sol | high |
 | G8 | Escenario de service mesh | GPT-6 Sol | high |
-| G9 | Recorridos web, auditoría y entrega reproducible | GPT-6 Astra | xhigh |
+| G9 | Recorridos web, auditoría y entrega reproducible | GPT-6 Sol | high |
 
-Astra se reserva para decisiones y auditorías que atraviesan varios subsistemas; Sol para implementaciones delimitadas por contratos ya aprobados. Referencia oficial consultada: [comparación de modelos de OpenAI](https://developers.openai.com/api/docs/models/compare?model=gpt-6-sol). La disponibilidad en la aplicación puede diferir del catálogo de API.
+Para ahorrar tokens, el usuario acordó usar Sol / high también en G6 y G9. Si la auditoría final descubre decisiones nuevas de arquitectura, se puede reconsiderar ese esfuerzo antes de iniciar G9; no se cambia de modelo automáticamente. Referencia oficial consultada: [comparación de modelos de OpenAI](https://developers.openai.com/api/docs/models/compare?model=gpt-6-sol). La disponibilidad en la aplicación puede diferir del catálogo de API.
 
 ## 4. Punto de partida
 
@@ -178,7 +178,7 @@ Trabajo:
 
 ### G6 — Impacto distribuido y runners
 
-**Entrada:** G5 completada. **Modelo:** Astra / xhigh.
+**Entrada:** G5 completada. **Modelo:** Sol / high, acordado con el usuario.
 
 - Definir y probar políticas por tipo de relación y cambio; evitar convertir el flujo de mensajes en una inversión indiscriminada de aristas.
 - Usar grafos anterior/posterior; gestionar ciclos, consumidores retirados, schemas versionados y contratos de comportamiento.
@@ -233,7 +233,7 @@ Cada selección/exclusión tiene causa. En mutaciones controladas, selected dete
 
 ### G9 — Recorridos didácticos y auditoría final
 
-**Entrada:** G8 completada. **Modelo:** Astra / xhigh.
+**Entrada:** G8 completada. **Modelo:** Sol / high, acordado con el usuario.
 
 - Completar en la web recorridos de pantalla nueva, contrato HTTP externo, evento incompatible, nuevo consumidor, reintento/fallo y dependencia no resuelta.
 - Cada recorrido aplica cambios de código/configuración en overlays y muestra delta → evidencia → impacto → ejecución. No enviar nombres de escenarios como sustituto de análisis.

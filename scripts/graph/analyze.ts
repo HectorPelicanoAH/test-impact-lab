@@ -4,6 +4,7 @@ import type { DiscoveryArchive, GraphSnapshotV2, OverlayEdit } from '../../packa
 import { applyEdits } from './files';
 import { buildArchive, compatibilityGraph } from './snapshot';
 import { canonical, delta, ordered, sourceText } from './core';
+import { calculateFederatedImpact } from '../../packages/impact-engine/src/federated';
 
 function semanticEdges(graph: GraphSnapshotV2) {
   // Occurrence/range changes alone do not constitute a topology change.
@@ -46,5 +47,5 @@ export function analyzeOverlay(before: DiscoveryArchive, edits: OverlayEdit[]) {
   const changedEntityIds = [...new Set([...oldMapping.result.changedEntities, ...newMapping.result.changedEntities,
     ...graph.nodes.filter(node => edits.some(edit => (edit.operation === 'add' || edit.operation === 'delete') && node.source?.path === edit.path)).map(node => node.id)])].sort();
   const result = calculateImpact({ diff, changedEntityIds, graph, catalogue: before.catalogue, uncertaintyReasons: [...reasons].sort() });
-  return { after, graph, diff, result, delta: delta(before.graph, after.graph) };
+  return { after, graph, diff, result, delta: delta(before.graph, after.graph), federated: calculateFederatedImpact(before, after, edits) };
 }
