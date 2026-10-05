@@ -2,11 +2,12 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import metadata from '../impact/evidence/architecture.json';
 import { validateGraph } from '../packages/impact-engine/src/index';
 import type { GraphEdge, GraphNode, ImpactGraph, Side, TestKind, TestMetadata } from '../packages/impact-engine/src/schema';
-import { filesUnder, moduleReferences, resolveModule, sourceFile, testTitles } from './source-analysis';
+import { filesUnder, moduleReferences, resolveModule, sourceFile, symbolRange, testTitles } from './source-analysis';
 
 const nodes: GraphNode[] = metadata.nodes.map(node => ({
   id: node.id, label: node.id, kind: node.kind as GraphNode['kind'], side: node.side as Side, layer: node.layer,
-  source: { path: node.path, startLine: 1, endLine: readFileSync(node.path, 'utf8').split('\n').length },
+  source: { path: node.path, ...('symbol' in node && node.symbol ? symbolRange(node.path, node.symbol) : { startLine: 1, endLine: readFileSync(node.path, 'utf8').split('\n').length }) },
+  changeable: 'changeable' in node ? node.changeable : true,
 }));
 const catalogue: TestMetadata[] = metadata.tests.map(test => {
   const titles = testTitles(test.file).filter(title => title.startsWith(`[${test.id}] `));

@@ -11,7 +11,8 @@
         "path": "apps/frontend/src/auth/AuthClient.ts",
         "startLine": 1,
         "endLine": 19
-      }
+      },
+      "changeable": true
     },
     {
       "id": "AuthenticateUser",
@@ -23,7 +24,8 @@
         "path": "apps/backend/src/auth/application/AuthenticateUser.ts",
         "startLine": 1,
         "endLine": 20
-      }
+      },
+      "changeable": true
     },
     {
       "id": "AuthenticateUser.locked",
@@ -35,7 +37,8 @@
         "path": "apps/backend/src/auth/application/AuthenticateUser.ts",
         "startLine": 1,
         "endLine": 20
-      }
+      },
+      "changeable": false
     },
     {
       "id": "AuthenticateUser.success",
@@ -47,7 +50,8 @@
         "path": "apps/backend/src/auth/application/AuthenticateUser.ts",
         "startLine": 1,
         "endLine": 20
-      }
+      },
+      "changeable": false
     },
     {
       "id": "AuthenticateUser.unknown",
@@ -59,7 +63,8 @@
         "path": "apps/backend/src/auth/application/AuthenticateUser.ts",
         "startLine": 1,
         "endLine": 20
-      }
+      },
+      "changeable": false
     },
     {
       "id": "AuthenticateUser.validation",
@@ -71,7 +76,8 @@
         "path": "apps/backend/src/auth/application/AuthenticateUser.ts",
         "startLine": 1,
         "endLine": 20
-      }
+      },
+      "changeable": false
     },
     {
       "id": "Composition",
@@ -83,7 +89,8 @@
         "path": "apps/backend/src/composition.ts",
         "startLine": 1,
         "endLine": 16
-      }
+      },
+      "changeable": true
     },
     {
       "id": "Email",
@@ -95,7 +102,8 @@
         "path": "apps/backend/src/auth/domain/Email.ts",
         "startLine": 1,
         "endLine": 12
-      }
+      },
+      "changeable": true
     },
     {
       "id": "EmailInput",
@@ -107,7 +115,8 @@
         "path": "apps/frontend/src/components/EmailInput.tsx",
         "startLine": 1,
         "endLine": 7
-      }
+      },
+      "changeable": true
     },
     {
       "id": "HttpServer",
@@ -119,7 +128,8 @@
         "path": "apps/backend/src/http.ts",
         "startLine": 1,
         "endLine": 41
-      }
+      },
+      "changeable": true
     },
     {
       "id": "HttpServer.requestParsing",
@@ -129,9 +139,10 @@
       "layer": "HTTP transport behavior",
       "source": {
         "path": "apps/backend/src/http.ts",
-        "startLine": 1,
-        "endLine": 41
-      }
+        "startLine": 5,
+        "endLine": 15
+      },
+      "changeable": true
     },
     {
       "id": "InMemoryUserRepository",
@@ -143,7 +154,8 @@
         "path": "apps/backend/src/auth/infrastructure/outbound/persistence/InMemoryUserRepository.ts",
         "startLine": 1,
         "endLine": 21
-      }
+      },
+      "changeable": true
     },
     {
       "id": "LoginButton",
@@ -155,7 +167,8 @@
         "path": "apps/frontend/src/components/LoginButton.tsx",
         "startLine": 1,
         "endLine": 6
-      }
+      },
+      "changeable": true
     },
     {
       "id": "LoginController",
@@ -167,7 +180,8 @@
         "path": "apps/backend/src/auth/infrastructure/inbound/http/LoginController.ts",
         "startLine": 1,
         "endLine": 25
-      }
+      },
+      "changeable": true
     },
     {
       "id": "LoginForm",
@@ -179,7 +193,8 @@
         "path": "apps/frontend/src/components/LoginForm.tsx",
         "startLine": 1,
         "endLine": 29
-      }
+      },
+      "changeable": true
     },
     {
       "id": "LoginForm.validation",
@@ -191,7 +206,8 @@
         "path": "apps/frontend/src/components/LoginForm.tsx",
         "startLine": 1,
         "endLine": 29
-      }
+      },
+      "changeable": false
     },
     {
       "id": "LoginForm.view",
@@ -203,7 +219,8 @@
         "path": "apps/frontend/src/components/LoginForm.tsx",
         "startLine": 1,
         "endLine": 29
-      }
+      },
+      "changeable": false
     },
     {
       "id": "LoginPage",
@@ -215,7 +232,8 @@
         "path": "apps/frontend/src/LoginPage.tsx",
         "startLine": 1,
         "endLine": 12
-      }
+      },
+      "changeable": true
     },
     {
       "id": "POST /login",
@@ -227,7 +245,8 @@
         "path": "packages/api-contract/src/login.ts",
         "startLine": 1,
         "endLine": 38
-      }
+      },
+      "changeable": true
     },
     {
       "id": "PasswordHash",
@@ -239,7 +258,8 @@
         "path": "apps/backend/src/auth/domain/PasswordHash.ts",
         "startLine": 1,
         "endLine": 23
-      }
+      },
+      "changeable": true
     },
     {
       "id": "PasswordInput",
@@ -251,7 +271,8 @@
         "path": "apps/frontend/src/components/PasswordInput.tsx",
         "startLine": 1,
         "endLine": 7
-      }
+      },
+      "changeable": true
     },
     {
       "id": "User",
@@ -263,7 +284,8 @@
         "path": "apps/backend/src/auth/domain/User.ts",
         "startLine": 1,
         "endLine": 21
-      }
+      },
+      "changeable": true
     },
     {
       "id": "User.authenticate",
@@ -273,9 +295,10 @@
       "layer": "Domain behavior",
       "source": {
         "path": "apps/backend/src/auth/domain/User.ts",
-        "startLine": 1,
-        "endLine": 21
-      }
+        "startLine": 16,
+        "endLine": 19
+      },
+      "changeable": true
     },
     {
       "id": "User.constructor",
@@ -285,9 +308,10 @@
       "layer": "Domain invariant",
       "source": {
         "path": "apps/backend/src/auth/domain/User.ts",
-        "startLine": 1,
-        "endLine": 21
-      }
+        "startLine": 7,
+        "endLine": 14
+      },
+      "changeable": true
     },
     {
       "id": "User.identity",
@@ -299,7 +323,8 @@
         "path": "apps/backend/src/auth/domain/User.ts",
         "startLine": 1,
         "endLine": 21
-      }
+      },
+      "changeable": false
     },
     {
       "id": "UserRepository",
@@ -311,7 +336,8 @@
         "path": "apps/backend/src/auth/domain/UserRepository.ts",
         "startLine": 1,
         "endLine": 7
-      }
+      },
+      "changeable": true
     },
     {
       "id": "buildLoginRequest",
@@ -323,7 +349,8 @@
         "path": "apps/frontend/src/auth/buildLoginRequest.ts",
         "startLine": 1,
         "endLine": 7
-      }
+      },
+      "changeable": true
     },
     {
       "id": "normalizeEmail",
@@ -335,7 +362,8 @@
         "path": "apps/frontend/src/auth/normalizeEmail.ts",
         "startLine": 1,
         "endLine": 4
-      }
+      },
+      "changeable": true
     },
     {
       "id": "test:BU1",
@@ -659,7 +687,8 @@
         "path": "apps/frontend/src/auth/useLogin.ts",
         "startLine": 1,
         "endLine": 24
-      }
+      },
+      "changeable": true
     },
     {
       "id": "validateLogin",
@@ -671,7 +700,8 @@
         "path": "apps/frontend/src/auth/validateLogin.ts",
         "startLine": 1,
         "endLine": 12
-      }
+      },
+      "changeable": true
     }
   ],
   "edges": [

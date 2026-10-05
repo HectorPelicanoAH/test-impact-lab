@@ -1,6 +1,6 @@
 # Test Impact Lab
 
-A real login application and deterministic test-impact engine in a TypeScript monorepo. **Phase 2 complete:** 39 meaningful product tests and four boundary scenarios run against an explainable graph. The Monaco/React Flow explorer and browser-triggered snapshot runner are later phases.
+A real login application and deterministic test-impact engine in a TypeScript monorepo. **Phase 3 complete:** edit real source snapshots in Monaco, calculate impact with the shared engine, and inspect selected tests and causal paths in React Flow. The catalogue contains 39 meaningful product tests.
 
 ## Run
 
@@ -12,7 +12,7 @@ pnpm exec playwright install chromium
 pnpm dev
 ```
 
-Open [the login application](http://127.0.0.1:5173). The API listens on `127.0.0.1:3001`; Vite proxies `/login` to it. Override `FRONTEND_PORT` / `BACKEND_PORT` if occupied.
+Open [the interactive explorer](http://127.0.0.1:5175) or [the login application](http://127.0.0.1:5173). The login API listens on `127.0.0.1:3001`; the snapshot/analysis API listens on `127.0.0.1:3002`. Override `DEMO_PORT`, `DEMO_API_PORT`, `FRONTEND_PORT` or `BACKEND_PORT` if occupied.
 
 Credentials: `demo@example.com` / `impact-demo`. Wrong credentials produce an error; success navigates to `/home`. This is a credential-checking demo, without persistent sessions or protected pages.
 
@@ -27,7 +27,9 @@ pnpm impact 'POST /login'
 pnpm test:selected LoginButton     # Physically run the computed subset
 ```
 
-`test:selected` executes the **current checkout**, not a browser edit or a mutation. It validates actual reporter results against selected IDs and stores selection, raw reports and measured durations in `.impact-runs/`. The source-overlay runner and selected/full comparison UI are not implemented yet. `test:e2e` launches its own services and never reuses another running server. See [Playwright's web-server configuration](https://playwright.dev/docs/test-webserver) for the underlying service lifecycle.
+The explorer serves an immutable hash-addressed snapshot of allowlisted source files. Monaco edits stay in browser memory; Calculate Regression sends replacements to the local API, which maps the real line diff to graph ranges and invokes the shared impact engine. Suggested changes modify source text and do not send scenario names or test IDs.
+
+`test:selected` executes the **current checkout**, not a browser edit or a mutation. It validates actual reporter results against selected IDs and stores selection, raw reports and measured durations in `.impact-runs/`. Browser-triggered source-overlay execution and selected/full comparison arrive in Phase 4. `test:e2e` launches its own services and never reuses another running server. See [Playwright's web-server configuration](https://playwright.dev/docs/test-webserver) for the underlying service lifecycle.
 
 ## Architecture
 
@@ -60,13 +62,13 @@ Current graph-derived examples (not engine rules):
 | `User.authenticate` | 13 / 39: 5 backend unit + 4 integration + 3 contract + E2E |
 | `POST /login` | 29 / 39 across both sides of the boundary |
 
-Inputs currently use explicit changed entity IDs. File ranges are coarse, covering each entity's source module; automatic diff-to-entity mapping and snapshot hashes are pending. Unknown entities conservatively select the full catalogue. Completeness depends on the reviewed graph evidence, not a claim of universal coverage.
+The CLI accepts explicit changed entity IDs. The explorer derives changed entities from real line diffs and the narrowest graph source ranges, backed by immutable source, graph and catalogue hashes. Unknown or unmapped changes conservatively select the full catalogue. Completeness depends on the reviewed graph evidence, not a claim of universal coverage.
 
 `impact/graph.json` and `impact/catalogue.json` are generated from TypeScript imports, literal test titles and [reviewed metadata](impact/evidence/architecture.json). Metadata edges explain HTTP routing, repository injection and locally exercised test subjects. These are explicit relationships, not measured runtime coverage.
 
 To add a node/test: register its stable ID, file, architectural layer and local subjects in the metadata; add a real top-level test with a unique `[ID]` title; run `pnpm graph:generate`, `pnpm graph:check`, and relevant tests. Never add scenario-to-test lists. TypeScript 5.9 is retained for its stable compiler API.
 
 - [Architecture and algorithm](docs/ARCHITECTURE.md)
-- [Implementation state and Phase 3 handoff](docs/IMPLEMENTATION_STATE.md)
+- [Implementation state and Phase 4 handoff](docs/IMPLEMENTATION_STATE.md)
 - [Graph, catalogue and planned API types](packages/impact-engine/src/schema.ts)
 - [Supplied SDD](docs/SDD.md)

@@ -1,6 +1,7 @@
 import type { GraphEdge, ImpactGraph, ImpactInput, ImpactResult, PathStep, SelectionReason, TestMetadata, TraversalMode } from './schema';
 
 export * from './schema';
+export { analyzeSourceEdits, type SourceAnalysisResult } from './analysis';
 
 const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const sorted = (values: Iterable<string>) => [...new Set(values)].sort(compare);

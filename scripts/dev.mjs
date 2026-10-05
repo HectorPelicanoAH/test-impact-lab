@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 
-const children = ['dev:backend', 'dev:frontend'].map(script => spawn('pnpm', [script], { stdio: 'inherit', detached: process.platform !== 'win32' }));
+const children = ['dev:backend', 'dev:frontend', 'dev:demo-api', 'dev:demo'].map(script => spawn('pnpm', [script], { stdio: 'inherit', detached: process.platform !== 'win32' }));
 let stopping = false;
 function stop(code) {
   if (stopping) return;

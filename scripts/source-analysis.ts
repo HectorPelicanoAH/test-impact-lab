@@ -60,3 +60,31 @@ export function testTitles(path: string): string[] {
   }
   return titles;
 }
+
+export function symbolRange(path: string, symbol: string): { startLine: number; endLine: number } {
+  const source = sourceFile(path);
+  const parts = symbol.split('.');
+  let match: ts.Node | undefined;
+  function named(node: ts.Node): string | undefined {
+    if ('name' in node) {
+      const name = (node as { name?: ts.Node }).name;
+      if (name && ts.isIdentifier(name)) return name.text;
+    }
+    return undefined;
+  }
+  function visit(node: ts.Node) {
+    if (match) return;
+    if (parts.length === 1 && named(node) === parts[0]) match = node;
+    if (parts.length === 2 && ts.isClassDeclaration(node) && node.name?.text === parts[0]) {
+      match = node.members.find(member => parts[1] === 'constructor' ? ts.isConstructorDeclaration(member) : named(member) === parts[1]);
+      if (match) return;
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(source);
+  if (!match) throw new Error(`Cannot locate symbol ${symbol} in ${path}`);
+  return {
+    startLine: source.getLineAndCharacterOfPosition(match.getStart(source)).line + 1,
+    endLine: source.getLineAndCharacterOfPosition(match.getEnd()).line + 1,
+  };
+}

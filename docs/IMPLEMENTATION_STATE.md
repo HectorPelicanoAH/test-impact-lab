@@ -2,76 +2,75 @@
 
 ## Current milestone
 
-**Phase 2 — Complete test catalogue and deterministic impact scenarios implemented.** The supplied specification is preserved in `docs/SDD.md`.
+**Phase 3 — Interactive test-impact explorer complete.** The supplied specification is preserved in `docs/SDD.md`.
 
 ## Completed work
 
-- Preserved the Phase 1 React/Vite login and DDD/hexagonal Node backend.
-- Expanded the real product catalogue to exactly 39 meaningful tests: 17 backend unit, 4 frontend unit, 8 component, 3 contract, 6 integration and 1 Playwright E2E.
-- Added frontend request building and field validation as real application behavior. Component coverage now includes rendering, disabled/loading states, valid submission, field validation, pending requests and service errors.
-- Expanded backend coverage for User, Email, PasswordHash, AuthenticateUser and InMemoryUserRepository. Integration tests cover success, wrong password, unknown user privacy, locked user, malformed JSON and repository failure.
-- Expanded contract evidence for success, invalid credentials and request validation responses, including independent consumer assertions around the shared validators.
-- Added reviewed behavior nodes such as `User.authenticate`, `AuthenticateUser.success`, `LoginForm.validation` and `HttpServer.requestParsing`. This distinguishes local behavior while retaining source-module relationships.
-- Validated four distinct graph-derived scenarios. No scenario contains an authoritative list of tests; changing or removing a graph edge changes the result naturally.
-- The selected-test runner physically executed and verified the 13-test domain subset using Vitest and Chromium reporter output.
+- Preserved the Phase 1 login application and the Phase 2 catalogue of exactly 39 meaningful product tests.
+- Built `apps/demo` with APPLICATION, CODE, IMPACT GRAPH and TESTS views.
+- Added a repository tree and self-hosted Monaco editor over allowlisted real source files. Browser edits remain in memory and never modify the checkout.
+- Added four suggested changes that replace actual source text for `LoginButton`, `normalizeEmail`, `User.authenticate` and the POST `/login` contract.
+- Added an immutable startup snapshot containing SHA-256 hashes for source, graph and catalogue data.
+- Added deterministic line diffs and source-range mapping in the shared impact-engine package. Mapped edits invoke the existing engine; unknown or uncovered edits retain conservative full selection.
+- Added TypeScript-AST symbol ranges for reviewed behavior nodes so a change to `User.authenticate` maps to that method instead of every entity in `User.ts`.
+- Added the local snapshot/analysis API with a fixed allowlist, input limits and no filesystem writes.
+- Added React Flow visualization for all 69 graph nodes and 84 evidenced edges, including architectural layers, contract boundary, changed/affected/journey states, selected/muted tests and focused causal paths.
+- Added selected and excluded test views, taxonomy counts, boundary explanations and WHY navigation from a selected test to its graph path.
+- Embedded the real login application in APPLICATION view. Physical test execution remains in the trusted CLI until Phase 4.
 
 ## Architecture decisions
 
-The Phase 0/1 architecture remains in force; see `ARCHITECTURE.md`. User remains the aggregate root. Domain/application dependency checks still reject inward-boundary violations, including type imports, re-exports and dynamic imports.
+The Phase 0/1 architecture and Phase 2 impact semantics remain in force; see `ARCHITECTURE.md`. The demo imports engine types and sends source replacements to the local API. Impact traversal is implemented only in `@test-impact/impact-engine`.
 
-Edges point consumer to dependency. Ordinary impact travels in reverse. The unchanged POST `/login` contract selects contract evidence and continues only in journey mode across the boundary, so backend implementation changes do not select frontend unit/component tests and frontend changes do not select backend tests. A change to the contract node traverses reviewed exposure edges on both sides.
+The API captures source files, graph and catalogue once at startup and returns their hashes as one snapshot identity. Only paths already referenced by non-test graph nodes may be read or submitted. An analysis request contains the matching snapshot ID plus complete replacement text for modified files. It cannot provide entity IDs, scenario names, test IDs or commands.
 
-Behavior nodes are evidence anchors inside real source modules. They do not contain test lists. Tests connect only to their closest exercised behavior; production relationships produce the global selection.
+Diff mapping uses deterministic common-prefix/common-suffix line hunks. Each hunk maps to the narrowest intersecting graph range marked as changeable. Reviewed behavior-only anchors that lack distinct source syntax are traversal nodes and cannot become direct diff origins. Mapping uncertainty becomes the engine's conservative full-selection mode.
 
-## Catalogue and scenarios
+## Interactive behavior
 
-| Scenario / changed entity | Selected product tests | Boundary behavior |
-| --- | ---: | --- |
-| A — `LoginButton` | 4 / 39: C1–C3 + E1 | Does not touch the contract |
-| B — `normalizeEmail` | 11 / 39: 3 frontend unit, 4 component, 3 contract, E1 | Stops before backend internals |
-| C — `User.authenticate` | 13 / 39: 5 backend unit, 4 integration, 3 contract, E1 | Stops before frontend internals |
-| D — `POST /login` | 29 / 39 across frontend, contract and backend | Contract changed; exposure crosses both sides |
+| Suggested source edit | Mapped entity | Selected product tests |
+| --- | --- | ---: |
+| `LoginButton` label | `LoginButton` | 4 / 39 |
+| Email normalization | `normalizeEmail` | 11 / 39 |
+| Locked-user outcome | `User.authenticate` | 13 / 39 |
+| Login path constant | `POST /login` | 29 / 39 |
 
-Every selected test has a validated causal path. Every excluded test reports `unreachable` or `boundary-stopped`. Input order, graph order and duplicate changed IDs do not alter the result. Unknown changes conservatively select the full catalogue.
+The CODE view shows the modified file in Monaco and calculates through the API. IMPACT GRAPH reflects the returned engine result and highlights the chosen WHY path. TESTS shows all 39 tests, selected/avoided state, and either a causal link or the engine's boundary/unreachable explanation. APPLICATION loads the same real login journey represented by the graph.
 
 ## Key modules
 
-- `apps/backend/src/auth/{domain,application,infrastructure}`, `composition.ts`, `http.ts`, `main.ts`
-- `apps/frontend/src/{auth,components}`, `LoginPage.tsx`, `main.tsx`
-- `packages/api-contract/src/login.ts`
-- `packages/impact-engine/src/{schema,index,index.test}.ts`
+- `apps/demo/server.ts`, `apps/demo/src/App.tsx`, `apps/demo/src/components/*`
+- `apps/demo/src/{monaco,suggestions,types}.ts`, `apps/demo/src/styles.css`
+- `packages/impact-engine/src/{analysis,schema,index}.ts`
+- `scripts/{source-analysis,generate-graph,build,dev}.mjs` / `.ts`
 - `impact/{graph,catalogue}.json`, `impact/evidence/architecture.json`
-- `scripts/{source-analysis,generate-graph,impact,test-selected}.ts`, `build.mjs`, `dev.mjs`, `e2e.mjs`
-- Product tests colocated with code plus `tests/{contract,integration,e2e}`; quality checks in `tests/architecture` and the engine package.
 
 ## Validation
 
-Environment: Node 26.5.1 inside the workspace sandbox and Node 24.19.0 for elevated HTTP/browser runs; pnpm 11.19.0. Supported Node versions are 24.15+ (24.x) or 26+. TypeScript stays on 5.9 for its stable compiler API.
+Environment: Node 26.5.1 inside the workspace sandbox and Node 24.19.0 for elevated HTTP/browser runs; pnpm 11.19.0. Supported Node versions are 24.15+ (24.x) or 26+.
 
-- Phase 1 validation passed before changes: build, graph check, 23 Vitest tests and the real E2E.
+- `pnpm build`: passes type checking, graph generation and the frontend/demo/server production builds. Monaco workers are local build assets.
 - `pnpm graph:generate` / `pnpm graph:check`: 69 nodes, 84 evidenced edges and 39 catalogued product tests.
-- `pnpm install --frozen-lockfile`: passes and restores all workspace links from the pinned lockfile.
-- `pnpm build`: passes TypeScript, graph generation and all production bundles.
-- `pnpm test`: 51 passing Vitest cases: 38 product, 11 engine and 2 architecture checks.
-- `pnpm test:e2e`: the catalogued Playwright journey passes against real frontend/backend services in Chromium. Together with Vitest, all 39 product tests pass.
-- `pnpm test:impact`: scenario, determinism, cycle, relationship mutation, validation and conservative-fallback checks pass.
-- `pnpm test:selected 'User.authenticate'`: physically executed the 13 selected tests; all passed. Measured example: ~16.3s wall time including service and browser startup. Individual durations came from Vitest/Playwright reports.
-- `pnpm validate`: passes the complete build, graph consistency, 51 Vitest cases and the real Chromium E2E.
+- `pnpm test`: 58 passing Vitest cases across 17 files, including source-edit mapping and the snapshot/analysis API.
+- `pnpm test:impact`: all scenario, determinism, cycle, validation, conservative-fallback and real-source mapping checks pass.
+- `pnpm validate`: passes the complete build, graph consistency, 58 Vitest cases and the real Chromium E2E.
+- Browser verification: all four views load; Monaco applies the real `User.authenticate` edit; analysis returns 13 / 39; selected/excluded explanations render; WHY shows `User.authenticate → test:BU1`; the embedded login renders.
 - `git diff --check`: passes.
 
-Chromium is cached at `/private/tmp/test-impact-lab-browsers` in this environment, so local validation here sets `PLAYWRIGHT_BROWSERS_PATH` to that directory. A fresh setup uses `pnpm exec playwright install chromium`.
+Chromium is cached at `/private/tmp/test-impact-lab-browsers` in this environment, so validation here sets `PLAYWRIGHT_BROWSERS_PATH` to that directory. A fresh setup uses `pnpm exec playwright install chromium`.
 
 ## Known limitations / deferred work
 
-- CLI analysis still accepts explicit changed entity IDs. Fine-grained diff-to-entity mapping, immutable snapshot hashes and edited graph generation are pending.
-- Monaco, React Flow, browser analysis APIs and the four explorer views are pending Phase 3.
-- Source-overlay isolation and browser-triggered selected/full execution are Phase 4. The current runner executes the trusted current checkout.
-- Evidence metadata is reviewed architectural/test evidence, not measured universal coverage. Unknown or unmapped edits use conservative full selection.
+- The browser calculates impact but does not execute tests. `RUN SELECTED TESTS`, `RUN FULL SUITE`, streamed results and measured comparison belong to Phase 4.
+- The current trusted CLI selected runner executes the checkout. Phase 4 must isolate browser source overlays and continue to reject arbitrary commands and paths.
+- Source mapping intentionally falls back to all tests for edits outside reviewed ranges or files.
+- Evidence metadata is reviewed architectural/test evidence, not measured universal coverage.
+- Monaco makes the production demo bundle large; bundle/perceived-load optimization and responsive visual polish can be handled after functional execution.
 - The login remains a credential-checking demonstration without a persistent session or protected server-rendered route.
 
 ## Next phase and exact task
 
-**Phase 3 — Interactive demo application.**
+**Phase 4 — Real test execution from the demo.**
 SDD recommended model: **GPT-5.6 Sol**, thinking **Medium**.
 
-Read SDD, this state and architecture; inspect Git history; run `pnpm validate` with the browser-path variable documented above. Build `apps/demo` with APPLICATION, CODE, IMPACT GRAPH and TESTS views. Serve allowlisted real repository files and immutable baseline snapshots from a local API. Monaco edits must remain in memory. Calculate a real diff, map changed source ranges to graph entities, invoke the shared impact engine, and show selected/excluded tests, causal WHY paths, boundary explanations and the React Flow graph. Suggested changes must edit source text rather than submit scenario names or test IDs. Keep physical test execution in the CLI until Phase 4.
+Read the SDD, this state and architecture; inspect Git history; run `pnpm validate` with the browser-path variable documented above. Add RUN SELECTED TESTS and RUN FULL SUITE. The browser must request a controlled local/server-side runner using known test IDs and must never supply commands. Execute against an isolated source overlay, capture real test ID/type/status/duration and useful output, show live or near-live progress, represent failures, and compare selected/full counts, measured duration, avoided tests and time reduction. Do not simulate status or timing.

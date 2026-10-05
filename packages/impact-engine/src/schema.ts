@@ -9,6 +9,8 @@ export interface GraphNode {
   side: Side;
   layer: string;
   source?: EntityRange;
+  /** False for traversal-only evidence anchors that cannot be direct diff origins. */
+  changeable?: boolean;
   testId?: string;
 }
 export interface GraphEdge {
@@ -82,4 +84,11 @@ export interface ImpactInput {
   graph: ImpactGraph;
   catalogue: TestMetadata[];
   uncertaintyReasons: string[];
+}
+
+export interface SourceAnalysisInput {
+  originalFiles: Record<string, string>;
+  edits: FileEdit[];
+  graph: ImpactGraph;
+  catalogue: TestMetadata[];
 }
