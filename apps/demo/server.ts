@@ -16,14 +16,27 @@ const files: DemoFile[] = allowedPaths.map(path => ({
   content: readFileSync(resolve(root, path), 'utf8'),
   language: path.endsWith('.json') ? 'json' : 'typescript',
 }));
+const testFiles = [...new Set(catalogue.map(test => test.file))].sort().map(path => ({ path, content: readFileSync(resolve(root, path), 'utf8') }));
+const testLocations = Object.fromEntries(catalogue.map(test => {
+  const content = testFiles.find(file => file.path === test.file)!.content;
+  const source = ts.createSourceFile(test.file, content, ts.ScriptTarget.Latest, true, test.file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  const statement = source.statements.find(item => ts.isExpressionStatement(item) && ts.isCallExpression(item.expression)
+    && ts.isIdentifier(item.expression.expression) && ['test', 'it'].includes(item.expression.expression.text)
+    && item.expression.arguments.length > 0 && ts.isStringLiteral(item.expression.arguments[0]!) && item.expression.arguments[0]!.text === test.title);
+  if (!statement) throw new Error(`Cannot locate source for test ${test.id}`);
+  return [test.id, {
+    startLine: source.getLineAndCharacterOfPosition(statement.getStart(source)).line + 1,
+    endLine: source.getLineAndCharacterOfPosition(statement.getEnd()).line + 1,
+  }];
+}));
 const originalFiles = Object.fromEntries(files.map(file => [file.path, file.content]));
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
-const sourceHash = hash(files.map(file => `${file.path}\0${file.content}`).join('\0'));
+const sourceHash = hash([...files, ...testFiles].map(file => `${file.path}\0${file.content}`).join('\0'));
 const graphHash = hash(JSON.stringify(graph));
 const catalogueHash = hash(JSON.stringify(catalogue));
 const snapshotId = hash(`${sourceHash}:${graphHash}:${catalogueHash}`).slice(0, 24);
 const sessionToken = randomBytes(32).toString('hex');
-const snapshot: DemoSnapshot = { id: snapshotId, sourceHash, graphHash, catalogueHash, sessionToken, files, graph, catalogue };
+const snapshot: DemoSnapshot = { id: snapshotId, sourceHash, graphHash, catalogueHash, sessionToken, files, testFiles, testLocations, graph, catalogue };
 
 function json(response: ServerResponse, status: number, body: unknown) {
   response.writeHead(status, {

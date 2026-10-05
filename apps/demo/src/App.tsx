@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
-import Editor from '@monaco-editor/react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import Editor, { DiffEditor } from '@monaco-editor/react';
 import type { TestKind } from '@test-impact/impact-engine';
 import { RepositoryTree } from './components/RepositoryTree';
 import { ImpactSummary, pathLabels } from './components/ImpactSummary';
 import { ImpactGraph } from './components/ImpactGraph';
 import { ExecutionPanel } from './components/ExecutionPanel';
+import { TestInspector, TestLegend } from './components/TestInspector';
 import { applySuggestion, suggestions } from './suggestions';
 import type { DemoAnalysis, DemoAnalysisRequest, DemoExecution, DemoExecutionRequest, DemoSnapshot, ExecutionMode } from './types';
 
@@ -23,17 +24,21 @@ export function App() {
   const [snapshot, setSnapshot] = useState<DemoSnapshot>();
   const [view, setView] = useState<View>('code');
   const [selectedPath, setSelectedPath] = useState('');
+  const [editorMode, setEditorMode] = useState<'edit' | 'diff'>('edit');
+  const [inspectedTestId, setInspectedTestId] = useState<string>();
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [analysis, setAnalysis] = useState<DemoAnalysis>();
   const [focusTest, setFocusTest] = useState<string>();
   const [pending, setPending] = useState(false);
   const [executions, setExecutions] = useState<Partial<Record<ExecutionMode, DemoExecution>>>({});
   const [error, setError] = useState<string>();
+  const inspectorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     request<DemoSnapshot>('/api/snapshot').then(data => {
       setSnapshot(data);
       setSelectedPath(data.files.find(file => file.path.endsWith('LoginButton.tsx'))?.path ?? data.files[0]?.path ?? '');
+      setInspectedTestId(data.catalogue[0]?.id);
     }).catch(cause => setError(cause instanceof Error ? cause.message : 'Unable to load repository snapshot.'));
   }, []);
 
@@ -41,6 +46,7 @@ export function App() {
   const content = edits[selectedPath] ?? original;
   const modified = useMemo(() => new Set(Object.keys(edits)), [edits]);
   const activeExecution = executions.full ?? executions.selected;
+  const inspectedTest = snapshot?.catalogue.find(test => test.id === inspectedTestId) ?? snapshot?.catalogue[0];
   const workflow = [
     { label: 'CHANGE', detail: modified.size ? `${modified.size} file${modified.size === 1 ? '' : 's'} modified` : 'Choose or edit source', view: 'code' as View, complete: modified.size > 0 },
     { label: 'CALCULATE', detail: analysis ? `${analysis.result.selectedTests.length} tests selected` : 'Map source impact', view: 'graph' as View, complete: Boolean(analysis) },
@@ -69,6 +75,7 @@ export function App() {
       const changed = applySuggestion(file.content, suggestion);
       setEdits({ [suggestion.path]: changed });
       setSelectedPath(suggestion.path);
+      setEditorMode('diff');
       setAnalysis(undefined);
       setFocusTest(undefined);
       setExecutions({});
@@ -103,6 +110,18 @@ export function App() {
   function explain(id: string) {
     setFocusTest(id);
     setView('graph');
+  }
+
+  function showChange(path?: string) {
+    if (path) setSelectedPath(path);
+    setEditorMode('diff');
+    setView('code');
+  }
+
+  function inspectTest(id: string) {
+    setInspectedTestId(id);
+    setView('tests');
+    requestAnimationFrame(() => inspectorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   }
 
   async function runExecution(mode: ExecutionMode) {
@@ -152,10 +171,20 @@ export function App() {
       </section>}
 
       {view === 'code' && <section className="code-view">
-        <RepositoryTree files={snapshot.files} selected={selectedPath} modified={modified} onSelect={setSelectedPath} />
-        <div className="editor-panel panel"><div className="editor-header"><span>{selectedPath}</span>{modified.has(selectedPath) && <b>MODIFIED</b>}</div>
-          <Editor path={selectedPath} language={selectedPath.endsWith('.json') ? 'json' : 'typescript'} theme="vs-dark" value={content} onChange={value => updateFile(value ?? '')}
-            options={{ minimap: { enabled: false }, fontSize: 13, lineHeight: 21, fontLigatures: true, padding: { top: 14 }, scrollBeyondLastLine: false, automaticLayout: true, tabSize: 2 }} />
+        <RepositoryTree files={snapshot.files} selected={selectedPath} modified={modified} onSelect={path => { setSelectedPath(path); setEditorMode(modified.has(path) ? 'diff' : 'edit'); }} />
+        <div className="editor-panel panel"><div className="editor-header"><span>{selectedPath}</span><div>{modified.has(selectedPath) && <b>MODIFIED</b>}<button className={editorMode === 'edit' ? 'active' : ''} onClick={() => setEditorMode('edit')}>EDIT</button><button className={editorMode === 'diff' ? 'active' : ''} disabled={!modified.has(selectedPath)} onClick={() => setEditorMode('diff')}>COMPARE</button></div></div>
+          {editorMode === 'diff' && modified.has(selectedPath) ? <div className="diff-workspace"><div className="diff-explanation"><span className="removed-key">RED · ORIGINAL / REMOVED</span><span className="added-key">GREEN · EDITED / ADDED</span><span>The changed lines are highlighted below. This edited source is what the test runners receive.</span></div><div className="diff-editor"><DiffEditor key={selectedPath} original={original} modified={content} language={selectedPath.endsWith('.json') ? 'json' : 'typescript'} theme="vs-dark"
+              onMount={editor => {
+                const revealFirstChange = () => {
+                  const change = editor.getLineChanges()?.[0];
+                  if (change) editor.getModifiedEditor().revealLineInCenter(Math.max(1, change.modifiedStartLineNumber));
+                };
+                editor.onDidUpdateDiff(revealFirstChange);
+                revealFirstChange();
+              }}
+              options={{ readOnly: true, renderSideBySide: true, originalEditable: false, minimap: { enabled: false }, fontSize: 13, lineHeight: 21, automaticLayout: true, scrollBeyondLastLine: false }} /></div></div>
+            : <Editor path={selectedPath} language={selectedPath.endsWith('.json') ? 'json' : 'typescript'} theme="vs-dark" value={content} onChange={value => updateFile(value ?? '')}
+              options={{ minimap: { enabled: false }, fontSize: 13, lineHeight: 21, fontLigatures: true, padding: { top: 14 }, scrollBeyondLastLine: false, automaticLayout: true, tabSize: 2 }} />}
         </div>
         <aside className="impact-panel panel"><div className="panel-title">REGRESSION IMPACT</div><ImpactSummary result={analysis?.result} catalogue={snapshot.catalogue} graph={snapshot.graph} onWhy={explain} /></aside>
       </section>}
@@ -170,15 +199,18 @@ export function App() {
         </aside></section>}
 
       {view === 'tests' && <section className="tests-view"><div className="tests-heading"><div><span>TEST CATALOGUE</span><h1>{snapshot.catalogue.length} real tests, one application.</h1></div>{analysis && <div><strong>{analysis.result.selectedTests.length}</strong><span>selected</span></div>}</div>
+        <TestLegend />
+        {modified.size > 0 && <div className="changed-files"><b>CHANGED SOURCE</b>{[...modified].sort().map(path => <button key={path} onClick={() => showChange(path)}>{path} <span>VIEW RED / GREEN DIFF ↗</span></button>)}</div>}
         <ExecutionPanel selectedCount={analysis?.result.selectedTests.length ?? 0} totalCount={snapshot.catalogue.length} executions={executions}
-          busy={Object.values(executions).some(execution => execution?.status === 'queued' || execution?.status === 'running')} disabled={!analysis} onRun={runExecution} />
+          busy={Object.values(executions).some(execution => execution?.status === 'queued' || execution?.status === 'running')} disabled={!analysis} onRun={runExecution} onInspect={inspectTest} />
+        {inspectedTest && <div ref={inspectorRef}><TestInspector test={inspectedTest} snapshot={snapshot} analysis={analysis} execution={activeExecution} onShowChange={showChange} /></div>}
         <div className="test-table"><div className="test-table-head"><span>STATUS</span><span>ID / TEST</span><span>TYPE</span><span>EVIDENCE</span></div>{snapshot.catalogue.map(test => {
           const selected = analysis?.result.selectedTests.includes(test.id);
           const excluded = analysis?.result.excludedTests.find(item => item.testId === test.id);
           const runResult = activeExecution?.results.find(result => result.testId === test.id);
           const status = runResult?.status;
           const label = status ? status.toUpperCase() : selected ? 'SELECTED' : analysis ? 'AVOIDED' : 'READY';
-          return <div className={`test-row ${selected ? 'selected' : analysis ? 'excluded' : ''} ${status ? `executed-${status}` : ''}`} key={test.id}><span><i />{label}</span><span><b>{test.id}</b>{test.name.replace(/^\[[^\]]+\]\s*/, '')}</span><span>{kindLabels[test.kind]}</span><span>{selected ? <button onClick={() => explain(test.id)}>WHY?</button> : excluded?.explanation ?? 'Awaiting analysis'}</span></div>;
+          return <div className={`test-row ${selected ? 'selected' : analysis ? 'excluded' : ''} ${status ? `executed-${status}` : ''} ${inspectedTest?.id === test.id ? 'inspected' : ''}`} key={test.id}><span><i />{label}</span><span><button className="test-name-button" onClick={() => inspectTest(test.id)}><b>{test.id}</b>{test.name.replace(/^\[[^\]]+\]\s*/, '')}</button></span><span>{kindLabels[test.kind]}</span><span>{selected ? <><button onClick={() => inspectTest(test.id)}>VIEW CODE</button> <button onClick={() => explain(test.id)}>WHY?</button></> : <>{excluded?.explanation ?? 'Awaiting analysis'} <button onClick={() => inspectTest(test.id)}>VIEW CODE</button></>}</span></div>;
         })}</div></section>}
     </main>
 

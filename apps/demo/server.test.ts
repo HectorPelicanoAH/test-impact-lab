@@ -49,6 +49,14 @@ test('serves an immutable, hashed snapshot of allowlisted repository files', asy
   expect(snapshot.graph.nodes).toHaveLength(69);
   expect(snapshot.catalogue).toHaveLength(39);
   expect(snapshot.files.some(file => file.path === 'apps/backend/src/auth/domain/User.ts')).toBe(true);
+  for (const item of snapshot.catalogue) {
+    const file = snapshot.testFiles.find(candidate => candidate.path === item.file);
+    const location = snapshot.testLocations[item.id];
+    expect(file, item.id).toBeDefined();
+    expect(location, item.id).toBeDefined();
+    const testSource = file!.content.split('\n').slice(location!.startLine - 1, location!.endLine).join('\n');
+    expect(testSource, item.id).toContain(item.name);
+  }
 });
 
 test('maps edited source text through the real engine without changing the checkout', async () => {

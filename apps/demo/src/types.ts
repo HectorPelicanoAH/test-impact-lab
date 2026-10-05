@@ -9,6 +9,8 @@ export interface DemoFile {
 export interface DemoSnapshot extends SnapshotRef {
   sessionToken: string;
   files: DemoFile[];
+  testFiles: { path: string; content: string }[];
+  testLocations: Record<string, { startLine: number; endLine: number }>;
   graph: ImpactGraph;
   catalogue: TestMetadata[];
 }
