@@ -56,6 +56,9 @@ importers:
       '@test-impact/api-contract':
         specifier: workspace:*
         version: link:../../packages/api-contract
+      '@test-impact/messaging':
+        specifier: workspace:*
+        version: link:../../packages/messaging
 
   apps/demo:
     dependencies:
@@ -106,9 +109,36 @@ importers:
         specifier: ^19.2.0
         version: 19.3.0(react@19.3.0)
 
+  apps/notifications:
+    dependencies:
+      '@test-impact/api-contract':
+        specifier: workspace:*
+        version: link:../../packages/api-contract
+      '@test-impact/messaging':
+        specifier: workspace:*
+        version: link:../../packages/messaging
+
+  apps/preparation:
+    dependencies:
+      '@test-impact/api-contract':
+        specifier: workspace:*
+        version: link:../../packages/api-contract
+      '@test-impact/messaging':
+        specifier: workspace:*
+        version: link:../../packages/messaging
+
   packages/api-contract: {}
 
   packages/impact-engine: {}
+
+  packages/messaging:
+    dependencies:
+      '@test-impact/api-contract':
+        specifier: workspace:*
+        version: link:../api-contract
+      amqplib:
+        specifier: 2.2.0
+        version: 2.2.0
 
 packages:
 
@@ -591,6 +621,10 @@ packages:
 
   '@xyflow/system@0.0.83':
     resolution: {integrity: sha512-a//eDjez3WZF47aaPTfVUDD0OINOq+WVwBZCRTqG+m0a5euX8EwlJ4jMY1Wxz0Ocj4xOeekJ70V22Pq0ll8RJw==}
+
+  amqplib@2.2.0:
+    resolution: {integrity: sha512-VifzN9aHs/Q3zTruVHXh2yCisQyXexBN91CQ2E5iSyUKyNjH6ilYhJGte5AXZH/Bj1PaH7SwPhyuSf6Msd2udw==}
+    engines: {node: '>=18'}
 
   ansi-regex@5.0.1:
     resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
@@ -1450,6 +1484,8 @@ snapshots:
       d3-interpolate: 3.0.1
       d3-selection: 3.0.0
       d3-zoom: 3.0.0
+
+  amqplib@2.2.0: {}
 
   ansi-regex@5.0.1: {}
 

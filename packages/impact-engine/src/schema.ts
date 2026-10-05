@@ -17,7 +17,7 @@ export interface GraphEdge {
   id: string;
   from: string;
   to: string;
-  type: 'imports' | 'calls' | 'renders' | 'implements' | 'injects' | 'exercises' | 'exposes';
+  type: 'imports' | 'calls' | 'renders' | 'implements' | 'injects' | 'exercises' | 'exposes' | 'contains' | 'routes' | 'realizes';
   evidence: { kind: 'static' | 'runtime' | 'contract' | 'architecture' | 'test-coverage'; source: string; reason: string };
   policy: { reverseImpact: boolean; forwardBoundaryEvidence: boolean; contractExposure: boolean };
 }

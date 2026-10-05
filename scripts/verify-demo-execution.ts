@@ -3,6 +3,8 @@ import { resolve } from 'node:path';
 import { analyzeSourceEdits, type ImpactGraph, type TestMetadata } from '../packages/impact-engine/src/index';
 import { executeTests } from '../apps/demo/execution';
 import { applySuggestion, suggestions } from '../apps/demo/src/suggestions';
+import { buildArchive, loadWorkspace } from './graph/snapshot';
+import { analyzeOverlay } from './graph/analyze';
 
 const root = resolve(process.cwd());
 const graph = JSON.parse(readFileSync(resolve(root, 'impact/graph.json'), 'utf8')) as ImpactGraph;
@@ -12,9 +14,13 @@ const originalFiles = Object.fromEntries([...new Set(graph.nodes.flatMap(node =>
 const suggestion = suggestions.find(candidate => candidate.id === 'domain')!;
 const edits = [{ path: suggestion.path, content: applySuggestion(originalFiles[suggestion.path]!, suggestion) }];
 const analysis = analyzeSourceEdits({ originalFiles, edits, graph, catalogue });
+const archive = buildArchive(loadWorkspace(root));
+const versioned = analyzeOverlay(archive, edits);
+if (JSON.stringify(versioned.result.selectedTests) !== JSON.stringify(analysis.result.selectedTests)) throw new Error('V2 compatibility selection diverged.');
 if (analysis.result.selectedTests.length !== 13) throw new Error(`Expected 13 selected tests, got ${analysis.result.selectedTests.length}.`);
 const original = readFileSync(resolve(root, suggestion.path), 'utf8');
 
+const failures = new Map<string, string[]>();
 for (const mode of ['selected', 'full'] as const) {
   const ids = new Set(mode === 'selected' ? analysis.result.selectedTests : catalogue.map(test => test.id));
   const tests = catalogue.filter(test => ids.has(test.id));
@@ -25,14 +31,18 @@ for (const mode of ['selected', 'full'] as const) {
     mode,
     root,
     edits,
+    sourceSnapshot: archive.executionFiles,
+    discoveryConfig: archive.config,
     tests,
     onUpdate() {},
   });
   if (result.results.length !== tests.length) throw new Error(`${mode} returned ${result.results.length}/${tests.length} results.`);
   if (result.results.some(test => ['queued', 'running'].includes(test.status))) throw new Error(`${mode} left unfinished tests.`);
   if (result.results.some(test => test.durationMs === undefined)) throw new Error(`${mode} is missing measured test durations.`);
+  failures.set(mode, result.results.filter(test => test.status === 'failed').map(test => test.testId).sort());
   console.log(`${mode}: ${result.results.filter(test => test.status === 'passed').length} passed, ${result.results.filter(test => test.status === 'failed').length} failed, ${result.durationMs?.toFixed(0)} ms.`);
 }
+if (!failures.get('selected')?.length || JSON.stringify(failures.get('selected')) !== JSON.stringify(failures.get('full'))) throw new Error('Selected/full did not detect the same intentional failures.');
 
 if (readFileSync(resolve(root, suggestion.path), 'utf8') !== original) throw new Error('Execution modified the checkout.');
 console.log('Selected and full executions completed in isolated overlays; checkout unchanged.');

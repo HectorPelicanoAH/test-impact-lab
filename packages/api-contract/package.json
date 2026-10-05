@@ -3,5 +3,5 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/login.ts" }
+  "exports": { ".": "./src/login.ts", "./inventory": "./src/inventory.ts", "./order-created": "./src/order-created.ts" }
 }

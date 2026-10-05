@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "review": "G1: expectativas revisadas contra las declaraciones y ocurrencias literales; nunca generadas desde el extractor. Requiere revisión humana adicional si cambia el corpus.",
+  "relations": [
+    {"case":"path-alias","type":"imports","from":"main.ts","to":"lib/one.ts","path":"main.ts","line":1,"text":"'@lib/one'"},
+    {"case":"homonym-import","type":"imports","from":"main.ts","to":"lib/two.ts","path":"main.ts","line":2,"text":"'./lib/two'"},
+    {"case":"barrel-import","type":"imports","from":"main.ts","to":"lib/barrel.ts","path":"main.ts","line":3,"text":"'./lib/barrel'"},
+    {"case":"type-only","type":"imports","from":"main.ts","to":"port.ts","path":"main.ts","line":4,"text":"'./port'"},
+    {"case":"aliased-call","type":"calls","from":"main.ts#direct","to":"lib/one.ts#same","path":"main.ts","line":5,"text":"first()"},
+    {"case":"homonym-call","type":"calls","from":"main.ts#direct","to":"lib/two.ts#same","path":"main.ts","line":5,"text":"second()"},
+    {"case":"reexport-call","type":"calls","from":"main.ts#direct","to":"lib/one.ts#same","path":"main.ts","line":5,"text":"renamed()"},
+    {"case":"callback-registration","type":"calls","from":"main.ts#callbackUser","to":"main.ts#invoke","path":"main.ts","line":8,"text":"invoke(first)"},
+    {"case":"dynamic-literal","type":"imports","from":"main.ts","to":"lib/one.ts","path":"main.ts","line":9,"text":"'./lib/one'"},
+    {"case":"local-alias","type":"calls","from":"main.ts#aliasLocal","to":"lib/one.ts#same","path":"main.ts","line":11,"text":"fn()","acceptedDiagnostic":"unresolved-symbol"},
+    {"case":"reexport","type":"imports","from":"lib/barrel.ts","to":"lib/one.ts","path":"lib/barrel.ts","line":1,"text":"'./one'"},
+    {"case":"interface-import","type":"imports","from":"adapter.ts","to":"port.ts","path":"adapter.ts","line":1,"text":"'./port'"},
+    {"case":"interface-implementation","type":"implements","from":"adapter.ts#Adapter","to":"port.ts#Port","path":"adapter.ts","line":2,"text":"Port"},
+    {"case":"constructor","type":"calls","from":"adapter.ts#compose","to":"adapter.ts#Adapter","path":"adapter.ts","line":3,"text":"new Adapter()","acceptedDiagnostic":"unsupported-extractor"},
+    {"case":"injection","type":"calls","from":"adapter.ts#compose","to":"adapter.ts#Adapter.send","path":"adapter.ts","line":3,"text":"port.send()","acceptedDiagnostic":"ambiguous-dispatch"},
+    {"case":"jsx-import","type":"imports","from":"screen.tsx","to":"widget.tsx","path":"screen.tsx","line":1,"text":"'./widget'"},
+    {"case":"jsx-render","type":"renders","from":"screen.tsx#Screen","to":"widget.tsx#Button","path":"screen.tsx","line":2,"text":"Action"},
+    {"case":"namespace-import","type":"imports","from":"namespace.ts","to":"lib/one.ts","path":"namespace.ts","line":1,"text":"'./lib/one'"},
+    {"case":"namespace-call","type":"calls","from":"namespace.ts#namespaced","to":"lib/one.ts#same","path":"namespace.ts","line":2,"text":"one.same()"}
+  ],
+  "diagnostics": [
+    {"case":"interface-dispatch","code":"ambiguous-dispatch","path":"main.ts","line":6,"text":"port.send()"},
+    {"case":"callback-dispatch","code":"ambiguous-dispatch","path":"main.ts","line":7,"text":"callback()"},
+    {"case":"dynamic-nonliteral","code":"dynamic-reference","path":"main.ts","line":10,"text":"import(name)"},
+    {"case":"missing-module","code":"source-inaccessible","path":"missing.ts","line":1,"text":"'./not-available'"},
+    {"case":"missing-call","code":"unresolved-symbol","path":"missing.ts","line":2,"text":"unavailable()"},
+    {"case":"parse-error","code":"parse-failed","path":"broken.ts","line":1,"text":"export function broken( {"},
+    {"case":"unsupported-language","code":"unsupported-extractor","path":"unsupported.vue","line":1,"text":"<template><UnknownWidget /></template>"}
+  ],
+  "forbidden": [
+    {"type":"calls","from":"main.ts#direct","to":"widget.tsx#Button"},
+    {"type":"calls","from":"main.ts#viaPort","to":"adapter.ts#Adapter.send"},
+    {"type":"calls","from":"main.ts#invoke","to":"lib/one.ts#same"}
+  ],
+  "evolution": {
+    "add": {"added.ts":"import { direct } from './main';\nexport function added() { direct(); }\n"},
+    "modify": {"widget.tsx":"export function Button() { return 'changed'; }\n"},
+    "delete": ["orphan.ts"],
+    "rename": {"from":"lib/two.ts","to":"lib/renamed-two.ts"},
+    "rewrite": {"path":"main.ts","before":"'./lib/two'","after":"'./lib/renamed-two'"}
+  }
+}

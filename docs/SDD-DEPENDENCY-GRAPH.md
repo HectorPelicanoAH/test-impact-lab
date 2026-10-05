@@ -1,6 +1,6 @@
 # SDD — Descubrimiento de dependencias y sistemas distribuidos
 
-Fecha: 2026-10-05. Estado: especificación preparada; implementación no iniciada.
+Fecha: 2026-10-05. Estado: G1–G5 completadas. G6 no autorizada. Evidencias y siguiente acción en [el registro de estado](DEPENDENCY-GRAPH-STATE.md).
 
 Este documento amplía [el SDD original](SDD.md). Conserva el login, el motor determinista, las explicaciones causales y las ejecuciones reales. Las fases G1–G9 pertenecen a esta ampliación y no renumeran las fases históricas.
 

@@ -3,5 +3,5 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "dependencies": { "@test-impact/api-contract": "workspace:*" }
+  "dependencies": { "@test-impact/api-contract": "workspace:*", "@test-impact/messaging": "workspace:*" }
 }

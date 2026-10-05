@@ -1,10 +1,14 @@
 import { spawn } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve, sep } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import type { TestMetadata } from '@test-impact/impact-engine';
 import type { DemoExecution, ExecutionMode, TestExecution } from './src/types';
+import type { DiscoveryConfig, OverlayEdit, SourceFiles } from '../../packages/impact-engine/src/schema-v2';
+import discoveryConfig from '../../impact/discovery.json';
+import { applyEdits, authorizedPath, readTree, safePath } from '../../scripts/graph/files';
+import { executionEntries, ignoreExecution } from '../../scripts/graph/snapshot';
 
 export interface RunInput {
   id: string;
@@ -12,20 +16,36 @@ export interface RunInput {
   snapshotId: string;
   mode: ExecutionMode;
   root: string;
-  edits: { path: string; content: string }[];
+  edits: OverlayEdit[];
+  sourceSnapshot?: SourceFiles;
+  discoveryConfig?: DiscoveryConfig;
   tests: TestMetadata[];
   onUpdate: (execution: DemoExecution) => void;
 }
 
 interface CommandResult { code: number; output: string; durationMs: number }
 const MAX_OUTPUT = 12_000;
-const copyEntries = ['apps', 'packages', 'tests', 'scripts', 'impact', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.json', 'vitest.config.ts', 'playwright.config.ts'];
 const environmentKeys = ['PATH', 'HOME', 'USERPROFILE', 'TMPDIR', 'TMP', 'TEMP', 'SystemRoot', 'ComSpec', 'PATHEXT', 'LOCALAPPDATA', 'APPDATA', 'PNPM_HOME', 'COREPACK_HOME', 'PLAYWRIGHT_BROWSERS_PATH', 'LANG', 'LC_ALL', 'TZ', 'CI'] as const;
 
 export function runnerEnvironment(source: NodeJS.ProcessEnv = process.env, extra: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
   const environment: NodeJS.ProcessEnv = {};
   for (const key of environmentKeys) if (source[key] !== undefined) environment[key] = source[key];
   return { ...environment, ...extra };
+}
+
+/** Materialize only captured bytes, not symlinks or mutable checkout files. Destination must be a fresh temp directory. */
+export function materializeOverlay(directory: string, captured: SourceFiles, edits: OverlayEdit[], config: DiscoveryConfig = discoveryConfig) {
+  const product = Object.fromEntries(Object.entries(captured).filter(([path]) => authorizedPath(path, config)));
+  const edited = applyEdits(product, edits, config);
+  const finalFiles = { ...captured };
+  for (const path of Object.keys(product)) if (edited[path] === undefined) delete finalFiles[path];
+  Object.assign(finalFiles, edited);
+  for (const [path, content] of Object.entries(finalFiles)) {
+    const target = resolve(directory, path);
+    if (!safePath(path) || !target.startsWith(`${resolve(directory)}${sep}`)) throw new Error(`Source escapes execution overlay: ${path}`);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, content, { encoding: 'utf8', flag: 'wx' });
+  }
 }
 
 function snapshot(execution: DemoExecution): DemoExecution {
@@ -154,13 +174,7 @@ export async function executeTests(input: RunInput): Promise<DemoExecution> {
   const preparationStarted = performance.now();
   let executionStarted: number | undefined;
   try {
-    for (const entry of copyEntries) cpSync(resolve(input.root, entry), resolve(overlay, entry), { recursive: true, filter: source => !source.includes('/node_modules/') && !source.includes('/dist/') && !source.includes('/dist-server/') });
-    const overlayRoot = `${resolve(overlay)}${sep}`;
-    for (const edit of input.edits) {
-      const target = resolve(overlay, edit.path);
-      if (!target.startsWith(overlayRoot)) throw new Error(`Edit escapes the execution overlay: ${edit.path}`);
-      writeFileSync(target, edit.content, 'utf8');
-    }
+    materializeOverlay(overlay, input.sourceSnapshot ?? readTree(input.root, executionEntries, ignoreExecution), input.edits, input.discoveryConfig ?? discoveryConfig);
     const environment = runnerEnvironment();
     const install = await command(overlay, 'pnpm', ['install', '--offline', '--frozen-lockfile', '--ignore-scripts'], environment);
     if (install.code !== 0) throw new Error(`Unable to prepare isolated workspace.\n${install.output}`);

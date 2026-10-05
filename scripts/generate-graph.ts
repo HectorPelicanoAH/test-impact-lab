@@ -4,6 +4,11 @@ import { validateGraph } from '../packages/impact-engine/src/index';
 import type { GraphEdge, GraphNode, ImpactGraph, Side, TestKind, TestMetadata } from '../packages/impact-engine/src/schema';
 import { filesUnder, moduleReferences, resolveModule, sourceFile, symbolRange, testTitles } from './source-analysis';
 
+// G2: production generation publishes a v2 archive. v1 is a frozen reviewed compatibility seed;
+// regenerating that seed is explicit and must not gate newly discovered product files.
+if (!process.argv.includes('--legacy-review')) {
+  await import('./discover-graph');
+} else {
 const nodes: GraphNode[] = metadata.nodes.map(node => ({
   id: node.id, label: node.id, kind: node.kind as GraphNode['kind'], side: node.side as Side, layer: node.layer,
   source: { path: node.path, ...('symbol' in node && node.symbol ? symbolRange(node.path, node.symbol) : { startLine: 1, endLine: readFileSync(node.path, 'utf8').split('\n').length }) },
@@ -18,8 +23,9 @@ const catalogue: TestMetadata[] = metadata.tests.map(test => {
   return { id: test.id, name: title, kind: test.kind as TestKind, nodeId, runner: test.kind === 'e2e' ? 'playwright' : 'vitest', file: test.file, title };
 });
 
-// Every product test must be catalogued; quality/architecture/engine checks live elsewhere.
-const productFiles = ['apps/backend/src', 'apps/frontend/src', 'tests/contract', 'tests/integration', 'tests/e2e'].flatMap(filesUnder).filter(path => /\.(test|spec)\.tsx?$/.test(path));
+// Check frozen v1 files for drift without requiring newly discovered G4 tests to join the login seed.
+const productFiles = ['apps/backend/src', 'apps/frontend/src', 'tests/contract', 'tests/integration', 'tests/e2e'].flatMap(filesUnder)
+  .filter(path => /\.(test|spec)\.tsx?$/.test(path) && catalogue.some(test => test.file === path));
 for (const path of productFiles) {
   for (const title of testTitles(path)) {
     if (catalogue.filter(test => test.file === path && test.title === title).length !== 1) throw new Error(`Uncatalogued product test: ${path}: ${title}`);
@@ -41,7 +47,7 @@ for (const node of metadata.nodes) {
     const targetPath = resolveModule(specifier, node.path);
     const target = metadata.nodes.find(candidate => candidate.path === targetPath);
     if (target) add(node.id, target.id, 'imports', 'static', node.path, `TypeScript module reference ${specifier} resolves to ${targetPath}.`);
-    else if (specifier.startsWith('.') || specifier.startsWith('@test-impact/')) throw new Error(`Unmapped dependency ${node.path}: ${specifier}`);
+    else if (!targetPath && (specifier.startsWith('.') || specifier.startsWith('@test-impact/'))) throw new Error(`Unresolved dependency ${node.path}: ${specifier}`);
   }
 }
 for (const relation of metadata.relationships) add(relation.from, relation.to, relation.type as GraphEdge['type'], 'architecture', relation.source, relation.reason);
@@ -59,7 +65,15 @@ validateGraph(graph, catalogue);
 for (const [path, data] of [['impact/graph.json', graph], ['impact/catalogue.json', catalogue]] as const) {
   const serialized = JSON.stringify(data, null, 2) + '\n';
   if (process.argv.includes('--check')) {
-    if (readFileSync(path, 'utf8') !== serialized) throw new Error(`Stale ${path}; run pnpm graph:generate`);
+    const previous = readFileSync(path, 'utf8');
+    if (path === 'impact/graph.json') {
+      // The v1 seed is intentionally frozen. G4 additions shift source lines; v2 validates
+      // exact ranges from captured source rather than treating old v1 line numbers as live.
+      const withoutLines = (value: ImpactGraph) => ({ ...value, nodes: value.nodes.map(node => ({ ...node,
+        source: node.source ? { path: node.source.path } : undefined })) });
+      if (JSON.stringify(withoutLines(JSON.parse(previous) as ImpactGraph)) !== JSON.stringify(withoutLines(graph))) throw new Error(`Legacy seed topology/policies differ: ${path}`);
+    } else if (previous !== serialized) throw new Error(`Stale ${path}; run pnpm graph:generate --legacy-review`);
   } else writeFileSync(path, serialized);
 }
 console.log(`Graph validated: ${nodes.length} nodes, ${edges.length} evidenced edges, ${catalogue.length} real tests.`);
+}

@@ -1,0 +1,7 @@
+{
+  "name": "OrderCreated",
+  "version": 1,
+  "routingKey": "order.created.v1",
+  "required": ["eventId", "correlationId", "type", "version", "occurredAt", "order"],
+  "orderRequired": ["id", "sku", "quantity", "status"]
+}

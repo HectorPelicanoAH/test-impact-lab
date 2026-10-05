@@ -1,0 +1,1 @@
+export function materializeInventory(destination?: string): { root: string; revision: string };

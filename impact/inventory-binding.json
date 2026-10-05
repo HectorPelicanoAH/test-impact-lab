@@ -1,0 +1,8 @@
+{
+  "environment": "local",
+  "service": "inventory",
+  "repository": { "productId": "inventory", "repositoryId": "external-inventory" },
+  "contract": { "version": 1, "method": "GET", "path": "/v1/stock/:sku", "client": "packages/api-contract/src/inventory-contract.json", "provider": "external/inventory/contract/inventory-stock-v1.json" },
+  "consumer": { "path": "apps/backend/src/orders/InventoryClient.ts", "function": "createInventoryClient" },
+  "provider": { "path": "external/inventory/src/server.ts", "function": "createInventoryServer" }
+}

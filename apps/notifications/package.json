@@ -1,0 +1,4 @@
+{
+  "name": "@test-impact/notifications", "version": "0.0.0", "private": true, "type": "module",
+  "dependencies": { "@test-impact/messaging": "workspace:*", "@test-impact/api-contract": "workspace:*" }
+}
