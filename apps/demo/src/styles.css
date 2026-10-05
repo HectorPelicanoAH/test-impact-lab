@@ -123,6 +123,39 @@ nav button.active::after { background: var(--blue); box-shadow: 0 0 10px var(--b
 .tests-heading > div:last-child { display: grid; text-align: right; }
 .tests-heading strong { color: var(--green); font: 600 27px IBM Plex Mono, monospace; }
 .tests-heading > div:last-child span { color: var(--muted); font-size: 10px; }
+.execution-panel { margin-bottom: 24px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #0b111a; }
+.execution-actions { display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 18px; }
+.execution-actions > div:first-child { max-width: 650px; }
+.execution-actions span, .comparison span, .run-card header span { color: var(--blue); font: 600 8px IBM Plex Mono, monospace; letter-spacing: 1.2px; }
+.execution-actions h2 { margin: 7px 0 5px; font-size: 16px; }
+.execution-actions p { margin: 0; color: var(--muted); font-size: 10px; }
+.execution-actions > div:last-child { display: flex; gap: 9px; }
+.execution-actions button { min-width: 178px; padding: 10px 12px; border: 1px solid #3e6fae; border-radius: 4px; background: #122440; color: #9ec5ff; font: 600 9px IBM Plex Mono, monospace; cursor: pointer; }
+.execution-actions button:last-child { border-color: #526174; background: #151b24; color: #b0bdcf; }
+.execution-actions button:disabled { opacity: .4; cursor: wait; }
+.comparison { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #0d151f; }
+.comparison > div { display: grid; gap: 6px; padding: 13px 17px; border-right: 1px solid var(--line); }
+.comparison > div:last-child { border-right: 0; }
+.comparison strong { color: #d9e7fa; font: 600 19px IBM Plex Mono, monospace; }
+.run-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); }
+.run-card { min-width: 0; background: #0c121c; }
+.run-card > header { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.run-card > header > div { display: grid; gap: 4px; }
+.run-card > header strong { color: #9eacc1; font: 600 10px IBM Plex Mono, monospace; }
+.run-card > header > b { color: #cfdaea; font: 600 13px IBM Plex Mono, monospace; }
+.run-card.passed > header strong { color: var(--green); }.run-card.failed > header strong { color: var(--red); }.run-card.running > header strong { color: var(--orange); }
+.run-totals { display: flex; gap: 18px; padding: 9px 14px; border-bottom: 1px solid #182130; color: #718199; font-size: 9px; }
+.run-totals b { color: #b9c9dd; font-family: IBM Plex Mono, monospace; }
+.run-card > pre { margin: 10px 14px; max-height: 100px; overflow: auto; color: #ff9f9f; font-size: 9px; white-space: pre-wrap; }
+.run-results { max-height: 260px; overflow: auto; }
+.run-results > div { display: grid; grid-template-columns: 8px 34px minmax(0, 1fr) auto; gap: 7px; align-items: center; min-height: 34px; padding: 6px 13px; border-bottom: 1px solid #171f2c; color: #8190a5; font-size: 9px; }
+.run-results i { width: 6px; height: 6px; border-radius: 50%; background: #556277; }
+.run-results .running i { background: var(--orange); box-shadow: 0 0 6px var(--orange); }.run-results .passed i { background: var(--green); }.run-results .failed i { background: var(--red); }
+.run-results b { color: #729bd0; font: 600 8px IBM Plex Mono, monospace; }
+.run-results small { color: #65758c; font: 500 8px IBM Plex Mono, monospace; }
+.run-results details { grid-column: 3 / 5; min-width: 0; }
+.run-results summary { color: #d88888; font: 600 8px IBM Plex Mono, monospace; cursor: pointer; }
+.run-results pre { max-height: 140px; overflow: auto; white-space: pre-wrap; color: #d5a3a3; font-size: 8px; }
 .test-table { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--panel); }
 .test-table-head, .test-row { display: grid; grid-template-columns: 110px minmax(340px, 1.5fr) 140px minmax(240px, 1fr); align-items: center; gap: 14px; }
 .test-table-head { padding: 10px 14px; color: #596a82; background: #0a0f17; font: 600 8px IBM Plex Mono, monospace; letter-spacing: 1px; }

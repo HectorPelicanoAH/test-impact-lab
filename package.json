@@ -23,6 +23,7 @@
     "impact": "node --import tsx scripts/impact.ts",
     "validate": "pnpm build && pnpm graph:check && pnpm test:all",
     "test:impact": "vitest run packages/impact-engine",
+    "test:execution": "node --import tsx scripts/verify-demo-execution.ts",
     "test:architecture": "vitest run tests/architecture",
     "test:selected": "pnpm graph:check && node --import tsx scripts/test-selected.ts"
   },

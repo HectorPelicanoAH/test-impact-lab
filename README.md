@@ -1,6 +1,6 @@
 # Test Impact Lab
 
-A real login application and deterministic test-impact engine in a TypeScript monorepo. **Phase 3 complete:** edit real source snapshots in Monaco, calculate impact with the shared engine, and inspect selected tests and causal paths in React Flow. The catalogue contains 39 meaningful product tests.
+A real login application and deterministic test-impact engine in a TypeScript monorepo. **Phase 4 complete:** edit real source snapshots, calculate impact with the shared engine, and physically compare selected and full regression runs in isolated overlays. The catalogue contains 39 meaningful product tests.
 
 ## Run
 
@@ -20,6 +20,7 @@ Credentials: `demo@example.com` / `impact-demo`. Wrong credentials produce an er
 pnpm build                         # Typecheck, graph generation, production bundles
 pnpm test                          # Vitest: product, engine and architecture checks
 pnpm test:e2e                      # Chromium + real frontend/backend on free ports
+pnpm test:execution                # Selected/full overlay execution verification
 pnpm validate                      # Build, graph consistency, Vitest and E2E
 pnpm impact LoginButton            # Explain a hypothetical entity change
 pnpm impact 'User.authenticate'
@@ -29,7 +30,7 @@ pnpm test:selected LoginButton     # Physically run the computed subset
 
 The explorer serves an immutable hash-addressed snapshot of allowlisted source files. Monaco edits stay in browser memory; Calculate Regression sends replacements to the local API, which maps the real line diff to graph ranges and invokes the shared impact engine. Suggested changes modify source text and do not send scenario names or test IDs.
 
-`test:selected` executes the **current checkout**, not a browser edit or a mutation. It validates actual reporter results against selected IDs and stores selection, raw reports and measured durations in `.impact-runs/`. Browser-triggered source-overlay execution and selected/full comparison arrive in Phase 4. `test:e2e` launches its own services and never reuses another running server. See [Playwright's web-server configuration](https://playwright.dev/docs/test-webserver) for the underlying service lifecycle.
+RUN SELECTED TESTS and RUN FULL SUITE execute browser edits in disposable source overlays. The browser sends only a snapshot ID, analysis ID and fixed mode; the server derives trusted catalogue IDs and maps them to fixed Vitest/Playwright commands. Results, failures and durations come from the runners, and audit reports are stored in `.impact-runs/`. `test:selected` remains the checkout-oriented CLI runner. `test:e2e` launches its own services and never reuses another running server.
 
 ## Architecture
 
@@ -69,6 +70,6 @@ The CLI accepts explicit changed entity IDs. The explorer derives changed entiti
 To add a node/test: register its stable ID, file, architectural layer and local subjects in the metadata; add a real top-level test with a unique `[ID]` title; run `pnpm graph:generate`, `pnpm graph:check`, and relevant tests. Never add scenario-to-test lists. TypeScript 5.9 is retained for its stable compiler API.
 
 - [Architecture and algorithm](docs/ARCHITECTURE.md)
-- [Implementation state and Phase 4 handoff](docs/IMPLEMENTATION_STATE.md)
+- [Implementation state and Phase 5 handoff](docs/IMPLEMENTATION_STATE.md)
 - [Graph, catalogue and planned API types](packages/impact-engine/src/schema.ts)
 - [Supplied SDD](docs/SDD.md)

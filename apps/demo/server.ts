@@ -1,9 +1,10 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { resolve } from 'node:path';
 import { analyzeSourceEdits, type ImpactGraph, type TestMetadata } from '@test-impact/impact-engine';
-import type { DemoAnalysis, DemoAnalysisRequest, DemoFile, DemoSnapshot } from './src/types';
+import { executeTests } from './execution';
+import type { DemoAnalysis, DemoAnalysisRequest, DemoExecution, DemoExecutionRequest, DemoFile, DemoSnapshot } from './src/types';
 
 const root = resolve(process.cwd());
 const graph = JSON.parse(readFileSync(resolve(root, 'impact/graph.json'), 'utf8')) as ImpactGraph;
@@ -57,7 +58,22 @@ function validateRequest(value: unknown): DemoAnalysisRequest {
   return candidate as DemoAnalysisRequest;
 }
 
-export function createDemoApi() {
+function validateExecutionRequest(value: unknown): DemoExecutionRequest {
+  if (!value || typeof value !== 'object') throw new Error('Invalid execution request.');
+  const candidate = value as Partial<DemoExecutionRequest>;
+  const keys = Object.keys(candidate);
+  if (keys.length !== 3 || !keys.every(key => ['snapshotId', 'analysisId', 'mode'].includes(key))
+    || candidate.snapshotId !== snapshotId || typeof candidate.analysisId !== 'string' || !['selected', 'full'].includes(candidate.mode ?? '')) {
+    throw new Error('Snapshot mismatch or invalid execution request.');
+  }
+  return candidate as DemoExecutionRequest;
+}
+
+type Executor = typeof executeTests;
+
+export function createDemoApi(executor: Executor = executeTests) {
+  const analyses = new Map<string, { analysis: DemoAnalysis; edits: DemoAnalysisRequest['edits'] }>();
+  const executions = new Map<string, DemoExecution>();
   return createServer(async (request, response) => {
     if (request.method === 'GET' && request.url === '/api/health') return json(response, 200, { status: 'ok', snapshotId });
     if (request.method === 'GET' && request.url === '/api/snapshot') return json(response, 200, snapshot);
@@ -67,10 +83,41 @@ export function createDemoApi() {
         const analysis = analyzeSourceEdits({ originalFiles, edits: body.edits, graph, catalogue });
         const id = hash(`${snapshotId}:${JSON.stringify(body.edits)}`).slice(0, 24);
         const result: DemoAnalysis = { id, snapshotId, ...analysis };
+        analyses.set(id, { analysis: result, edits: body.edits });
+        if (analyses.size > 32) analyses.delete(analyses.keys().next().value!);
         return json(response, 200, result);
       } catch (error) {
         return json(response, 400, { error: error instanceof Error ? error.message : 'Unable to analyze edits.' });
       }
+    }
+    if (request.method === 'POST' && request.url === '/api/executions') {
+      try {
+        const body = validateExecutionRequest(await readBody(request));
+        const stored = analyses.get(body.analysisId);
+        if (!stored) throw new Error('Analysis is unknown or expired. Calculate regression again.');
+        if ([...executions.values()].some(execution => execution.status === 'queued' || execution.status === 'running')) {
+          return json(response, 409, { error: 'Another test execution is already running.' });
+        }
+        const selectedIds = new Set(stored.analysis.result.selectedTests);
+        const tests = body.mode === 'full' ? catalogue : catalogue.filter(test => selectedIds.has(test.id));
+        if (!tests.length) throw new Error('The analysis selected no tests.');
+        const id = randomUUID();
+        const queued: DemoExecution = {
+          id, analysisId: body.analysisId, snapshotId, mode: body.mode, status: 'queued',
+          results: tests.map(test => ({ testId: test.id, name: test.name.replace(/^\[[^\]]+\]\s*/, ''), kind: test.kind, status: 'queued' })),
+        };
+        executions.set(id, queued);
+        void executor({ id, analysisId: body.analysisId, snapshotId, mode: body.mode, root, edits: stored.edits, tests, onUpdate: execution => executions.set(id, execution) })
+          .catch(error => executions.set(id, { ...queued, status: 'failed', error: error instanceof Error ? error.message : 'Execution failed.' }));
+        return json(response, 202, executions.get(id));
+      } catch (error) {
+        return json(response, 400, { error: error instanceof Error ? error.message : 'Unable to start execution.' });
+      }
+    }
+    if (request.method === 'GET' && request.url?.startsWith('/api/executions/')) {
+      const id = request.url.slice('/api/executions/'.length);
+      const execution = executions.get(id);
+      return execution ? json(response, 200, execution) : json(response, 404, { error: 'Execution not found.' });
     }
     return json(response, 404, { error: 'Not found' });
   });

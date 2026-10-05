@@ -4,8 +4,9 @@ import type { TestKind } from '@test-impact/impact-engine';
 import { RepositoryTree } from './components/RepositoryTree';
 import { ImpactSummary, pathLabels } from './components/ImpactSummary';
 import { ImpactGraph } from './components/ImpactGraph';
+import { ExecutionPanel } from './components/ExecutionPanel';
 import { applySuggestion, suggestions } from './suggestions';
-import type { DemoAnalysis, DemoAnalysisRequest, DemoSnapshot } from './types';
+import type { DemoAnalysis, DemoAnalysisRequest, DemoExecution, DemoExecutionRequest, DemoSnapshot, ExecutionMode } from './types';
 
 type View = 'application' | 'code' | 'graph' | 'tests';
 const viewLabels: Record<View, string> = { application: 'APPLICATION', code: 'CODE', graph: 'IMPACT GRAPH', tests: 'TESTS' };
@@ -26,6 +27,7 @@ export function App() {
   const [analysis, setAnalysis] = useState<DemoAnalysis>();
   const [focusTest, setFocusTest] = useState<string>();
   const [pending, setPending] = useState(false);
+  const [executions, setExecutions] = useState<Partial<Record<ExecutionMode, DemoExecution>>>({});
   const [error, setError] = useState<string>();
 
   useEffect(() => {
@@ -49,6 +51,7 @@ export function App() {
     });
     setAnalysis(undefined);
     setFocusTest(undefined);
+    setExecutions({});
   }
 
   function chooseSuggestion(id: string) {
@@ -61,6 +64,7 @@ export function App() {
       setSelectedPath(suggestion.path);
       setAnalysis(undefined);
       setFocusTest(undefined);
+      setExecutions({});
       setView('code');
       setError(undefined);
     } catch (cause) {
@@ -79,6 +83,7 @@ export function App() {
       };
       const result = await request<DemoAnalysis>('/api/analyses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       setAnalysis(result);
+      setExecutions({});
       setFocusTest(result.result.selectedTests[0]);
       setView('graph');
     } catch (cause) {
@@ -93,6 +98,23 @@ export function App() {
     setView('graph');
   }
 
+  async function runExecution(mode: ExecutionMode) {
+    if (!snapshot || !analysis) return;
+    setError(undefined);
+    try {
+      const body: DemoExecutionRequest = { snapshotId: snapshot.id, analysisId: analysis.id, mode };
+      let execution = await request<DemoExecution>('/api/executions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      setExecutions(current => ({ ...current, [mode]: execution }));
+      while (execution.status === 'queued' || execution.status === 'running') {
+        await new Promise(resolve => setTimeout(resolve, 700));
+        execution = await request<DemoExecution>(`/api/executions/${execution.id}`);
+        setExecutions(current => ({ ...current, [mode]: execution }));
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to execute tests.');
+    }
+  }
+
   if (!snapshot) return <main className="loading-screen"><div className="logo-mark">TIL</div><p>{error ?? 'Loading immutable repository snapshot…'}</p></main>;
 
   return <div className="app-shell">
@@ -105,7 +127,7 @@ export function App() {
     {error && <div className="error-banner"><span>{error}</span><button onClick={() => setError(undefined)}>Dismiss</button></div>}
 
     <div className="suggestion-strip"><div><span>QUICK CHANGES</span>{suggestions.map(item => <button key={item.id} onClick={() => chooseSuggestion(item.id)}><b>{item.title}</b><small>{item.description}</small></button>)}</div>
-      <button className="reset" disabled={!modified.size} onClick={() => { setEdits({}); setAnalysis(undefined); setFocusTest(undefined); }}>RESET</button>
+      <button className="reset" disabled={!modified.size} onClick={() => { setEdits({}); setAnalysis(undefined); setFocusTest(undefined); setExecutions({}); }}>RESET</button>
     </div>
 
     <main className="workspace">
@@ -133,6 +155,8 @@ export function App() {
         </aside></section>}
 
       {view === 'tests' && <section className="tests-view"><div className="tests-heading"><div><span>TEST CATALOGUE</span><h1>{snapshot.catalogue.length} real tests, one application.</h1></div>{analysis && <div><strong>{analysis.result.selectedTests.length}</strong><span>selected</span></div>}</div>
+        <ExecutionPanel selectedCount={analysis?.result.selectedTests.length ?? 0} totalCount={snapshot.catalogue.length} executions={executions}
+          busy={Object.values(executions).some(execution => execution?.status === 'queued' || execution?.status === 'running')} disabled={!analysis} onRun={runExecution} />
         <div className="test-table"><div className="test-table-head"><span>STATUS</span><span>ID / TEST</span><span>TYPE</span><span>EVIDENCE</span></div>{snapshot.catalogue.map(test => {
           const selected = analysis?.result.selectedTests.includes(test.id);
           const excluded = analysis?.result.excludedTests.find(item => item.testId === test.id);
