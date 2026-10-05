@@ -1,0 +1,7 @@
+{
+  "name": "@test-impact/frontend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": { "@test-impact/api-contract": "workspace:*", "react": "^19.2.0", "react-dom": "^19.2.0" }
+}

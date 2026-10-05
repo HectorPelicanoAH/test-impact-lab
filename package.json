@@ -1,0 +1,47 @@
+{
+  "name": "test-impact-lab",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": "^24.15.0 || >=26.0.0"
+  },
+  "scripts": {
+    "validate:plan": "node scripts/validate-plan.mjs",
+    "dev": "node scripts/dev.mjs",
+    "dev:backend": "node --import tsx apps/backend/src/main.ts",
+    "dev:frontend": "vite --config apps/frontend/vite.config.ts apps/frontend",
+    "dev:demo": "vite --config apps/demo/vite.config.ts apps/demo",
+    "dev:demo-api": "node --import tsx apps/demo/server.ts",
+    "build": "pnpm typecheck && pnpm graph:generate && node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "node scripts/e2e.mjs",
+    "test:all": "pnpm test && pnpm test:e2e",
+    "graph:generate": "node --import tsx scripts/generate-graph.ts",
+    "graph:check": "node --import tsx scripts/generate-graph.ts --check",
+    "impact": "node --import tsx scripts/impact.ts",
+    "validate": "pnpm build && pnpm graph:check && pnpm test:all",
+    "test:impact": "vitest run packages/impact-engine",
+    "test:execution": "node --import tsx scripts/verify-demo-execution.ts",
+    "test:architecture": "vitest run tests/architecture",
+    "test:selected": "pnpm graph:check && node --import tsx scripts/test-selected.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "esbuild": "^0.28.2",
+    "jsdom": "^30.1.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.2",
+    "vitest": "^5.0.3"
+  },
+  "type": "module"
+}

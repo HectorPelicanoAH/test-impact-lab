@@ -1,0 +1,7 @@
+{
+  "name": "@test-impact/api-contract",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/login.ts" }
+}

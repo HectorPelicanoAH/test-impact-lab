@@ -1,0 +1,353 @@
+[
+  {
+    "id": "BU1",
+    "name": "[BU1] User authenticates the correct password",
+    "kind": "backend-unit",
+    "nodeId": "test:BU1",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/domain/User.test.ts",
+    "title": "[BU1] User authenticates the correct password"
+  },
+  {
+    "id": "BU10",
+    "name": "[BU10] Email trims and lowercases its value",
+    "kind": "backend-unit",
+    "nodeId": "test:BU10",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/domain/Email.test.ts",
+    "title": "[BU10] Email trims and lowercases its value"
+  },
+  {
+    "id": "BU11",
+    "name": "[BU11] Email rejects malformed addresses",
+    "kind": "backend-unit",
+    "nodeId": "test:BU11",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/domain/Email.test.ts",
+    "title": "[BU11] Email rejects malformed addresses"
+  },
+  {
+    "id": "BU12",
+    "name": "[BU12] Email rejects values longer than the contract limit",
+    "kind": "backend-unit",
+    "nodeId": "test:BU12",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/domain/Email.test.ts",
+    "title": "[BU12] Email rejects values longer than the contract limit"
+  },
+  {
+    "id": "BU13",
+    "name": "[BU13] PasswordHash verifies the original password",
+    "kind": "backend-unit",
+    "nodeId": "test:BU13",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/domain/PasswordHash.test.ts",
+    "title": "[BU13] PasswordHash verifies the original password"
+  },
+  {
+    "id": "BU14",
+    "name": "[BU14] PasswordHash rejects a different password",
+    "kind": "backend-unit",
+    "nodeId": "test:BU14",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/domain/PasswordHash.test.ts",
+    "title": "[BU14] PasswordHash rejects a different password"
+  },
+  {
+    "id": "BU15",
+    "name": "[BU15] PasswordHash enforces password length bounds",
+    "kind": "backend-unit",
+    "nodeId": "test:BU15",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/domain/PasswordHash.test.ts",
+    "title": "[BU15] PasswordHash enforces password length bounds"
+  },
+  {
+    "id": "BU16",
+    "name": "[BU16] Repository finds users by the Email value object",
+    "kind": "backend-unit",
+    "nodeId": "test:BU16",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/infrastructure/outbound/persistence/InMemoryUserRepository.test.ts",
+    "title": "[BU16] Repository finds users by the Email value object"
+  },
+  {
+    "id": "BU17",
+    "name": "[BU17] Repository rejects duplicate normalized emails",
+    "kind": "backend-unit",
+    "nodeId": "test:BU17",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/infrastructure/outbound/persistence/InMemoryUserRepository.test.ts",
+    "title": "[BU17] Repository rejects duplicate normalized emails"
+  },
+  {
+    "id": "BU2",
+    "name": "[BU2] User rejects an incorrect password",
+    "kind": "backend-unit",
+    "nodeId": "test:BU2",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/domain/User.test.ts",
+    "title": "[BU2] User rejects an incorrect password"
+  },
+  {
+    "id": "BU3",
+    "name": "[BU3] Locked user rejects the correct password",
+    "kind": "backend-unit",
+    "nodeId": "test:BU3",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/domain/User.test.ts",
+    "title": "[BU3] Locked user rejects the correct password"
+  },
+  {
+    "id": "BU4",
+    "name": "[BU4] User requires a non-empty identity",
+    "kind": "backend-unit",
+    "nodeId": "test:BU4",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/domain/User.test.ts",
+    "title": "[BU4] User requires a non-empty identity"
+  },
+  {
+    "id": "BU5",
+    "name": "[BU5] User exposes its normalized email identity",
+    "kind": "backend-unit",
+    "nodeId": "test:BU5",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/domain/User.test.ts",
+    "title": "[BU5] User exposes its normalized email identity"
+  },
+  {
+    "id": "BU6",
+    "name": "[BU6] Use case queries the port and returns public identity",
+    "kind": "backend-unit",
+    "nodeId": "test:BU6",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/application/AuthenticateUser.test.ts",
+    "title": "[BU6] Use case queries the port and returns public identity"
+  },
+  {
+    "id": "BU7",
+    "name": "[BU7] Use case hides unknown user identity",
+    "kind": "backend-unit",
+    "nodeId": "test:BU7",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/application/AuthenticateUser.test.ts",
+    "title": "[BU7] Use case hides unknown user identity"
+  },
+  {
+    "id": "BU8",
+    "name": "[BU8] Use case preserves the locked account outcome",
+    "kind": "backend-unit",
+    "nodeId": "test:BU8",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/application/AuthenticateUser.test.ts",
+    "title": "[BU8] Use case preserves the locked account outcome"
+  },
+  {
+    "id": "BU9",
+    "name": "[BU9] Use case validates email before querying the port",
+    "kind": "backend-unit",
+    "nodeId": "test:BU9",
+    "runner": "vitest",
+    "file": "apps/backend/src/auth/application/AuthenticateUser.test.ts",
+    "title": "[BU9] Use case validates email before querying the port"
+  },
+  {
+    "id": "C1",
+    "name": "[C1] LoginButton renders an enabled submit action",
+    "kind": "component",
+    "nodeId": "test:C1",
+    "runner": "vitest",
+    "file": "apps/frontend/src/components/LoginButton.test.tsx",
+    "title": "[C1] LoginButton renders an enabled submit action"
+  },
+  {
+    "id": "C2",
+    "name": "[C2] LoginButton honors an explicit disabled state",
+    "kind": "component",
+    "nodeId": "test:C2",
+    "runner": "vitest",
+    "file": "apps/frontend/src/components/LoginButton.test.tsx",
+    "title": "[C2] LoginButton honors an explicit disabled state"
+  },
+  {
+    "id": "C3",
+    "name": "[C3] LoginButton exposes its loading state",
+    "kind": "component",
+    "nodeId": "test:C3",
+    "runner": "vitest",
+    "file": "apps/frontend/src/components/LoginButton.test.tsx",
+    "title": "[C3] LoginButton exposes its loading state"
+  },
+  {
+    "id": "C4",
+    "name": "[C4] LoginForm submits normalized credentials and reports success",
+    "kind": "component",
+    "nodeId": "test:C4",
+    "runner": "vitest",
+    "file": "apps/frontend/src/components/LoginForm.test.tsx",
+    "title": "[C4] LoginForm submits normalized credentials and reports success"
+  },
+  {
+    "id": "C5",
+    "name": "[C5] LoginForm validates malformed email before calling the service",
+    "kind": "component",
+    "nodeId": "test:C5",
+    "runner": "vitest",
+    "file": "apps/frontend/src/components/LoginForm.test.tsx",
+    "title": "[C5] LoginForm validates malformed email before calling the service"
+  },
+  {
+    "id": "C6",
+    "name": "[C6] LoginForm explains both empty required fields",
+    "kind": "component",
+    "nodeId": "test:C6",
+    "runner": "vitest",
+    "file": "apps/frontend/src/components/LoginForm.test.tsx",
+    "title": "[C6] LoginForm explains both empty required fields"
+  },
+  {
+    "id": "C7",
+    "name": "[C7] LoginForm disables all controls while the request is pending",
+    "kind": "component",
+    "nodeId": "test:C7",
+    "runner": "vitest",
+    "file": "apps/frontend/src/components/LoginForm.test.tsx",
+    "title": "[C7] LoginForm disables all controls while the request is pending"
+  },
+  {
+    "id": "C8",
+    "name": "[C8] LoginForm displays service errors without navigating",
+    "kind": "component",
+    "nodeId": "test:C8",
+    "runner": "vitest",
+    "file": "apps/frontend/src/components/LoginForm.test.tsx",
+    "title": "[C8] LoginForm displays service errors without navigating"
+  },
+  {
+    "id": "CT1",
+    "name": "[CT1] POST login satisfies the success consumer contract",
+    "kind": "contract",
+    "nodeId": "test:CT1",
+    "runner": "vitest",
+    "file": "tests/contract/login.test.ts",
+    "title": "[CT1] POST login satisfies the success consumer contract"
+  },
+  {
+    "id": "CT2",
+    "name": "[CT2] POST login satisfies the invalid credentials contract",
+    "kind": "contract",
+    "nodeId": "test:CT2",
+    "runner": "vitest",
+    "file": "tests/contract/login.test.ts",
+    "title": "[CT2] POST login satisfies the invalid credentials contract"
+  },
+  {
+    "id": "CT3",
+    "name": "[CT3] POST login satisfies the request validation error contract",
+    "kind": "contract",
+    "nodeId": "test:CT3",
+    "runner": "vitest",
+    "file": "tests/contract/login.test.ts",
+    "title": "[CT3] POST login satisfies the request validation error contract"
+  },
+  {
+    "id": "E1",
+    "name": "[E1] Login journey rejects wrong credentials then reaches home",
+    "kind": "e2e",
+    "nodeId": "test:E1",
+    "runner": "playwright",
+    "file": "tests/e2e/login.spec.ts",
+    "title": "[E1] Login journey rejects wrong credentials then reaches home"
+  },
+  {
+    "id": "FU1",
+    "name": "[FU1] Email normalization trims and lowercases",
+    "kind": "frontend-unit",
+    "nodeId": "test:FU1",
+    "runner": "vitest",
+    "file": "apps/frontend/src/auth/normalizeEmail.test.ts",
+    "title": "[FU1] Email normalization trims and lowercases"
+  },
+  {
+    "id": "FU2",
+    "name": "[FU2] Login request builder normalizes email without changing password",
+    "kind": "frontend-unit",
+    "nodeId": "test:FU2",
+    "runner": "vitest",
+    "file": "apps/frontend/src/auth/buildLoginRequest.test.ts",
+    "title": "[FU2] Login request builder normalizes email without changing password"
+  },
+  {
+    "id": "FU3",
+    "name": "[FU3] Login validation reports fields independently",
+    "kind": "frontend-unit",
+    "nodeId": "test:FU3",
+    "runner": "vitest",
+    "file": "apps/frontend/src/auth/validateLogin.test.ts",
+    "title": "[FU3] Login validation reports fields independently"
+  },
+  {
+    "id": "FU4",
+    "name": "[FU4] AuthClient maps typed API errors and rejects malformed responses",
+    "kind": "frontend-unit",
+    "nodeId": "test:FU4",
+    "runner": "vitest",
+    "file": "apps/frontend/src/auth/AuthClient.test.ts",
+    "title": "[FU4] AuthClient maps typed API errors and rejects malformed responses"
+  },
+  {
+    "id": "I1",
+    "name": "[I1] HTTP login composes the real repository and aggregate",
+    "kind": "integration",
+    "nodeId": "test:I1",
+    "runner": "vitest",
+    "file": "tests/integration/login.test.ts",
+    "title": "[I1] HTTP login composes the real repository and aggregate"
+  },
+  {
+    "id": "I2",
+    "name": "[I2] HTTP login rejects the wrong password",
+    "kind": "integration",
+    "nodeId": "test:I2",
+    "runner": "vitest",
+    "file": "tests/integration/login.test.ts",
+    "title": "[I2] HTTP login rejects the wrong password"
+  },
+  {
+    "id": "I3",
+    "name": "[I3] HTTP login hides whether an email is unknown",
+    "kind": "integration",
+    "nodeId": "test:I3",
+    "runner": "vitest",
+    "file": "tests/integration/login.test.ts",
+    "title": "[I3] HTTP login hides whether an email is unknown"
+  },
+  {
+    "id": "I4",
+    "name": "[I4] HTTP login reports a locked account",
+    "kind": "integration",
+    "nodeId": "test:I4",
+    "runner": "vitest",
+    "file": "tests/integration/login.test.ts",
+    "title": "[I4] HTTP login reports a locked account"
+  },
+  {
+    "id": "I5",
+    "name": "[I5] HTTP login rejects malformed JSON before invoking authentication",
+    "kind": "integration",
+    "nodeId": "test:I5",
+    "runner": "vitest",
+    "file": "tests/integration/login.test.ts",
+    "title": "[I5] HTTP login rejects malformed JSON before invoking authentication"
+  },
+  {
+    "id": "I6",
+    "name": "[I6] HTTP login maps repository failures without leaking details",
+    "kind": "integration",
+    "nodeId": "test:I6",
+    "runner": "vitest",
+    "file": "tests/integration/login.test.ts",
+    "title": "[I6] HTTP login maps repository failures without leaking details"
+  }
+]
