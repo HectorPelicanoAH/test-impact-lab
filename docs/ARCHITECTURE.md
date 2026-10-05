@@ -18,7 +18,7 @@ Two important gaps are resolved here: test runs must use the edited snapshot, an
 
 - `apps/frontend`: React/Vite login application and colocated unit/component tests.
 - `apps/backend`: Node HTTP server, composition root and auth bounded context.
-- `apps/demo`: React/Vite explorer; a separate local Node service will expose snapshots, analysis and runs.
+- `apps/demo`: React/Vite explorer and separate local Node service exposing snapshots, analyses and executions.
 - `packages/api-contract`: transport request/response schemas and runtime validation; no domain dependencies.
 - `packages/impact-engine`: pure diff/entity/selection logic and shared data types; no UI or process spawning.
 - `tests/contract`, `tests/integration`, `tests/e2e`: actual adapter contract, composed HTTP and Playwright tests.
@@ -42,7 +42,7 @@ Each edge has explicit capabilities: reverse impact, forward boundary evidence a
 
 ## Deterministic traversal
 
-1. Verify snapshot, graph and catalogue digests; normalize POSIX paths; reject duplicate or dangling IDs.
+1. The demo API verifies the immutable snapshot ID and validates the graph/catalogue before analysis; the engine normalizes sorted IDs and rejects duplicate or dangling graph records.
 2. Diff original versus edited files in sorted order and map changed hunks to the union of old/new entity ranges. A deleted entity remains addressable through the baseline graph. Include a deterministic edited graph where analysis succeeds; use the union for removed/new dependencies.
 3. Run reverse dependency traversal from each changed entity, with stable sorted neighbor ordering and visited keys `(node, mode, origin)`. Ordinary frontend/backend traversal cannot cross a contract.
 4. For application/client changes, follow only edges explicitly marked `forwardBoundaryEvidence` to discover a touched contract. This traversal gathers contract evidence, not tests on sibling dependencies. UI render/composition edges do not carry this capability, so a button-only edit does not require contract tests.
@@ -55,7 +55,7 @@ Return uncertainty warnings rather than claiming exact coverage. Selection guara
 
 ## Demo API and immutable snapshots
 
-The browser receives allowlisted real source files plus snapshot/graph/catalogue digests. Edits are browser memory overlays, never writes to the checkout. `POST /api/analyses` submits a snapshot ID plus replacement file contents; the service resolves the immutable original, computes the diff and invokes the engine. The browser cannot submit authoritative changed-entity IDs or test selections. Analysis records bind the source overlay and all digests.
+The browser receives allowlisted real source files plus snapshot/graph/catalogue digests and a per-process local session token. Edits are browser memory overlays, never writes to the checkout. `POST /api/analyses` submits a snapshot ID plus replacement file contents; the service checks the token/origin, resolves the immutable original, checks syntax and invokes the engine. The browser cannot submit authoritative changed-entity IDs or test selections. Analysis records bind the source overlay to the immutable snapshot.
 
 `POST /api/executions` accepts a snapshot ID, analysis ID and `selected` or `full`. The service derives test IDs from the stored analysis/catalogue. Both modes execute the **same edited snapshot**. A full run against pristine source is a different comparison and is not silently mixed in. `GET /api/executions/:id` returns incremental results; polling is sufficient. Build/setup failures and missing reports are errors, never passes.
 
@@ -63,13 +63,13 @@ Application view initially embeds the baseline running app and labels that state
 
 ## Real execution and trust boundary
 
-The runner materializes an immutable temporary worktree copy plus allowlisted source overlays, outside the checkout. It rejects traversal, symlinks, excessive payloads and edits to manifests/configuration/tests. Runner commands and argv are server-owned; process spawning uses no shell. Catalogue entries map stable IDs to exact escaped Vitest/Playwright title filters and files. Validate actual reported IDs against requested IDs; unexpected/missing/duplicate results fail the run. Distinct test IDs are included in runner titles.
+The runner materializes an immutable temporary workspace copy plus allowlisted source overlays, outside the checkout. The API rejects traversal, excessive payloads and edits outside graph-backed source files; execution adds a containment check before writing. Runner commands and argv are server-owned; process spawning uses no shell. Catalogue entries map stable IDs to exact escaped Vitest/Playwright title filters and safe files. Actual reports are checked against requested IDs; unexpected, missing, duplicate or unmeasured results fail the run. Distinct test IDs are included in runner titles.
 
 **Edited source is executable code.** File allowlists and `shell: false` prevent command injection but do not sandbox JavaScript. The first runner is local-only and explicitly trusted-user: loopback binding, strict origin checks, per-session token, serial runs, timeouts, output caps, environment secret stripping and cleanup. It must never be deployed as an untrusted public service. Public execution requires a separately designed OS/container sandbox with filesystem/network restrictions. This limitation is not solved by JSON validation.
 
 Each run uses ephemeral service ports injected into frontend/E2E configuration and kills its complete process tree on timeout. Dependencies are reused read-only where possible; source/test assets are copied to the run directory. Never edit the active checkout or shared compiled output.
 
-Capture real reporter status and duration per test, plus wall time and setup time separately. Compare only completed runs sharing snapshot/overlay/graph/catalogue hashes. Show failed/skipped tests accurately. Test avoidance is count-based; measured time reduction can be negative. No fabricated PASS, timing or constant expected savings.
+Capture real reporter status and duration per test, plus measured runner wall time after overlay preparation. Compare only completed runs sharing the same stored analysis and snapshot. Show failed/skipped tests accurately. Test avoidance is count-based; measured time reduction can be negative. No fabricated PASS, timing or constant expected savings.
 
 ## Delivery and validation
 

@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-**Phase 6 — Technical audit complete.** The supplied specification is preserved in `docs/SDD.md`. The implementation has been challenged against the complete audit checklist and hardened where concrete defects were found.
+**Phase 7 — Documentation cleanup complete.** The supplied specification is preserved in `docs/SDD.md`. The implementation and its audit findings are documented against the current behavior.
 
 ## Completed work
 
@@ -13,6 +13,7 @@
 - Hardened execution inputs and reports: overlay path containment, safe catalogue files and stable titles, unique runner identities, duplicate/unrequested-result rejection, required measured durations, nonzero-exit handling and forced process termination after timeout grace.
 - Corrected comparison math so a slower selected run displays a negative reduction instead of being silently clamped to zero.
 - Tightened architecture tests to exact backend domain/application roots rather than substring matches.
+- Reconciled README, architecture notes and state handoff with the implemented `/api/executions` API, local-session model, syntax fallback, runner report validation and trusted-user limitation.
 - Added a compact guided-flow ribbon that makes the sequence visible: change source, calculate impact, inspect selection and execute real runners. Each step reflects the current in-memory analysis or execution state and links to the relevant view.
 - Improved repository browsing with accessible expandable folders, modified-file markers and keyboard focus treatment.
 - Added a graph legend for changed source, affected code, contract journeys, selected tests and double-bordered contract nodes.
@@ -74,6 +75,8 @@ Environment: Node 26.5.1 inside the workspace sandbox and Node 24.19.0 for eleva
 - Phase 6 targeted audit checks: impact-engine, architecture and demo API suites passed, including syntax fallback, canonical edit identity, session/origin enforcement, environment filtering and safe catalogue metadata.
 - Phase 6 final `pnpm validate`: passed production builds, 69 nodes / 84 evidenced graph edges, 64 Vitest cases across 17 files and the Chromium E2E login journey.
 - Phase 6 final `pnpm test:execution`: completed hardened selected and full overlays. Selected: 13 results, 10 passed / 3 failed, 20.3 s. Full: 39 results, 36 passed / 3 failed, 29.0 s. The same three intentional behavior-change failures occurred in both modes, all results retained measured durations, and the checkout remained unchanged.
+- Phase 7 final documentation pass: README, architecture notes and implementation state now describe the current API names, validation boundaries and local execution model without planned-phase wording.
+- Phase 7 final validation: `pnpm build` passed; `pnpm test` passed with 64 tests; `pnpm test:impact` passed with 17 tests; contract and integration suites passed with 9 tests; Playwright E2E passed with 1 test.
 - `git diff --check`: passes.
 
 Timings vary with machine load and dependency cache state. The UI always displays reporter/run measurements from its own executions.
@@ -89,7 +92,4 @@ Timings vary with machine load and dependency cache state. The UI always display
 
 ## Next phase and exact task
 
-**Phase 7 — Documentation cleanup (optional).**
-SDD recommended model: **GPT-5.6 Luna**, thinking **Low**.
-
-Clean up documentation only if a final concise handoff is useful. The implementation is complete and can stop here without additional engineering work.
+No further engineering phase is required. The SDD's optional documentation cleanup is complete; stop here unless a new product request is added.
