@@ -91,4 +91,5 @@ export interface SourceAnalysisInput {
   edits: FileEdit[];
   graph: ImpactGraph;
   catalogue: TestMetadata[];
+  uncertaintyReasons?: string[];
 }

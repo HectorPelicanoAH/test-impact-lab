@@ -31,7 +31,7 @@ export function ExecutionPanel({ selectedCount, totalCount, executions, busy, di
   const selectedBusy = selected?.status === 'queued' || selected?.status === 'running';
   const fullBusy = full?.status === 'queued' || full?.status === 'running';
   const reduction = selected?.durationMs !== undefined && full?.durationMs
-    ? Math.max(0, (1 - selected.durationMs / full.durationMs) * 100) : undefined;
+    ? (1 - selected.durationMs / full.durationMs) * 100 : undefined;
   return <section className="execution-panel">
     <div className="execution-actions"><div><span>PHYSICAL EXECUTION</span><h2>Run the calculated regression in an isolated source overlay.</h2><p>The server maps trusted catalogue IDs to fixed Vitest and Playwright commands.</p></div><div>
       <button disabled={disabled || busy || selectedCount === 0} onClick={() => onRun('selected')}>{selectedBusy ? 'RUNNING…' : `RUN SELECTED TESTS · ${selectedCount}`}</button>

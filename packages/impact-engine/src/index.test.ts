@@ -122,4 +122,7 @@ test('Invalid evidence fails closed rather than returning a misleading subset', 
   const bypass = structuredClone(graph);
   bypass.edges.push({ ...graph.edges[0]!, id: 'illegal', from: 'AuthClient', to: 'User' });
   expect(() => validateGraph(bypass, catalogue)).toThrow('bypasses contract');
+  const unsafeCatalogue = structuredClone(catalogue);
+  unsafeCatalogue[0]!.file = '--config';
+  expect(() => validateGraph(graph, unsafeCatalogue)).toThrow('Unsafe test file');
 });

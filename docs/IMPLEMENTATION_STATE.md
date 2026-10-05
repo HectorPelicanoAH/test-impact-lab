@@ -2,10 +2,17 @@
 
 ## Current milestone
 
-**Phase 5 — UX and visual polish complete.** The supplied specification is preserved in `docs/SDD.md`. The deterministic graph, source-diff mapping and controlled execution boundary were not changed.
+**Phase 6 — Technical audit complete.** The supplied specification is preserved in `docs/SDD.md`. The implementation has been challenged against the complete audit checklist and hardened where concrete defects were found.
 
 ## Completed work
 
+- Made syntactically invalid edited TypeScript/TSX fail closed to the full 39-test catalogue with an explicit uncertainty warning.
+- Canonicalized source edits before hashing and storage, so the same edit set produces the same analysis identity and selection regardless of request ordering.
+- Added a random local-session token and localhost-origin enforcement to analysis, execution and result polling routes; tightened analysis request shapes as well as execution requests.
+- Filtered runner environments to required tool/runtime variables so edited executable source does not inherit ambient passwords, tokens or credential-agent variables.
+- Hardened execution inputs and reports: overlay path containment, safe catalogue files and stable titles, unique runner identities, duplicate/unrequested-result rejection, required measured durations, nonzero-exit handling and forced process termination after timeout grace.
+- Corrected comparison math so a slower selected run displays a negative reduction instead of being silently clamped to zero.
+- Tightened architecture tests to exact backend domain/application roots rather than substring matches.
 - Added a compact guided-flow ribbon that makes the sequence visible: change source, calculate impact, inspect selection and execute real runners. Each step reflects the current in-memory analysis or execution state and links to the relevant view.
 - Improved repository browsing with accessible expandable folders, modified-file markers and keyboard focus treatment.
 - Added a graph legend for changed source, affected code, contract journeys, selected tests and double-bordered contract nodes.
@@ -25,11 +32,21 @@
 
 ## Execution trust boundary
 
-The API stores source edits only after the Phase 3 allowlist and snapshot validation. Starting an execution references that stored analysis. The server chooses either the engine's selected IDs or every catalogue ID, groups them by the catalogue's fixed runner/file/title metadata, and spawns argument arrays with `shell: false`.
+The API stores source edits only after the allowlist, snapshot, local-session and syntax validation. Starting an execution references that stored analysis. The server chooses either the engine's selected IDs or every catalogue ID, validates fixed runner/file/title metadata, and spawns argument arrays with `shell: false`.
 
-Source overlays include application, packages, tests, scripts, impact evidence and pinned workspace configuration. Dependencies are linked from the local pnpm store with `--offline --frozen-lockfile --ignore-scripts`. The original checkout is never edited. Each child process has a three-minute limit and runs in its own process group so its test services can be terminated together.
+Source overlays include application, packages, tests, scripts, impact evidence and pinned workspace configuration. Dependencies are linked from the local pnpm store with `--offline --frozen-lockfile --ignore-scripts`. Child environments contain only explicit runtime/tool paths. The original checkout is never edited. Each child process has a three-minute limit, runs in its own process group and receives a forced kill if graceful termination does not complete.
 
 Runner failures remain results. A behavior-changing `User.authenticate` edit correctly produced 10 passing and 3 failing selected tests; the same three failures appeared among 39 full-suite results. Missing or malformed runner reports become explicit failed results rather than simulated passes or durations.
+
+Edited source is still executable code. This is an intentionally loopback-only, trusted-user tool rather than an OS sandbox; the current user filesystem and network remain accessible. A public execution service requires a separately designed container/VM boundary.
+
+## Audit conclusions
+
+- `User` is the aggregate root: identity, normalized email, password hash and locked state remain inside the aggregate, and authentication behavior enforces the locked credential invariant.
+- Dependency direction is hexagonal: the application depends on the domain-owned `UserRepository` port; the in-memory secondary adapter implements it; the composition root performs injection; domain/application imports are checked for type imports, re-exports, dynamic imports and aliases.
+- The API contract is a first-class graph boundary. Unchanged contracts admit only contract/journey evidence, changed contracts expose reviewed implementation paths on both sides, and cross-side bypass edges fail graph validation.
+- Selection is deterministic: inputs, edges, outputs and causal tie breaks are sorted; edit order is canonical; uncertainty selects the full catalogue. Suggested scenarios only edit source text and never provide test IDs.
+- Selected and full modes execute the same stored source overlay. Test IDs, files, titles, commands and arguments are server-derived; statuses and durations come from Vitest/Playwright reports and runner wall clocks.
 
 ## Key modules
 
@@ -54,6 +71,9 @@ Environment: Node 26.5.1 inside the workspace sandbox and Node 24.19.0 for eleva
 - Phase 5 browser review: confirmed the default code view exposes the guided flow, accessible expand/collapse controls, source editor and empty impact state without UI errors.
 - Phase 5 final `pnpm validate`: passed production builds, 69 nodes / 84 evidenced graph edges, 59 Vitest cases and the Chromium E2E login journey.
 - Phase 5 final `pnpm test:execution`: completed selected and full disposable overlays. Selected: 13 results, 10 passed / 3 failed, 19.4 s. Full: 39 results, 36 passed / 3 failed, 27.6 s. The same three intentional behavior-change failures occurred in both modes, and the checkout remained unchanged.
+- Phase 6 targeted audit checks: impact-engine, architecture and demo API suites passed, including syntax fallback, canonical edit identity, session/origin enforcement, environment filtering and safe catalogue metadata.
+- Phase 6 final `pnpm validate`: passed production builds, 69 nodes / 84 evidenced graph edges, 64 Vitest cases across 17 files and the Chromium E2E login journey.
+- Phase 6 final `pnpm test:execution`: completed hardened selected and full overlays. Selected: 13 results, 10 passed / 3 failed, 20.3 s. Full: 39 results, 36 passed / 3 failed, 29.0 s. The same three intentional behavior-change failures occurred in both modes, all results retained measured durations, and the checkout remained unchanged.
 - `git diff --check`: passes.
 
 Timings vary with machine load and dependency cache state. The UI always displays reporter/run measurements from its own executions.
@@ -65,10 +85,11 @@ Timings vary with machine load and dependency cache state. The UI always display
 - A fresh machine must install dependencies and Chromium once before offline overlays can execute.
 - Monaco and language workers keep the production bundle large.
 - The login remains a credential-checking demonstration without a persistent session or protected server-rendered route.
+- Edited source runs with the current user's filesystem and network permissions; loopback/session controls and environment filtering reduce exposure but do not replace an OS sandbox.
 
 ## Next phase and exact task
 
-**Phase 6 — Technical audit.**
-SDD recommended model: **GPT-5.6 Sol**, thinking **High**.
+**Phase 7 — Documentation cleanup (optional).**
+SDD recommended model: **GPT-5.6 Luna**, thinking **Low**.
 
-Read the SDD, this state and architecture; inspect Git history. Audit the frozen implementation and its trust boundaries, resolve real defects only, and keep the user-facing demo behavior intact. Run the documented validation suite before making changes and update this state when the phase is complete.
+Clean up documentation only if a final concise handoff is useful. The implementation is complete and can stop here without additional engineering work.

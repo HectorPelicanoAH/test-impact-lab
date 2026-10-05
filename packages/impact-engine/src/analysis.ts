@@ -45,7 +45,7 @@ export function analyzeSourceEdits(input: SourceAnalysisInput): SourceAnalysisRe
   const edits = [...input.edits].sort((a, b) => compare(a.path, b.path));
   const duplicate = edits.find((edit, index) => index > 0 && edit.path === edits[index - 1]!.path);
   if (duplicate) throw new Error(`Duplicate edit path: ${duplicate.path}`);
-  const uncertaintyReasons: string[] = [];
+  const uncertaintyReasons = [...(input.uncertaintyReasons ?? [])];
   const diff: FileDiff[] = [];
   const changed = new Set<string>();
   for (const edit of edits) {

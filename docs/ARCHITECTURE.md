@@ -1,10 +1,10 @@
 # Architecture decisions
 
-## Implementation status after Phase 2
+## Implementation status after Phase 6
 
-The login vertical slice, pure traversal engine, import-derived graph, complete 39-test catalogue and CLI subset execution are implemented. The design below also describes later phases: automated diff mapping, immutable browser snapshots, HTTP analysis/run APIs, the explorer and isolated source-overlay execution are still pending. `apps/demo` remains a scaffold.
+The login vertical slice, pure traversal engine, import-derived graph, complete 39-test catalogue, source-diff mapping, immutable browser snapshots, interactive explorer and isolated selected/full execution are implemented. Phase 6 hardened syntax-error fallback, catalogue command inputs, local API sessions, runner reports, process termination and environment filtering.
 
-The graph combines source modules with reviewed behavior nodes such as `User.authenticate`, form validation and HTTP request parsing. This lets local evidence distinguish tests that share a file without encoding scenario-to-test tables. The CLI accepts changed entity IDs; it does not claim to calculate source diffs yet. `test:selected` executes the current checkout only and verifies reporter results, while the planned browser runner will execute immutable edited copies.
+The graph combines source modules with reviewed behavior nodes such as `User.authenticate`, form validation and HTTP request parsing. This lets local evidence distinguish tests that share a file without encoding scenario-to-test tables. The CLI accepts changed entity IDs; the explorer maps real source diffs to versioned entity ranges. `test:selected` executes the current checkout, while the browser runner executes immutable edited copies in disposable overlays; both verify reporter results.
 
 Node 24.15+ (24.x) or 26+ matches the installed test-tool requirements. TypeScript 5.9 provides the stable compiler API used for imports and architecture checks; the application is still ordinary TypeScript. Playwright allocates ports once in a launcher, then shares them through environment variables, because configuration is loaded again in worker processes.
 
@@ -57,7 +57,7 @@ Return uncertainty warnings rather than claiming exact coverage. Selection guara
 
 The browser receives allowlisted real source files plus snapshot/graph/catalogue digests. Edits are browser memory overlays, never writes to the checkout. `POST /api/analyses` submits a snapshot ID plus replacement file contents; the service resolves the immutable original, computes the diff and invokes the engine. The browser cannot submit authoritative changed-entity IDs or test selections. Analysis records bind the source overlay and all digests.
 
-`POST /api/runs` accepts an analysis ID and `selected` or `full`. The service derives test IDs from the stored analysis/catalogue. Both modes execute the **same edited snapshot**. A full run against pristine source is a different comparison and is not silently mixed in. `GET /api/runs/:id` returns incremental results; polling is sufficient initially. Build/setup failures and missing reports are errors, never passes.
+`POST /api/executions` accepts a snapshot ID, analysis ID and `selected` or `full`. The service derives test IDs from the stored analysis/catalogue. Both modes execute the **same edited snapshot**. A full run against pristine source is a different comparison and is not silently mixed in. `GET /api/executions/:id` returns incremental results; polling is sufficient. Build/setup failures and missing reports are errors, never passes.
 
 Application view initially embeds the baseline running app and labels that state explicitly; source edits affect the isolated test snapshot. An edited live preview is outside the required first implementation.
 

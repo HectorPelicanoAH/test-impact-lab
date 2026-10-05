@@ -1,6 +1,6 @@
 # Test Impact Lab
 
-A real login application and deterministic test-impact engine in a TypeScript monorepo. **Phase 5 complete:** the presentation-ready explorer guides a real source edit through deterministic impact analysis, contract boundaries and physically measured selected/full regression runs. The catalogue contains 39 meaningful product tests.
+A real login application and deterministic test-impact engine in a TypeScript monorepo. **Phase 6 complete:** the audited explorer guides a real source edit through deterministic impact analysis, contract boundaries and physically measured selected/full regression runs. The catalogue contains 39 meaningful product tests.
 
 ## Run
 
@@ -31,6 +31,8 @@ pnpm test:selected LoginButton     # Physically run the computed subset
 The explorer serves an immutable hash-addressed snapshot of allowlisted source files. Monaco edits stay in browser memory; Calculate Regression sends replacements to the local API, which maps the real line diff to graph ranges and invokes the shared impact engine. Suggested changes modify source text and do not send scenario names or test IDs.
 
 RUN SELECTED TESTS and RUN FULL SUITE execute browser edits in disposable source overlays. The browser sends only a snapshot ID, analysis ID and fixed mode; the server derives trusted catalogue IDs and maps them to fixed Vitest/Playwright commands. Results, failures and durations come from the runners, and audit reports are stored in `.impact-runs/`. `test:selected` remains the checkout-oriented CLI runner. `test:e2e` launches its own services and never reuses another running server.
+
+This runner is a local, trusted-user tool. Edited TypeScript is executable code: the runner filters inherited environment variables, validates fixed test identities and removes its overlay, but it is not an OS sandbox and the edited code still runs with the current user's filesystem and network permissions. Keep the API bound to loopback and never expose it as a public execution service.
 
 ## Architecture
 
@@ -70,6 +72,6 @@ The CLI accepts explicit changed entity IDs. The explorer derives changed entiti
 To add a node/test: register its stable ID, file, architectural layer and local subjects in the metadata; add a real top-level test with a unique `[ID]` title; run `pnpm graph:generate`, `pnpm graph:check`, and relevant tests. Never add scenario-to-test lists. TypeScript 5.9 is retained for its stable compiler API.
 
 - [Architecture and algorithm](docs/ARCHITECTURE.md)
-- [Implementation state and Phase 6 handoff](docs/IMPLEMENTATION_STATE.md)
-- [Graph, catalogue and planned API types](packages/impact-engine/src/schema.ts)
+- [Implementation state and optional Phase 7 handoff](docs/IMPLEMENTATION_STATE.md)
+- [Graph, catalogue and API types](packages/impact-engine/src/schema.ts)
 - [Supplied SDD](docs/SDD.md)

@@ -51,3 +51,18 @@ test('Unknown edited files fail closed with a full selection', () => {
   expect(analysis.result.selectionMode).toBe('conservative-full');
   expect(analysis.result.selectedTests).toHaveLength(39);
 });
+
+test('Syntactically invalid edited source fails closed with a full selection', () => {
+  const path = 'apps/backend/src/auth/domain/User.ts';
+  const original = readFileSync(path, 'utf8');
+  const analysis = analyzeSourceEdits({
+    originalFiles: { [path]: original },
+    edits: [{ path, content: original.replace('async authenticate(password: string)', 'async authenticate(password: string') }],
+    graph,
+    catalogue,
+    uncertaintyReasons: [`Edited file contains syntax errors: ${path}`],
+  });
+  expect(analysis.result.selectionMode).toBe('conservative-full');
+  expect(analysis.result.selectedTests).toHaveLength(39);
+  expect(analysis.result.warnings).toContain(`Edited file contains syntax errors: ${path}`);
+});

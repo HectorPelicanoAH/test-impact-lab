@@ -1,8 +1,9 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { resolve } from 'node:path';
 import { analyzeSourceEdits, type ImpactGraph, type TestMetadata } from '@test-impact/impact-engine';
+import ts from 'typescript';
 import { executeTests } from './execution';
 import type { DemoAnalysis, DemoAnalysisRequest, DemoExecution, DemoExecutionRequest, DemoFile, DemoSnapshot } from './src/types';
 
@@ -21,7 +22,8 @@ const sourceHash = hash(files.map(file => `${file.path}\0${file.content}`).join(
 const graphHash = hash(JSON.stringify(graph));
 const catalogueHash = hash(JSON.stringify(catalogue));
 const snapshotId = hash(`${sourceHash}:${graphHash}:${catalogueHash}`).slice(0, 24);
-const snapshot: DemoSnapshot = { id: snapshotId, sourceHash, graphHash, catalogueHash, files, graph, catalogue };
+const sessionToken = randomBytes(32).toString('hex');
+const snapshot: DemoSnapshot = { id: snapshotId, sourceHash, graphHash, catalogueHash, sessionToken, files, graph, catalogue };
 
 function json(response: ServerResponse, status: number, body: unknown) {
   response.writeHead(status, {
@@ -46,7 +48,9 @@ async function readBody(request: IncomingMessage): Promise<unknown> {
 function validateRequest(value: unknown): DemoAnalysisRequest {
   if (!value || typeof value !== 'object') throw new Error('Invalid analysis request.');
   const candidate = value as Partial<DemoAnalysisRequest>;
-  if (candidate.snapshotId !== snapshotId || !Array.isArray(candidate.edits) || candidate.edits.length > allowedPaths.length) {
+  const keys = Object.keys(candidate);
+  if (keys.length !== 2 || !keys.every(key => ['snapshotId', 'edits'].includes(key))
+    || candidate.snapshotId !== snapshotId || !Array.isArray(candidate.edits) || candidate.edits.length > allowedPaths.length) {
     throw new Error('Snapshot mismatch or invalid edit list.');
   }
   const seen = new Set<string>();
@@ -69,6 +73,26 @@ function validateExecutionRequest(value: unknown): DemoExecutionRequest {
   return candidate as DemoExecutionRequest;
 }
 
+function isAuthorized(request: IncomingMessage): boolean {
+  if (request.headers['x-test-impact-session'] !== sessionToken) return false;
+  const origin = request.headers.origin;
+  if (!origin) return true;
+  try {
+    const url = new URL(origin);
+    return url.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function syntaxUncertainty(edits: DemoAnalysisRequest['edits']): string[] {
+  return edits.flatMap(edit => {
+    const source = ts.createSourceFile(edit.path, edit.content, ts.ScriptTarget.Latest, true, edit.path.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+    const diagnostics = (source as ts.SourceFile & { parseDiagnostics: readonly ts.Diagnostic[] }).parseDiagnostics;
+    return diagnostics.length > 0 ? [`Edited file contains syntax errors: ${edit.path}`] : [];
+  });
+}
+
 type Executor = typeof executeTests;
 
 export function createDemoApi(executor: Executor = executeTests) {
@@ -77,13 +101,17 @@ export function createDemoApi(executor: Executor = executeTests) {
   return createServer(async (request, response) => {
     if (request.method === 'GET' && request.url === '/api/health') return json(response, 200, { status: 'ok', snapshotId });
     if (request.method === 'GET' && request.url === '/api/snapshot') return json(response, 200, snapshot);
+    const protectedRoute = (request.method === 'POST' && ['/api/analyses', '/api/executions'].includes(request.url ?? ''))
+      || (request.method === 'GET' && request.url?.startsWith('/api/executions/'));
+    if (protectedRoute && !isAuthorized(request)) return json(response, 403, { error: 'Invalid local demo session.' });
     if (request.method === 'POST' && request.url === '/api/analyses') {
       try {
         const body = validateRequest(await readBody(request));
-        const analysis = analyzeSourceEdits({ originalFiles, edits: body.edits, graph, catalogue });
-        const id = hash(`${snapshotId}:${JSON.stringify(body.edits)}`).slice(0, 24);
+        const canonicalEdits = [...body.edits].sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
+        const analysis = analyzeSourceEdits({ originalFiles, edits: canonicalEdits, graph, catalogue, uncertaintyReasons: syntaxUncertainty(canonicalEdits) });
+        const id = hash(`${snapshotId}:${JSON.stringify(canonicalEdits)}`).slice(0, 24);
         const result: DemoAnalysis = { id, snapshotId, ...analysis };
-        analyses.set(id, { analysis: result, edits: body.edits });
+        analyses.set(id, { analysis: result, edits: canonicalEdits });
         if (analyses.size > 32) analyses.delete(analyses.keys().next().value!);
         return json(response, 200, result);
       } catch (error) {

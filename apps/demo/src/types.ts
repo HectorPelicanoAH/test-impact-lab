@@ -7,6 +7,7 @@ export interface DemoFile {
 }
 
 export interface DemoSnapshot extends SnapshotRef {
+  sessionToken: string;
   files: DemoFile[];
   graph: ImpactGraph;
   catalogue: TestMetadata[];

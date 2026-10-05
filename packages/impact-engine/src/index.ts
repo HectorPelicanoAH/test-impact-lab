@@ -12,6 +12,7 @@ export function validateGraph(graph: ImpactGraph, catalogue: TestMetadata[]): vo
   if (nodes.size !== graph.nodes.length) throw new Error('Duplicate node ID');
   if (new Set(graph.edges.map(edge => edge.id)).size !== graph.edges.length) throw new Error('Duplicate edge ID');
   if (new Set(catalogue.map(test => test.id)).size !== catalogue.length) throw new Error('Duplicate test ID');
+  if (new Set(catalogue.map(test => `${test.runner}\0${test.file}\0${test.title}`)).size !== catalogue.length) throw new Error('Duplicate runner test identity');
   for (const edge of graph.edges) {
     const from = nodes.get(edge.from);
     const to = nodes.get(edge.to);
@@ -24,6 +25,11 @@ export function validateGraph(graph: ImpactGraph, catalogue: TestMetadata[]): vo
     if (to.kind === 'test') throw new Error(`Tests cannot be production dependencies: ${edge.id}`);
   }
   for (const test of catalogue) {
+    if (!['vitest', 'playwright'].includes(test.runner)) throw new Error(`Invalid test runner: ${test.id}`);
+    if (!test.file || test.file.startsWith('/') || test.file.startsWith('-') || test.file.includes('\\') || test.file.split('/').includes('..')) {
+      throw new Error(`Unsafe test file: ${test.id}`);
+    }
+    if (!test.title.startsWith(`[${test.id}] `)) throw new Error(`Test title does not contain its stable ID: ${test.id}`);
     const node = nodes.get(test.nodeId);
     if (node?.kind !== 'test' || node.testId !== test.id) throw new Error(`Missing test node: ${test.id}`);
     if (!graph.edges.some(edge => edge.from === test.nodeId && edge.type === 'exercises' && edge.policy.reverseImpact)) {

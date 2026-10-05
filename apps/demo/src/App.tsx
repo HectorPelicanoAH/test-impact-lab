@@ -88,7 +88,7 @@ export function App() {
         snapshotId: snapshot.id,
         edits: Object.entries(edits).sort(([a], [b]) => a.localeCompare(b)).map(([path, editedContent]) => ({ path, content: editedContent })),
       };
-      const result = await request<DemoAnalysis>('/api/analyses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const result = await request<DemoAnalysis>('/api/analyses', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Test-Impact-Session': snapshot.sessionToken }, body: JSON.stringify(body) });
       setAnalysis(result);
       setExecutions({});
       setFocusTest(result.result.selectedTests[0]);
@@ -110,11 +110,11 @@ export function App() {
     setError(undefined);
     try {
       const body: DemoExecutionRequest = { snapshotId: snapshot.id, analysisId: analysis.id, mode };
-      let execution = await request<DemoExecution>('/api/executions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      let execution = await request<DemoExecution>('/api/executions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Test-Impact-Session': snapshot.sessionToken }, body: JSON.stringify(body) });
       setExecutions(current => ({ ...current, [mode]: execution }));
       while (execution.status === 'queued' || execution.status === 'running') {
         await new Promise(resolve => setTimeout(resolve, 700));
-        execution = await request<DemoExecution>(`/api/executions/${execution.id}`);
+        execution = await request<DemoExecution>(`/api/executions/${execution.id}`, { headers: { 'X-Test-Impact-Session': snapshot.sessionToken } });
         setExecutions(current => ({ ...current, [mode]: execution }));
       }
     } catch (cause) {

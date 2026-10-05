@@ -3,11 +3,13 @@ import { filesUnder, moduleReferences, resolveModule, sourceFile } from '../../s
 
 function violations(path: string, text?: string): string[] {
   const layer = path.includes('/domain/') ? 'domain' : 'application';
-  const allowed = layer === 'domain' ? ['/auth/domain/'] : ['/auth/domain/', '/auth/application/'];
+  const allowed = layer === 'domain'
+    ? ['apps/backend/src/auth/domain/']
+    : ['apps/backend/src/auth/domain/', 'apps/backend/src/auth/application/'];
   return moduleReferences(sourceFile(path, text)).flatMap(specifier => {
     if (specifier === 'node:crypto' && layer === 'domain') return [];
     const target = resolveModule(specifier, path);
-    return target && allowed.some(prefix => target.includes(prefix)) ? [] : [`${path} imports forbidden ${specifier}`];
+    return target && allowed.some(prefix => target.startsWith(prefix)) ? [] : [`${path} imports forbidden ${specifier}`];
   });
 }
 
@@ -26,5 +28,6 @@ test('Architecture guard detects transport, type-only, dynamic and unresolved al
     "import { x } from '@backend/infrastructure/escape';",
   ]) expect(violations(path, text)).toHaveLength(1);
   expect(() => violations(path, 'const path = process.env.ADAPTER; import(path);')).toThrow('Non-literal');
+  expect(violations(path, "import { x } from '../../../../frontend/src/auth/domain/escape';")).toHaveLength(1);
   expect(violations('apps/backend/src/auth/application/Probe.ts', "import { LoginController } from '../infrastructure/inbound/http/LoginController';")).toHaveLength(1);
 });
