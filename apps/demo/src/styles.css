@@ -3,7 +3,7 @@
 body { margin: 0; min-width: 1180px; min-height: 100vh; overflow: hidden; background: radial-gradient(circle at 50% -30%, #172137 0, #070a10 42%); }
 button, input { font: inherit; }
 button { color: inherit; }
-.app-shell { height: 100vh; display: grid; grid-template-rows: 58px auto minmax(0, 1fr) 28px; }
+.app-shell { height: 100vh; display: grid; grid-template-rows: 58px auto auto minmax(0, 1fr) 28px; }
 .topbar { display: grid; grid-template-columns: 300px 1fr 360px; align-items: center; border-bottom: 1px solid var(--line); background: rgba(8, 12, 19, .94); backdrop-filter: blur(16px); padding: 0 18px; }
 .brand { display: flex; align-items: center; gap: 11px; }
 .logo-mark { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid #3b78d4; border-radius: 5px; color: #9cc3ff; background: #101d31; font: 600 11px IBM Plex Mono, monospace; letter-spacing: .8px; box-shadow: inset 0 0 18px #1b47784d; }
@@ -32,6 +32,22 @@ nav button.active::after { background: var(--blue); box-shadow: 0 0 10px var(--b
 .suggestion-strip button small { color: #6e7d93; font-size: 10px; }
 .suggestion-strip .reset { margin-left: 12px; color: #8392a8; font: 500 9px IBM Plex Mono, monospace; }
 .suggestion-strip .reset:disabled { opacity: .35; cursor: default; }
+.workflow-ribbon { display: grid; grid-template-columns: 265px minmax(0, 1fr) 195px; align-items: stretch; min-height: 58px; border-bottom: 1px solid var(--line); background: linear-gradient(90deg, #0b111b, #0e1420 52%, #0a1118); }
+.workflow-intro { display: grid; align-content: center; gap: 4px; padding: 0 18px; border-right: 1px solid var(--line); }
+.workflow-intro span { color: var(--cyan); font: 600 8px IBM Plex Mono, monospace; letter-spacing: 1.4px; }
+.workflow-intro b { color: #b8c8de; font-size: 11px; font-weight: 500; }
+.workflow-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.workflow-steps button { position: relative; display: flex; gap: 8px; align-items: center; min-width: 0; padding: 8px 13px; border: 0; border-right: 1px solid #1b2738; background: transparent; text-align: left; cursor: pointer; transition: background .18s ease, color .18s ease; }
+.workflow-steps button:hover { background: #142035; }
+.workflow-steps button.current { background: linear-gradient(180deg, #15243b, #101827); }
+.workflow-steps button.current::after { content: ''; position: absolute; inset: auto 10px 0; height: 2px; background: var(--blue); box-shadow: 0 0 9px #70a8ff99; }
+.workflow-steps i { flex: 0 0 auto; width: 20px; height: 20px; display: grid; place-items: center; border: 1px solid #34465f; border-radius: 50%; color: #8599b2; font: 600 8px IBM Plex Mono, monospace; font-style: normal; }
+.workflow-steps .complete i { border-color: #3d8a69; color: var(--green); background: #102419; }
+.workflow-steps span { min-width: 0; display: grid; gap: 3px; }
+.workflow-steps b { color: #9fafc3; font: 600 8px IBM Plex Mono, monospace; letter-spacing: 1px; }
+.workflow-steps small { overflow: hidden; color: #64758c; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.workflow-proof { display: flex; align-items: center; justify-content: center; gap: 7px; border-left: 1px solid var(--line); color: #718d87; font: 500 8px IBM Plex Mono, monospace; letter-spacing: .8px; }
+.workflow-proof i { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px #7ce5a299; }
 .workspace { min-height: 0; overflow: hidden; }
 .panel { min-width: 0; min-height: 0; background: rgba(13, 18, 28, .94); }
 .panel-title { padding: 11px 13px; border-bottom: 1px solid var(--line); color: #687992; font: 600 9px IBM Plex Mono, monospace; letter-spacing: 1.3px; }
@@ -41,7 +57,8 @@ nav button.active::after { background: var(--blue); box-shadow: 0 0 10px var(--b
 .tree-file:hover { color: #d8e5f8; background: #141e2c; }
 .tree-file.active { color: #e8f1ff; background: #17243a; box-shadow: inset 2px 0 var(--blue); }
 .tree-file i { width: 6px; height: 6px; margin-right: 10px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 7px var(--orange); }
-.tree-folder { height: 26px; display: flex; align-items: center; gap: 6px; color: #718198; font: 500 10px IBM Plex Mono, monospace; }
+.tree-folder { width: 100%; height: 26px; display: flex; align-items: center; gap: 6px; border: 0; background: transparent; color: #718198; font: 500 10px IBM Plex Mono, monospace; text-align: left; cursor: pointer; }
+.tree-folder:hover { color: #b9c9df; background: #111b2a; }
 .tree-folder span { color: #46556b; }
 .editor-panel { display: grid; grid-template-rows: 37px minmax(0, 1fr); }
 .editor-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); padding: 0 13px; color: #93a4ba; font: 400 10px IBM Plex Mono, monospace; }
@@ -63,7 +80,9 @@ nav button.active::after { background: var(--blue); box-shadow: 0 0 10px var(--b
 .avoidance { margin: 14px; padding: 12px; display: flex; align-items: baseline; gap: 10px; border: 1px solid #1f3e35; background: #0d1a18; border-radius: 5px; }
 .avoidance strong { color: var(--green); font: 600 24px IBM Plex Mono, monospace; }
 .avoidance span { color: #76a595; font-size: 11px; }
-.boundary-note { margin: 14px; padding: 11px; display: grid; gap: 6px; border-left: 2px solid var(--cyan); background: #0d1d22; color: #90abb3; font-size: 10px; line-height: 1.5; }
+.boundary-stack { border-top: 1px solid var(--line); }
+.boundary-stack .panel-title { padding-block: 9px; }
+.boundary-note { margin: 10px 14px; padding: 11px; display: grid; gap: 6px; border-left: 2px solid var(--cyan); background: #0d1d22; color: #90abb3; font-size: 10px; line-height: 1.5; }
 .boundary-note b { color: var(--cyan); font: 600 8px IBM Plex Mono, monospace; letter-spacing: 1px; }
 .boundary-note.crossed { border-color: var(--orange); background: #21170f; }
 .boundary-note.crossed b { color: var(--orange); }
@@ -81,6 +100,10 @@ nav button.active::after { background: var(--blue); box-shadow: 0 0 10px var(--b
 .graph-toolbar b { font: 600 9px IBM Plex Mono, monospace; letter-spacing: 1px; }
 .graph-toolbar span { color: var(--muted); font-size: 9px; }
 .graph-toolbar button { pointer-events: auto; align-self: start; }
+.graph-legend { position: absolute; z-index: 5; right: 12px; bottom: 12px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; max-width: 440px; padding: 7px; border: 1px solid var(--line); border-radius: 4px; background: #0b111be6; backdrop-filter: blur(8px); pointer-events: none; }
+.graph-legend span { display: flex; align-items: center; gap: 5px; padding: 4px 6px; border: 1px solid #273347; border-radius: 3px; color: #8fa0b7; font: 500 8px IBM Plex Mono, monospace; }
+.graph-legend span::before { content: ''; width: 6px; height: 6px; border-radius: 2px; background: #55657a; }
+.graph-legend .changed::before { background: var(--orange); box-shadow: 0 0 7px #ffad66aa; }.graph-legend .affected::before { background: var(--blue); }.graph-legend .journey::before { background: var(--cyan); }.graph-legend .selected::before { background: var(--green); }.graph-legend .boundary::before { border: 2px solid var(--cyan); background: transparent; }
 .flow-node { border: 1px solid #283448 !important; border-radius: 5px !important; background: #101722 !important; color: #65758c !important; opacity: .42; font-size: 10px !important; box-shadow: none !important; }
 .flow-node.affected { opacity: 1; border-color: #3568a5 !important; background: #12223a !important; color: #b7d3ff !important; }
 .flow-node.journey { opacity: .9; border-color: #277d7b !important; background: #102626 !important; color: #a2e2dd !important; }
@@ -169,8 +192,12 @@ nav button.active::after { background: var(--blue); box-shadow: 0 0 10px var(--b
 .test-row.selected { background: #0e1d18; color: var(--green); }
 .test-row.selected > span:first-child i { background: var(--green); box-shadow: 0 0 7px var(--green); }
 .test-row.excluded { opacity: .58; }
+.test-row.executed-passed { background: #0d2119; opacity: 1; }.test-row.executed-failed { background: #281519; opacity: 1; }.test-row.executed-failed > span:first-child { color: var(--red); }.test-row.executed-failed > span:first-child i { background: var(--red); box-shadow: 0 0 7px var(--red); }
 footer { display: flex; align-items: center; gap: 28px; padding: 0 16px; border-top: 1px solid var(--line); background: #080c12; color: #526178; font: 500 8px IBM Plex Mono, monospace; letter-spacing: .6px; }
 footer span:first-child { color: #699983; }
 footer i { display: inline-block; width: 5px; height: 5px; margin-right: 7px; border-radius: 50%; background: var(--green); }
 .loading-screen { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 16px; color: var(--muted); font: 400 12px IBM Plex Mono, monospace; }
+button:focus-visible { outline: 2px solid #8ab8ff; outline-offset: -2px; }
+@media (prefers-reduced-motion: no-preference) { .panel, .workflow-steps button, .suggestion-strip button, .tree-file, .tree-folder, .primary { transition: background .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease; } .status-dot, .workflow-proof i { animation: signal 2s ease-in-out infinite; } @keyframes signal { 50% { box-shadow: 0 0 13px currentColor; } } }
 @media (max-width: 1250px) { body { min-width: 980px; }.topbar { grid-template-columns: 250px 1fr 310px; }.code-view { grid-template-columns: 210px minmax(420px, 1fr) 320px; }.suggestion-strip button small { display: none; }.application-view { grid-template-columns: 280px minmax(600px, 1fr); }.topbar nav button { padding-inline: 12px; } }
+@media (max-width: 1080px) { body { min-width: 0; overflow: auto; }.app-shell { min-height: 100vh; height: auto; grid-template-rows: auto auto auto minmax(620px, auto) auto; }.topbar { grid-template-columns: 1fr auto; gap: 8px; min-height: 58px; padding: 8px 14px; }.topbar nav { grid-column: 1 / -1; grid-row: 2; height: 34px; justify-content: flex-start; overflow-x: auto; }.topbar nav button { flex: 0 0 auto; }.top-actions { gap: 8px; }.top-actions > span { display: none; }.suggestion-strip { padding: 8px 14px; overflow-x: auto; }.suggestion-strip > div { min-width: max-content; }.workflow-ribbon { grid-template-columns: 1fr; }.workflow-intro { padding: 10px 14px; border-right: 0; border-bottom: 1px solid var(--line); }.workflow-proof { display: none; }.workflow-steps { overflow-x: auto; }.workflow-steps button { min-width: 180px; }.workspace { min-height: 620px; overflow: visible; }.code-view { grid-template-columns: 190px minmax(380px, 1fr); height: auto; }.impact-panel { grid-column: 1 / -1; min-height: 360px; }.graph-view { grid-template-columns: minmax(560px, 1fr); height: auto; }.graph-shell { height: 620px; }.graph-inspector { min-height: 270px; }.tests-view { height: auto; padding: 22px 16px 36px; }.execution-actions { align-items: flex-start; flex-direction: column; }.application-view { height: auto; min-height: 620px; grid-template-columns: 1fr; padding: 28px; }.browser-frame { height: 540px; }.run-grid { grid-template-columns: 1fr; } footer { min-height: 28px; overflow-x: auto; white-space: nowrap; } }

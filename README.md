@@ -1,6 +1,6 @@
 # Test Impact Lab
 
-A real login application and deterministic test-impact engine in a TypeScript monorepo. **Phase 4 complete:** edit real source snapshots, calculate impact with the shared engine, and physically compare selected and full regression runs in isolated overlays. The catalogue contains 39 meaningful product tests.
+A real login application and deterministic test-impact engine in a TypeScript monorepo. **Phase 5 complete:** the presentation-ready explorer guides a real source edit through deterministic impact analysis, contract boundaries and physically measured selected/full regression runs. The catalogue contains 39 meaningful product tests.
 
 ## Run
 
@@ -70,6 +70,6 @@ The CLI accepts explicit changed entity IDs. The explorer derives changed entiti
 To add a node/test: register its stable ID, file, architectural layer and local subjects in the metadata; add a real top-level test with a unique `[ID]` title; run `pnpm graph:generate`, `pnpm graph:check`, and relevant tests. Never add scenario-to-test lists. TypeScript 5.9 is retained for its stable compiler API.
 
 - [Architecture and algorithm](docs/ARCHITECTURE.md)
-- [Implementation state and Phase 5 handoff](docs/IMPLEMENTATION_STATE.md)
+- [Implementation state and Phase 6 handoff](docs/IMPLEMENTATION_STATE.md)
 - [Graph, catalogue and planned API types](packages/impact-engine/src/schema.ts)
 - [Supplied SDD](docs/SDD.md)

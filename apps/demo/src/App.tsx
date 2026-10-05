@@ -40,6 +40,13 @@ export function App() {
   const original = snapshot?.files.find(file => file.path === selectedPath)?.content ?? '';
   const content = edits[selectedPath] ?? original;
   const modified = useMemo(() => new Set(Object.keys(edits)), [edits]);
+  const activeExecution = executions.full ?? executions.selected;
+  const workflow = [
+    { label: 'CHANGE', detail: modified.size ? `${modified.size} file${modified.size === 1 ? '' : 's'} modified` : 'Choose or edit source', view: 'code' as View, complete: modified.size > 0 },
+    { label: 'CALCULATE', detail: analysis ? `${analysis.result.selectedTests.length} tests selected` : 'Map source impact', view: 'graph' as View, complete: Boolean(analysis) },
+    { label: 'INSPECT', detail: analysis ? `${(snapshot?.catalogue.length ?? 0) - analysis.result.selectedTests.length} safely avoided` : 'Review causal paths', view: 'tests' as View, complete: Boolean(analysis) },
+    { label: 'EXECUTE', detail: activeExecution ? activeExecution.status.toUpperCase() : 'Run selected or full suite', view: 'tests' as View, complete: activeExecution?.status === 'passed' || activeExecution?.status === 'failed' },
+  ];
 
   function updateFile(value: string) {
     if (!snapshot) return;
@@ -130,6 +137,14 @@ export function App() {
       <button className="reset" disabled={!modified.size} onClick={() => { setEdits({}); setAnalysis(undefined); setFocusTest(undefined); setExecutions({}); }}>RESET</button>
     </div>
 
+    <section className="workflow-ribbon" aria-label="Regression workflow">
+      <div className="workflow-intro"><span>GUIDED FLOW</span><b>From source edit to measured regression</b></div>
+      <div className="workflow-steps">{workflow.map((step, index) => <button key={step.label} className={`${step.complete ? 'complete' : ''} ${view === step.view ? 'current' : ''}`} onClick={() => setView(step.view)}>
+        <i>{index + 1}</i><span><b>{step.label}</b><small>{step.detail}</small></span>
+      </button>)}</div>
+      <div className="workflow-proof"><i />DETERMINISTIC · REAL RUNNERS</div>
+    </section>
+
     <main className="workspace">
       {view === 'application' && <section className="application-view">
         <div className="view-intro"><span>LIVE APPLICATION</span><h1>The same login journey represented by the code, graph and tests.</h1><p>Try an invalid password, then sign in with the public demo credentials.</p></div>
@@ -160,7 +175,10 @@ export function App() {
         <div className="test-table"><div className="test-table-head"><span>STATUS</span><span>ID / TEST</span><span>TYPE</span><span>EVIDENCE</span></div>{snapshot.catalogue.map(test => {
           const selected = analysis?.result.selectedTests.includes(test.id);
           const excluded = analysis?.result.excludedTests.find(item => item.testId === test.id);
-          return <div className={`test-row ${selected ? 'selected' : analysis ? 'excluded' : ''}`} key={test.id}><span><i />{selected ? 'SELECTED' : analysis ? 'AVOIDED' : 'READY'}</span><span><b>{test.id}</b>{test.name.replace(/^\[[^\]]+\]\s*/, '')}</span><span>{kindLabels[test.kind]}</span><span>{selected ? <button onClick={() => explain(test.id)}>WHY?</button> : excluded?.explanation ?? 'Awaiting analysis'}</span></div>;
+          const runResult = activeExecution?.results.find(result => result.testId === test.id);
+          const status = runResult?.status;
+          const label = status ? status.toUpperCase() : selected ? 'SELECTED' : analysis ? 'AVOIDED' : 'READY';
+          return <div className={`test-row ${selected ? 'selected' : analysis ? 'excluded' : ''} ${status ? `executed-${status}` : ''}`} key={test.id}><span><i />{label}</span><span><b>{test.id}</b>{test.name.replace(/^\[[^\]]+\]\s*/, '')}</span><span>{kindLabels[test.kind]}</span><span>{selected ? <button onClick={() => explain(test.id)}>WHY?</button> : excluded?.explanation ?? 'Awaiting analysis'}</span></div>;
         })}</div></section>}
     </main>
 

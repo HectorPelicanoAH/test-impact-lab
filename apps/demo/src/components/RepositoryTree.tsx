@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { DemoFile } from '../types';
 
 interface TreeNode { name: string; path?: string; children: Map<string, TreeNode> }
@@ -25,10 +26,16 @@ function Branch({ node, selected, modified, onSelect, depth = 0 }: {
     ? <button key={child.path} className={`tree-file ${selected === child.path ? 'active' : ''}`} style={{ paddingLeft: 12 + depth * 14 }} onClick={() => onSelect(child.path!)}>
       <span>{child.name}</span>{modified.has(child.path) && <i aria-label="modified" />}
     </button>
-    : <div key={`${depth}:${child.name}`} className="tree-branch">
-      <div className="tree-folder" style={{ paddingLeft: 10 + depth * 14 }}><span>⌄</span>{child.name}</div>
-      <Branch node={child} selected={selected} modified={modified} onSelect={onSelect} depth={depth + 1} />
-    </div>)}</>;
+    : <TreeFolder key={`${depth}:${child.name}`} node={child} selected={selected} modified={modified} onSelect={onSelect} depth={depth} />)}</>;
+}
+
+function TreeFolder({ node, selected, modified, onSelect, depth }: {
+  node: TreeNode; selected: string; modified: Set<string>; onSelect: (path: string) => void; depth: number;
+}) {
+  const [expanded, setExpanded] = useState(true);
+  return <div className="tree-branch"><button className="tree-folder" style={{ paddingLeft: 10 + depth * 14 }} onClick={() => setExpanded(value => !value)} aria-expanded={expanded}><span>{expanded ? '⌄' : '›'}</span>{node.name}</button>
+    {expanded && <Branch node={node} selected={selected} modified={modified} onSelect={onSelect} depth={depth + 1} />}
+  </div>;
 }
 
 export function RepositoryTree(props: { files: DemoFile[]; selected: string; modified: Set<string>; onSelect: (path: string) => void }) {

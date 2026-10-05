@@ -43,6 +43,7 @@ export function ImpactGraph({ snapshot, analysis, focusTest, onFocusTest }: {
   }, [snapshot, analysis, focusTest]);
   return <div className="graph-shell">
     <div className="graph-toolbar"><div><b>IMPACT GRAPH</b><span>{snapshot.graph.nodes.length} nodes · {snapshot.graph.edges.length} evidenced edges</span></div>{focusTest && <button onClick={() => onFocusTest(undefined)}>Clear path · {focusTest}</button>}</div>
+    <div className="graph-legend" aria-label="Graph legend"><span className="changed">Changed source</span><span className="affected">Affected code</span><span className="journey">Contract journey</span><span className="selected">Selected test</span><span className="boundary">Double border = contract</span></div>
     <ReactFlow nodes={nodes} edges={edges} fitView minZoom={0.08} maxZoom={1.8} nodesDraggable={false} nodesConnectable={false}
       onNodeClick={(_event, node) => { const testId = snapshot.graph.nodes.find(item => item.id === node.id)?.testId; if (testId) onFocusTest(testId); }}>
       <Background color="#263044" gap={22} size={1} /><MiniMap pannable zoomable nodeStrokeWidth={2} /><Controls showInteractive={false} />

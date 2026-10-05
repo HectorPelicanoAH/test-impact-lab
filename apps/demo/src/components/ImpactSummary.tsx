@@ -29,7 +29,7 @@ export function ImpactSummary({ result, catalogue, graph, onWhy }: {
       return <div key={kind}><span>{labels[kind]}</span><strong>{selected} / {tests.length}</strong><i style={{ width: `${tests.length ? selected / tests.length * 100 : 0}%` }} /></div>;
     })}</div>
     <div className="avoidance"><strong>{catalogue.length - result.selectedTests.length}</strong><span>tests avoided</span></div>
-    {result.boundaries[0] && <div className={`boundary-note ${result.boundaries[0].crossed ? 'crossed' : ''}`}><b>{result.boundaries[0].crossed ? 'BOUNDARY CHANGED' : 'BOUNDARY HELD'}</b>{result.boundaries[0].reason}</div>}
+    {result.boundaries.length > 0 && <div className="boundary-stack"><div className="panel-title">CONTRACT BOUNDARIES</div>{result.boundaries.map(boundary => <div key={`${boundary.contractId}:${boundary.origin}`} className={`boundary-note ${boundary.crossed ? 'crossed' : ''}`}><b>{boundary.crossed ? 'BOUNDARY CHANGED' : 'BOUNDARY HELD'}</b>{boundary.reason}</div>)}</div>}
     <div className="selected-list"><div className="panel-title">SELECTED TESTS</div>{result.selectedTests.map(id => {
       const test = catalogue.find(item => item.id === id)!;
       const path = pathLabels(id, result, graph);
