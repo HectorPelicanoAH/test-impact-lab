@@ -3,7 +3,7 @@
 body { margin: 0; min-width: 1180px; min-height: 100vh; overflow: hidden; background: radial-gradient(circle at 50% -30%, #172137 0, #070a10 42%); }
 button, input { font: inherit; }
 button { color: inherit; }
-.app-shell { height: 100vh; display: grid; grid-template-rows: 58px auto auto minmax(0, 1fr) 28px; }
+.app-shell { height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: 58px auto auto auto minmax(0, 1fr) 28px; }
 .topbar { display: grid; grid-template-columns: 300px 1fr 360px; align-items: center; border-bottom: 1px solid var(--line); background: rgba(8, 12, 19, .94); backdrop-filter: blur(16px); padding: 0 18px; }
 .brand { display: flex; align-items: center; gap: 11px; }
 .logo-mark { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid #3b78d4; border-radius: 5px; color: #9cc3ff; background: #101d31; font: 600 11px IBM Plex Mono, monospace; letter-spacing: .8px; box-shadow: inset 0 0 18px #1b47784d; }
@@ -319,6 +319,28 @@ footer i { display: inline-block; width: 5px; height: 5px; margin-right: 7px; bo
 button:focus-visible { outline: 2px solid #8ab8ff; outline-offset: -2px; }
 @media (prefers-reduced-motion: no-preference) { .panel, .workflow-steps button, .suggestion-strip button, .tree-file, .tree-folder, .primary { transition: background .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease; } .status-dot, .workflow-proof i { animation: signal 2s ease-in-out infinite; } @keyframes signal { 50% { box-shadow: 0 0 13px currentColor; } } }
 @media (max-width: 1250px) { body { min-width: 980px; }.topbar { grid-template-columns: 250px 1fr 310px; }.code-view { grid-template-columns: 210px minmax(420px, 1fr) 320px; }.suggestion-strip button small { display: none; }.application-view { grid-template-columns: 280px minmax(600px, 1fr); }.topbar nav button { padding-inline: 12px; } }
-@media (max-width: 1080px) { body { min-width: 0; overflow: auto; }.app-shell { min-height: 100vh; height: auto; grid-template-rows: auto auto auto minmax(620px, auto) auto; }.topbar { grid-template-columns: 1fr auto; gap: 8px; min-height: 58px; padding: 8px 14px; }.topbar nav { grid-column: 1 / -1; grid-row: 2; height: 34px; justify-content: flex-start; overflow-x: auto; }.topbar nav button { flex: 0 0 auto; }.top-actions { gap: 8px; }.top-actions > span { display: none; }.suggestion-strip { padding: 8px 14px; overflow-x: auto; }.suggestion-strip > div { min-width: max-content; }.workflow-ribbon { grid-template-columns: 1fr; }.workflow-intro { padding: 10px 14px; border-right: 0; border-bottom: 1px solid var(--line); }.workflow-proof { display: none; }.workflow-steps { overflow-x: auto; }.workflow-steps button { min-width: 180px; }.workspace { min-height: 620px; overflow: visible; }.code-view { grid-template-columns: 190px minmax(380px, 1fr); height: auto; }.impact-panel { grid-column: 1 / -1; min-height: 360px; }.graph-view { grid-template-columns: minmax(560px, 1fr); height: auto; }.graph-shell { height: 620px; }.graph-inspector { min-height: 270px; }.tests-view { height: auto; padding: 22px 16px 36px; }.execution-actions { align-items: flex-start; flex-direction: column; }.application-view { height: auto; min-height: 620px; grid-template-columns: 1fr; padding: 28px; }.browser-frame { height: 540px; }.run-grid { grid-template-columns: 1fr; } footer { min-height: 28px; overflow-x: auto; white-space: nowrap; } }
+@media (max-width: 1080px) { body { min-width: 0; overflow: auto; }.app-shell { min-height: 100vh; height: auto; grid-template-rows: auto auto auto auto minmax(620px, auto) auto; }.topbar { grid-template-columns: 1fr auto; gap: 8px; min-height: 58px; padding: 8px 14px; }.topbar nav { grid-column: 1 / -1; grid-row: 2; height: 34px; justify-content: flex-start; overflow-x: auto; }.topbar nav button { flex: 0 0 auto; }.top-actions { gap: 8px; }.top-actions > span { display: none; }.suggestion-strip { padding: 8px 14px; overflow-x: auto; }.suggestion-strip > div { min-width: max-content; }.workflow-ribbon { grid-template-columns: 1fr; }.workflow-intro { padding: 10px 14px; border-right: 0; border-bottom: 1px solid var(--line); }.workflow-proof { display: none; }.workflow-steps { overflow-x: auto; }.workflow-steps button { min-width: 180px; }.workspace { min-height: 620px; overflow: visible; }.code-view { grid-template-columns: 190px minmax(380px, 1fr); height: auto; }.impact-panel { grid-column: 1 / -1; min-height: 360px; }.graph-view { grid-template-columns: minmax(560px, 1fr); height: auto; }.graph-shell { height: 620px; }.graph-inspector { min-height: 270px; }.tests-view { height: auto; padding: 22px 16px 36px; }.execution-actions { align-items: flex-start; flex-direction: column; }.application-view { height: auto; min-height: 620px; grid-template-columns: 1fr; padding: 28px; }.browser-frame { height: 540px; }.run-grid { grid-template-columns: 1fr; } footer { min-height: 28px; overflow-x: auto; white-space: nowrap; } }
 @media (max-width: 1080px) { .discovery-layout { height: auto; grid-template-columns: minmax(0, 1fr); }.discovery-main { overflow: visible; }.discovery-canvas { height: 380px; min-height: 380px; flex: none; }.discovery-inspector { min-height: 360px; max-height: none; }.discovery-results { max-height: 150px; } }
 @media (max-width: 630px) { .graph-view { min-width: 0; }.discovery-controls fieldset { display: flex; flex-wrap: wrap; }.discovery-filters select { max-width: 220px; }.discovery-toolbar { flex-wrap: wrap; gap: 8px; }.discovery-index input { width: 100%; }.discovery-canvas { height: 310px; min-height: 310px; }.discovery-canvas .react-flow__minimap { display: none; } }
+
+.observed-traces { padding: 16px; border-top: 1px solid #354258; overflow-wrap: anywhere; }
+.observed-traces select { max-width: 100%; }
+.trace-spans { padding-left: 22px; max-height: 400px; overflow: auto; }
+.trace-spans li { margin: 10px 0; }
+.trace-spans summary { cursor: pointer; padding: 8px 0; }
+.mesh-comparison label { display: flex; align-items: center; gap: 8px; }
+.mesh-comparison table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+.mesh-comparison th, .mesh-comparison td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.mesh-comparison th { color: var(--muted); }
+.learning-journeys { margin: 12px 24px; padding: 14px; }
+.journey-choice, .journey-progress { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.journey-choice label { font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+.journey-choice select { max-width: 100%; padding: 8px; background: #17202c; color: #e2e8f0; border: 1px solid #40516a; border-radius: 5px; }
+.learning-journeys button { padding: 8px 10px; border: 1px solid #334d70; border-radius: 4px; background: #101e32; color: #c7dcf8; font: 600 10px IBM Plex Mono, monospace; cursor: pointer; }
+.learning-journeys button:hover { background: #1a3050; }
+.learning-journeys button:disabled { opacity: .5; cursor: default; }
+.learning-journeys p, .learning-journeys small { color: #aab8cc; font-size: 12px; line-height: 1.6; }
+.journey-progress { margin-bottom: 12px; font-size: 12px; }
+.journey-progress button { overflow-wrap: anywhere; text-align: left; }
+.learning-journeys summary { cursor: pointer; color: #aab8cc; font-size: 12px; }
+@media (max-width: 600px) { .learning-journeys { margin: 8px; } .journey-progress button { max-width: 100%; } }

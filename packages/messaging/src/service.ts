@@ -1,3 +1,5 @@
+import { listenHost } from './network';
+import { startTelemetry, stopTelemetry } from '@test-impact/telemetry/node';
 import { createServer } from 'node:http';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -6,6 +8,7 @@ import { ConsumerStore } from './ConsumerStore';
 import { startConsumer } from './consumer';
 
 export function runConsumerService(subscription: string, effect: (event: OrderCreated) => Record<string, unknown>, defaultPort: number) {
+  startTelemetry(subscription);
   const path = resolve(process.env.DATA_DIR ?? '.impact-data', `${subscription}.sqlite`);
   mkdirSync(dirname(path), { recursive: true });
   const store = new ConsumerStore(path);
@@ -24,10 +27,10 @@ export function runConsumerService(subscription: string, effect: (event: OrderCr
     const effect = request.method === 'GET' && match ? store.find(match[1]!) : undefined;
     response.writeHead(effect ? 200 : 404).end(JSON.stringify(effect ?? { error: 'Not processed yet' }));
   });
-  server.listen(port, '127.0.0.1', () => console.log(`${subscription} HTTP ${JSON.stringify(server.address())}`));
+  server.listen(port, listenHost(), () => console.log(`${subscription} HTTP ${JSON.stringify(server.address())}`));
   let closing = false;
   for (const signal of ['SIGINT', 'SIGTERM'] as const) process.on(signal, () => {
     if (closing) return; closing = true;
-    void runtime.close().then(() => { server.closeAllConnections(); server.close(() => { store.close(); process.exit(0); }); });
+    void runtime.close().then(() => { server.closeAllConnections(); server.close(() => { store.close(); void stopTelemetry().finally(() => process.exit(0)); }); });
   });
 }

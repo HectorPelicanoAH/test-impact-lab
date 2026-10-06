@@ -1,0 +1,28 @@
+{
+  "phase": "G7",
+  "snapshot": "4022660f857229fd68a1a2f48acef95a1f6ba413a81100ebaeb0e9786122f598",
+  "datasetHash": "b54aebefd08a91ad9c1466bca6ad30169252483e7ddb1ebfe2102203896169bc",
+  "revision": "content:21ba3f1676270cbb8975ee47d8563a93da2b48db37b58be63bfb3210861ba487",
+  "traceId": "07d4ab0633f6885c0133bfc6c8cc0945",
+  "spans": 9,
+  "services": [
+    "notifications",
+    "orders-api",
+    "preparation",
+    "orders-screen"
+  ],
+  "retryObserved": true,
+  "staticEdgesPreserved": true,
+  "incompatibleVersionPending": true,
+  "collectorOutageAndRestart": true,
+  "disabledTelemetry": true,
+  "archivedNavigation": true,
+  "desktopAndNarrow": true,
+  "ownedContainers": [
+    "impact-g5-8fc20f55-bd0c-43ea-8eef-241b02d49bbb",
+    "impact-g7-9afe71d7-bb5f-486f-adf8-9abc4737144a"
+  ],
+  "brokerImage": "rabbitmq:4.2.0-management@sha256:6431bbd0f22df99ace800138399367d7d6181442dfff09feb2795e15d4bd4b7a",
+  "collectorImage": "otel/opentelemetry-collector-contrib:0.140.0@sha256:ffc818ee108d0b934fd14207fd87ff247c9b64f344ed349d0b66c166c18a2312",
+  "reportDirectory": ".impact-runs/g7-d3ac7ffd-75e0-4ee1-b472-fcdcf821c994"
+}

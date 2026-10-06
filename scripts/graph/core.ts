@@ -109,9 +109,19 @@ export function validateSnapshot(graph: GraphSnapshotV2, sources: SourceFiles, c
   if (!catalogue || graph.inputs.catalogueHash !== (includesInventory ? hash({ local: JSON.parse(catalogue), external: externalTests(sources) }) : hash(JSON.parse(catalogue)))) throw new Error('Catalogue manifest hash mismatch.');
   if (graph.inputs.contractsHash !== hash(fileHashes(Object.fromEntries(Object.entries(sources).filter(([path]) => path.startsWith('packages/api-contract/')))))) throw new Error('Contract manifest hash mismatch.');
   if (!configuration['extractor-manifest.json'] || graph.inputs.extractorsHash !== hash(JSON.parse(configuration['extractor-manifest.json']))) throw new Error('Extractor manifest hash mismatch.');
-  if (graph.inputs.observationsHash !== null || graph.observations.length) throw new Error('Observations are not supported in G2.');
+  if (graph.inputs.observationsHash !== null && !/^[a-f0-9]{64}$/.test(graph.inputs.observationsHash)) throw new Error('Invalid observation hash');
+  if (graph.observations.length && graph.inputs.observationsHash === null) throw new Error('Missing observation hash');
   const nodes = unique(graph.nodes), evidence = unique(graph.evidence), policies = unique(graph.policies);
-  unique(graph.edges); unique(graph.diagnostics);
+  unique(graph.edges); unique(graph.diagnostics); unique(graph.observations);
+  for (const observation of graph.observations) {
+    if ((!graph.mesh && observation.datasetHash !== graph.inputs.observationsHash) || !observation.correlation.nodeIds.every(id => nodes.has(id)) || !observation.correlation.edgeIds.every(id => graph.edges.some(edge => edge.id === id))) throw new Error('Invalid observation references');
+  }
+  if (graph.mesh) {
+    if (!/^[a-f0-9]{64}$/.test(graph.mesh.datasetHash) || !graph.inputs.observationsHash) throw new Error('Invalid mesh input identity');
+    for (const item of graph.mesh.comparisons) {
+      if (!item.correlation.nodeIds.every(id => nodes.has(id)) || !item.staticEdgeIds.every(id => graph.edges.some(edge => edge.id === id)) || !Number.isFinite(item.measured) || item.measured < 0) throw new Error('Invalid mesh references/counter');
+    }
+  }
   for (const policy of graph.policies) {
     if (!['legacy-login-v1', 'conservative-full', 'distributed-v1'].includes(policy.kind) || policy.version !== '1') throw new Error('Unsupported policy version.');
     if (policy.kind === 'legacy-login-v1' && !['reverseImpact', 'forwardBoundaryEvidence', 'contractExposure'].every(key => typeof (policy.configuration as unknown as Record<string, unknown>)[key] === 'boolean')) throw new Error('Invalid compatibility policy.');

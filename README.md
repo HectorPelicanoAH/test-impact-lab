@@ -1,6 +1,6 @@
 # Test Impact Lab
 
-A real login and orders application with a deterministic test-impact engine in a TypeScript monorepo. The explorer guides source edits through versioned dependency discovery, deterministic impact analysis and physically measured selected/full regression runs. The reviewed login catalogue contains 39 tests. **G2–G6** add static discovery, immutable graph archives, evidence navigation, a separately materialized inventory HTTP provider, real RabbitMQ processing by independent consumers and distributed impact selection.
+A real login and orders application with a deterministic test-impact engine in a TypeScript monorepo. The explorer guides source edits through versioned dependency discovery, deterministic impact analysis and physically measured selected/full regression runs. The reviewed login catalogue contains 39 tests. **G2–G9** add static discovery, immutable graph archives, evidence navigation, a separately materialized inventory HTTP provider, real RabbitMQ processing by independent consumers, distributed impact selection, versioned OpenTelemetry observations, an optional local service mesh and six source-based learning journeys.
 
 ## Run
 
@@ -43,6 +43,8 @@ pnpm test:discovery-browser         # G2 add/connect/delete browser flow
 pnpm test:discovery-execution       # G2 CRUD overlay executes 39 real login tests
 pnpm test:federated-execution       # G6 selected/full mutation across local and external suites
 pnpm graph:legacy:check             # Historical login seed topology/policies
+pnpm test:journeys                 # Six Chromium overlays, actual evidence and runners
+pnpm graph:audit                   # All locators, corpus, determinism and measured indexing
 ```
 
 The explorer serves an immutable SHA-256-addressed snapshot of source files under [explicit product roots](impact/discovery.json), including disconnected files. Monaco edits stay in browser memory. **ADD FILE / DELETE FILE** operate only on that working copy; connect a new component with an import/JSX reference, then **CALCULATE REGRESSION**. The API rebuilds the edited graph and returns before/after IDs, node/edge delta and explicit unresolved-dependency diagnostics. Suggested changes modify source text and do not send scenario names or test IDs. **RELOAD SNAPSHOT** discards browser edits and loads current checkout inputs; old analyses cannot execute after those inputs change.
@@ -105,6 +107,24 @@ Archives include sources, tests, runner inputs, manifests and evidence. `GET /ap
 
 ## Dependency discovery extension
 
-The [dependency-graph SDD](docs/SDD-DEPENDENCY-GRAPH.md) is a separate, phase-gated extension. G1 defines the [v2 contract and migration](docs/GRAPH-V2-CONTRACT.md) and evaluates TypeScript/CodeGraphContext on a [reproducible corpus](impact/corpus/g1/README.md). G2 implements the TypeScript adapter selected by the [indexer ADR](docs/ADR-G1-INDEXER.md), preserving the reviewed login behavior. G3 implements the versioned evidence inspector and guided-screen browser flow. G4 implements orders, independent inventory HTTP, qualified graph evidence and navigation to pinned external source. G5 adds transactional outbox/inboxes, RabbitMQ, independent consumers, bounded retries/failed queues and source/configuration-backed messaging facts. G6 adds causal policies, federated suite selection and local cross-project execution. No consumer-to-consumer dependency is inferred from sharing a broker. See [phase status and validation evidence](docs/DEPENDENCY-GRAPH-STATE.md) before continuing. **G7 requires another human “sigue”**; no later phase is implicitly authorized.
+The [dependency-graph SDD](docs/SDD-DEPENDENCY-GRAPH.md) is a separate, phase-gated extension. G1 defines the [v2 contract and migration](docs/GRAPH-V2-CONTRACT.md) and evaluates TypeScript/CodeGraphContext on a [reproducible corpus](impact/corpus/g1/README.md). G2 implements the TypeScript adapter selected by the [indexer ADR](docs/ADR-G1-INDEXER.md), preserving the reviewed login behavior. G3 implements the versioned evidence inspector and guided-screen browser flow. G4 implements orders, independent inventory HTTP, qualified graph evidence and navigation to pinned external source. G5 adds transactional outbox/inboxes, RabbitMQ, independent consumers, bounded retries/failed queues and source/configuration-backed messaging facts. G6 adds causal policies, federated suite selection and local cross-project execution. G7 adds real propagated traces, measured spans, retries, exact revision correlation and archived code navigation. G8 adds an optional local Istio/Kiali mesh with real workload traffic, archived counters and declared/static/observed comparisons. No consumer-to-consumer dependency is inferred from sharing a broker. See [phase status and validation evidence](docs/DEPENDENCY-GRAPH-STATE.md) before continuing. G9 completes the six learning journeys and final audit. The extension ends at G9; further expansion requires a new human instruction.
 
-Continuing on another machine or license? Start with the [G6 handoff](docs/G6-HANDOFF.md), then read the phase SDD and status log linked there.
+Continuing on another machine or license? Start with the [G9 final audit and clean-environment commands](docs/G9-FINAL-AUDIT.md), then read the phase SDD and status log linked there. The [extension guide](docs/EXTENDING-DISCOVERY.md) describes how to add a project, independent provider or bounded extractor.
+
+### G9 learning journeys
+
+Choose **LEARNING JOURNEY → APPLY JOURNEY** for a new screen, external HTTP contract, incompatible event, new consumer, retry/failure or unresolved dependency. Each starts from the pinned source snapshot and replaces the current browser overlay. Review **SOURCE DIFF**, calculate, inspect the actual **DELTA** and archived **EVIDENCE**, then follow **IMPACT → EXECUTION**. Contract/failure journeys deliberately produce real failures; dynamic dependencies require conservative selection. A new consumer overlay neither deploys a service nor invents test coverage. Reset/reload clears its results.
+
+Compiler and explicit configuration facts describe dependencies; traces/mesh describe traffic in their own revision/window; reviewed test subjects describe intent. These are different from measured coverage. Changes currently rebuild the whole index; unchanged fingerprints skip extraction. See [G9 audit, measurements and limits](docs/G9-FINAL-AUDIT.md).
+
+### G7 optional local tracing
+
+Run `pnpm dev:observability` with Docker available to start a pinned OpenTelemetry Collector/file backend plus the events profile. Create an order at `/orders`, reload the explorer and open **IMPACT GRAPH → Observed traces**. The inspector shows measured times, errors, message IDs, attempts, parents/links and code from the matching snapshot. Static selection works without telemetry; absent traffic never removes dependencies. Incompatible versions/revisions remain pending.
+
+`pnpm test:observability` verifies a real Chromium → HTTP → outbox → RabbitMQ → both-consumer trace, a retry, Collector outage/restart, disabled telemetry and archived navigation. See [G7 operations and limits](docs/G7-OBSERVABILITY.md) and [real archived spans](impact/evidence/g7-observations.json). To replay them, start `OTEL_DATASET_PATH=impact/evidence/g7-observations.json pnpm dev`.
+
+### G8 optional local service mesh
+
+With Docker (6+ GiB/4+ CPUs) and kubectl 1.34–1.36 available, run `pnpm mesh:setup`, then `pnpm test:mesh`. The profile creates its own kind cluster/kubeconfig, deploys six real workloads with Istio/Kiali, creates orders and reads stored orders, archives the measured traffic and removes its resources. The basic profile remains independent of Kubernetes.
+
+For interactive operation use `pnpm mesh:up`, then `pnpm mesh:check <UUID>`, `pnpm mesh:view <UUID>` and `pnpm mesh:down <UUID>`. `pnpm mesh:inspect <UUID>` opens **IMPACT GRAPH → Service mesh** from the archived snapshot, including independent provider source after cluster cleanup. The table distinguishes declared configuration, existing static dependencies and traffic per window; broker TCP cannot identify an event or consumer handler. See [G8 operations and limits](docs/G8-SERVICE-MESH.md), [real dataset](impact/evidence/g8-mesh.json) and [measured results](docs/DEPENDENCY-GRAPH-STATE.md).

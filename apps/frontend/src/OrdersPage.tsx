@@ -1,4 +1,7 @@
+import { placeOrder, startBrowserTelemetry } from '@test-impact/telemetry/browser';
 import { useState, type FormEvent } from 'react';
+
+startBrowserTelemetry(import.meta.env.VITE_OTEL_CODE_REVISION);
 
 interface Order { id: string; sku: string; quantity: number; status: string }
 interface Progress { mode: string; preparation: { status: string }; notifications: { status: string } }
@@ -19,7 +22,7 @@ export function OrdersPage() {
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError(''); setOrder(undefined); setProgress(undefined);
     try {
-      const response = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sku, quantity }) });
+      const response = await placeOrder(JSON.stringify({ sku, quantity }));
       const result = await response.json() as Order & { error?: string };
       if (!response.ok) throw new Error(result.error ?? 'Order request failed.');
       const retrieved = await fetch(`/api/orders/${encodeURIComponent(result.id)}`);

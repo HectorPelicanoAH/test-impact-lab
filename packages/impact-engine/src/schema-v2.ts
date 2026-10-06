@@ -34,14 +34,43 @@ export interface PolicyV2 {
   id: string; version: string; kind: 'legacy-login-v1' | 'conservative-full' | 'distributed-v1';
   configuration: GraphEdge['policy'] | { reason: string };
 }
+export interface ObservedSpan {
+  traceId: string; spanId: string; parentSpanId: string; name: string; kind: number;
+  startTimeUnixNano: string; endTimeUnixNano: string;
+  service: string; version: string; environment: string; product: string; repository: string; revision: string;
+  attributes: Record<string, string | number | boolean>;
+  status: { code: number; message: string }; links: { traceId: string; spanId: string }[];
+}
+export interface ObservationDataset { schemaVersion: 1; spans: ObservedSpan[] }
 export interface ObservationV2 {
   id: string; serviceId: string; serviceVersion: string; environment: string; window: { start: string; end: string };
+  span?: ObservedSpan;
   traceRefs: string[]; datasetHash: string; correlation: { status: string; nodeIds: string[]; edgeIds: string[]; reason: string };
 }
+export interface MeshBinding extends RepositoryKey {
+  service: string; workload: string; namespace: string; version: string; revision: string;
+  selector: { kind: NodeKind; label?: string; path?: string }; image: string;
+}
+export interface MeshSeries { metric: Record<string, string>; value: [number, string] }
+export interface MeshCapture {
+  id: string; window: { start: string; end: string }; httpBefore: MeshSeries[]; httpAfter: MeshSeries[]; tcpBefore: MeshSeries[]; tcpAfter: MeshSeries[];
+}
+export interface MeshDataset {
+  schemaVersion: 1; clusterId: string; namespace: string; bindings: MeshBinding[]; captures: MeshCapture[];
+  declarations: { from: string; to: string; protocol: 'http' | 'tcp'; configuration: string; reason: string }[];
+  versions: Record<string, string>; kialiGraph: unknown;
+}
+export interface MeshComparison {
+  from: string; to: string; protocol: 'http' | 'tcp'; captureId: string; sourceVersion: string; destinationVersion: string;
+  declared: boolean; staticEdgeIds: string[]; observed: boolean; measured: number; unit: 'requests' | 'bytes';
+  correlation: { status: 'resolved' | 'pending'; nodeIds: string[]; reason: string };
+}
+export interface MeshView { datasetHash: string; clusterId: string; namespace: string; captures: { id: string; window: { start: string; end: string } }[]; bindings: MeshBinding[]; comparisons: MeshComparison[] }
 export interface GraphSnapshotV2 {
   schemaVersion: 2; id: string;
   repositories: (RepositoryKey & { revision: string; sourceSetHash: string; availability: 'local' | 'contract-only' | 'inaccessible'; roots: string[]; exclusions: string[] })[];
   inputs: { sourcesHash: string; contractsHash: string; configurationHash: string; catalogueHash: string; extractorsHash: string; policiesHash: string; observationsHash: string | null };
+  mesh?: MeshView;
   nodes: NodeV2[]; edges: EdgeV2[]; evidence: EvidenceV2[]; diagnostics: DiagnosticV2[]; policies: PolicyV2[]; observations: ObservationV2[];
 }
 export interface ChangeSet<T> { added: T[]; removed: T[]; changed: { id: string; before: T; after: T }[] }
@@ -59,5 +88,7 @@ export interface DiscoveryConfig extends RepositoryKey {
 export interface DiscoveryArchive {
   graph: GraphSnapshotV2; sources: SourceFiles; configuration: SourceFiles; executionFiles: SourceFiles;
   config: DiscoveryConfig; catalogue: TestMetadata[]; legacyGraph: ImpactGraph; inventoryRevision?: string;
+  meshDataset?: MeshDataset;
+  observationDataset?: ObservationDataset;
   externalCatalogue?: { id: string; title: string; path: string; availability: 'local' | 'inaccessible'; execution: 'not-integrated' }[];
 }

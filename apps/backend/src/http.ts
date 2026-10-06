@@ -1,3 +1,4 @@
+import { carrier, code, extract, inSpan, SpanKind, SpanStatusCode } from '@test-impact/telemetry/context';
 import { createServer, type IncomingMessage } from 'node:http';
 import { LOGIN_PATH } from '@test-impact/api-contract';
 import type { LoginController } from './auth/infrastructure/inbound/http/LoginController';
@@ -42,7 +43,12 @@ export function createHttpServer(controller: LoginController, orders?: ReturnTyp
       try { body = await readJson(request); }
       catch { response.writeHead(400).end(JSON.stringify({ error: 'A valid JSON order request is required.' })); return; }
       try {
-        const result = await orders.place(body);
+        const result = await inSpan('http.orders', code('apps/backend/src/http.ts', 'createHttpServer', { 'http.request.method': 'POST', 'http.route': '/orders' }), async span => {
+          const result = await orders.place(body);
+          span.setAttribute('http.response.status_code', result.status);
+          if (result.status >= 400) span.setStatus({ code: SpanStatusCode.ERROR });
+          return result;
+        }, extract(carrier(request.headers)), SpanKind.SERVER);
         response.writeHead(result.status).end(JSON.stringify(result.body));
       } catch { response.writeHead(502).end(JSON.stringify({ error: 'Inventory could not be checked; order was not created.' })); }
       return;

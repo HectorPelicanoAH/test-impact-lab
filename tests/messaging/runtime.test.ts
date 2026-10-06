@@ -10,6 +10,7 @@ import { flushOutbox } from '../../apps/backend/src/orders/OutboxPublisher';
 import { closeBroker, confirmed, declareTopology, openBroker, topology } from '../../packages/messaging/src/transport';
 
 const enabled = Boolean(process.env.BROKER_URL && process.env.G5_BROKER_CONTAINER);
+const ownsInventory = !process.env.INVENTORY_ROOT;
 const brokerTest = test.skipIf(!enabled);
 const url = process.env.BROKER_URL ?? '';
 const namespace = `g5-${randomUUID()}`;
@@ -40,7 +41,8 @@ async function hasEffect(origin: string, id: string) { return (await fetch(`${or
 beforeAll(async () => {
   if (!enabled) return;
   data = mkdtempSync(resolve(tmpdir(), 'impact-g5-runtime-'));
-  external = (JSON.parse(execFileSync(process.execPath, ['scripts/inventory/materialize.mjs'], { encoding: 'utf8' })) as { root: string }).root;
+  external = process.env.INVENTORY_ROOT
+    ?? (JSON.parse(execFileSync(process.execPath, ['scripts/inventory/materialize.mjs'], { encoding: 'utf8' })) as { root: string }).root;
   const inventoryPort = await freePort();
   await service(['--experimental-strip-types', resolve(external, 'src/main.ts')], inventoryPort, { INVENTORY_PORT: String(inventoryPort) });
   notifications = await service(entry('notifications'), await freePort(), { CONSUMER_FAIL_FIRST: '1', CONSUMER_FAIL_SKU: 'failure-widget' });
@@ -56,7 +58,7 @@ afterAll(async () => {
     child.once('close', () => { clearTimeout(timer); resolve(); }); child.kill('SIGTERM');
   })));
   if (data) rmSync(data, { recursive: true, force: true });
-  if (external) rmSync(external, { recursive: true, force: true });
+  if (external && ownsInventory) rmSync(external, { recursive: true, force: true });
 }, 15_000);
 
 brokerTest('real order reaches both isolated consumers; transient failure retries without blocking preparation', async () => {

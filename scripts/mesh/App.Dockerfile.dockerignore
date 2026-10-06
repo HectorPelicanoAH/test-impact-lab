@@ -1,0 +1,17 @@
+**
+!apps
+!apps/backend
+!apps/backend/dist
+!apps/backend/dist/**
+!apps/notifications
+!apps/notifications/dist
+!apps/notifications/dist/**
+!apps/preparation
+!apps/preparation/dist
+!apps/preparation/dist/**
+!apps/frontend
+!apps/frontend/dist
+!apps/frontend/dist/**
+!scripts
+!scripts/mesh
+!scripts/mesh/frontend.mjs

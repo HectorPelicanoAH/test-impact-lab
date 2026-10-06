@@ -99,6 +99,10 @@ export function createDemoApi(executor: Executor = executeTests, workspace = new
   const analyses = new Map<string, { analysis: DemoAnalysis; edits: DemoAnalysisRequest['edits']; after: DiscoveryArchive }>();
   const executions = new Map<string, DemoExecution>();
   return createServer(async (request, response) => {
+    if (request.method === 'GET' && /^\/api\/snapshots\/[a-f0-9]{64}\/mesh$/.test(request.url ?? '')) {
+      try { const archive = workspace.store.read(request.url!.split('/')[3]); return archive.meshDataset ? json(response, 200, archive.meshDataset) : json(response, 404, { error: 'No archived mesh evidence' }); }
+      catch { return json(response, 404, { error: 'Archived mesh evidence unavailable' }); }
+    }
     // Resolve a verified locator by identity, never by a browser-supplied path/line.
     if (request.method === 'GET' && request.url?.startsWith('/api/snapshots/')) {
       const url = new URL(request.url, 'http://127.0.0.1');

@@ -1,3 +1,5 @@
+import { ObservedTraces } from './ObservedTraces';
+import { MeshComparison } from './MeshComparison';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Background, Controls, MarkerType, MiniMap, ReactFlow, type Edge, type Node, type ReactFlowInstance } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -148,6 +150,8 @@ export function DiscoveryExplorer({ snapshot, analysis, focusTest, focusEdge, on
         {analysis && <fieldset><legend>Revision</legend>{(['before', 'after'] as const).map(item => <button key={item} aria-pressed={currentSide === item} onClick={() => { requestVersion.current++; setSide(item); setSelection(undefined); setSource(undefined); }}>{item.toUpperCase()}</button>)}</fieldset>}
         <p><b>Fact direction:</b> consumer → dependency. <b>Impact:</b> policy-dependent, often reverse. Structural edges and cross-contract paths do not imply universal reverse reachability.</p>
       </div>
+      <ObservedTraces graph={graph} onNode={id => { setLevel('code'); select('node', id); }} />
+      <MeshComparison graph={graph} onNode={id => { setLevel('code'); select('node', id); }} />
       {level === 'system' && <div className="discovery-cards"><h2>System · recorded repositories</h2>{graph.repositories.map(repo => <button key={repo.repositoryId} className="discovery-card" onClick={() => setLevel('service')}><b>{repo.productId} / {repo.repositoryId}</b><span>{repo.availability} · {repo.roots.length} configured source areas · {graph.nodes.filter(node => node.productId === repo.productId && node.repositoryId === repo.repositoryId).length} nodes</span><small>Revision {repo.revision} · browse source areas →</small></button>)}</div>}
       {level === 'service' && <div className="discovery-cards"><h2>Source areas · not inferred runtime services</h2><p>Grouping by declared roots only. A code edge crossing roots is shown as evidence, not as an invented service call.</p>{groupCounts.map(group => <button key={group.root} className="discovery-card" onClick={() => { setScope(group.root); setLevel('code'); }}><b>{group.root}</b><span>{group.nodes} nodes · {group.edges} internal evidenced edges</span><small>Inspect code →</small></button>)}
         <button className="discovery-card" onClick={() => { setScope('all'); setLevel('code'); }}>ALL ROOTS / TESTS →</button></div>}

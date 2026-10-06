@@ -163,6 +163,7 @@ test('runner environment retains required tool paths without inheriting secrets'
   const environment = runnerEnvironment({
     PATH: '/tools', HOME: '/home/demo', PLAYWRIGHT_BROWSERS_PATH: '/browsers',
     DATABASE_PASSWORD: 'secret', API_TOKEN: 'secret', SSH_AUTH_SOCK: '/private/socket',
+    INVENTORY_ROOT: '/mutable/provider', BROKER_URL: 'amqp://unreviewed-host',
   });
   expect(environment).toEqual({ PATH: '/tools', HOME: '/home/demo', PLAYWRIGHT_BROWSERS_PATH: '/browsers' });
 });

@@ -38,7 +38,20 @@
     "test:discovery-browser": "node --import tsx scripts/verify-discovery-browser.ts",
     "test:evidence-browser": "node --import tsx scripts/verify-evidence-browser.ts",
     "test:architecture": "vitest run tests/architecture",
-    "test:selected": "pnpm graph:check && node --import tsx scripts/test-selected.ts"
+    "test:selected": "pnpm graph:check && node --import tsx scripts/test-selected.ts",
+    "dev:observability": "node --import tsx scripts/dev-observability.ts",
+    "test:observability": "node --import tsx scripts/verify-observability.ts",
+    "observations:import": "node --import tsx scripts/observability/import.ts",
+    "mesh:setup": "node scripts/mesh/setup.mjs",
+    "mesh:up": "node --import tsx scripts/mesh/cli.ts up",
+    "mesh:down": "node --import tsx scripts/mesh/cli.ts down",
+    "mesh:status": "node --import tsx scripts/mesh/cli.ts status",
+    "mesh:view": "node --import tsx scripts/mesh/cli.ts view",
+    "mesh:check": "node --import tsx scripts/verify-mesh.ts",
+    "mesh:inspect": "node --import tsx scripts/mesh/inspect.ts",
+    "test:mesh": "node --import tsx scripts/verify-mesh.ts",
+    "test:journeys": "node --import tsx scripts/verify-journeys.ts",
+    "graph:audit": "node --import tsx scripts/audit-graph.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

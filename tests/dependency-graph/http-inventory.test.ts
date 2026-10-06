@@ -80,7 +80,7 @@ test('changed client contract removes unsupported HTTP facts into the delta and 
 test('a client POST call with a GET comment cannot prove a GET endpoint invocation', () => {
   const before = buildArchive(loadWorkspace(process.cwd(), ''));
   const path = 'apps/backend/src/orders/InventoryClient.ts';
-  const changed = before.sources[path]!.replace("method: 'GET', signal", "method: 'POST' /* method: 'GET' */, signal");
+  const changed = before.sources[path]!.replace("method: 'GET'", "method: 'POST' /* method: 'GET' */");
   expect(changed).not.toBe(before.sources[path]);
   const result = analyzeOverlay(before, [{ path, content: changed }]);
   expect(result.delta.edges.removed.some(edge => edge.type === 'invokes-endpoint')).toBe(true);

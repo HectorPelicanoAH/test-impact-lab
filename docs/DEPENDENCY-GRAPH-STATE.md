@@ -4,13 +4,17 @@
 
 - SDD: [SDD-DEPENDENCY-GRAPH.md](SDD-DEPENDENCY-GRAPH.md).
 - Autorización humana del 2026-10-05: «sigue», exclusivamente G1, GPT-6 Astra / xhigh confirmado por el usuario.
-- Sin agentes adicionales, cambios automáticos de modelo, publicación remota ni despliegues.
+- Sin agentes adicionales, cambios automáticos de modelo, publicación remota ni despliegues externos.
 - G1 no sustituyó el generador v1. G2, autorizada posteriormente, incorpora generación v2 y conserva v1 como semilla revisada explícita.
 - Autorización humana adicional del 2026-10-05: «sigue», exclusivamente G2. Se conserva el trabajo local de G1 sin commit; no se crean agentes ni se cambia el modelo automáticamente.
 - Autorización humana adicional del 2026-10-05: «sigue», exclusivamente G3. No se inicia G4 ni se cambia automáticamente de modelo.
 - Autorización humana adicional del 2026-10-05: «sigue», exclusivamente G4. G5 no está autorizada; sin cambio automático de modelo ni agentes adicionales.
 - Autorización humana del 2026-10-05: «siguiente», interpretada como siguiente fase pendiente, exclusivamente G5. No se crean agentes ni se cambia automáticamente el modelo. G6 no autorizada.
 - Autorización humana del 2026-10-05: «sigue», exclusivamente G6. El usuario acordó GPT-6 Sol / high para conservar tokens; G7 no está autorizada. Sin agentes, commit/push ni despliegue.
+
+- Autorización humana del 2026-10-06: «revisa que ya tengas todos los cambios hasta G6, y de ser así, sigue con G7». Checkout inicial limpio, HEAD `5a16090`, artefactos G1–G6 presentes. Solo G7; G8/G9 requieren otro «sigue».
+- Autorización humana adicional del 2026-10-06: «sigue», exclusivamente G8. Se conservan los cambios locales de G7; sin agentes, cambio automático de modelo, commit/push ni despliegue externo. G9 requiere otro «sigue».
+- Autorización humana adicional del 2026-10-06: «sigue», exclusivamente G9. Cambios G7/G8 conservados; auditoría final, sin agentes ni envío remoto. La ampliación termina en G9.
 
 | Fase | Estado |
 | --- | --- |
@@ -20,9 +24,9 @@
 | G4 — Pedidos y producto externo HTTP | Completada |
 | G5 — Eventos, broker y consumidores | Completada |
 | G6 — Impacto distribuido y runners | Completada |
-| G7 — Trazas y correlación | Pendiente; no autorizada |
-| G8 — Service mesh | Pendiente; no autorizada |
-| G9 — Recorridos y auditoría final | Pendiente; no autorizada |
+| G7 — Trazas y correlación | Completada |
+| G8 — Service mesh | Completada |
+| G9 — Recorridos y auditoría final | Completada; parada final |
 
 ## G1 — Cierre
 
@@ -314,3 +318,104 @@ Los [tests del motor](../tests/dependency-graph/federated.test.ts) comprueban pa
 El runner requiere paquetes disponibles para overlays; si falta un tarball offline, usa instalación con lockfile fijo. El perfil RabbitMQ no se pudo ejecutar en este PC porque no hay comando Docker; las suites broker se informan como no disponibles, no aprobadas. G5 ya documentó su ejecución física en un equipo con Docker. El inventario externo sí se materializa en un checkout independiente y se ejecuta desde bytes fijados. Los imports/sujetos de tests no equivalen a cobertura observada. La selección heredada puede ampliar a los 39 tests login para nuevos archivos: es segura, aunque menos precisa; el ahorro de G6 se observa en suites distribuidas. El runner sigue siendo local de confianza, sin sandbox del sistema operativo. Monaco mantiene el aviso de tamaño de bundle.
 
 **Detenerse antes de G7.** Modelo recomendado por la preferencia acordada: **GPT-6 Sol / high**. G7 necesita otro «sigue» humano.
+
+
+## G7 — Trazas y correlación
+
+Autorización: petición del 2026-10-06 de revisar cambios hasta G6 y, si estaban presentes, seguir exclusivamente con G7. Checkout limpio al comenzar, HEAD `5a16090` (implementación G6), artefactos G1–G6 y traspaso presentes. Las siete pruebas del motor federado volvieron a pasar. No se crearon agentes, cambió automáticamente de modelo, hizo commit/push ni se inició G8.
+
+### Entrega
+
+[Instrumentación OpenTelemetry](../packages/telemetry/src/context.ts) en pantalla/HTTP/cliente inventario/outbox/publicación/consumo/reintento, contexto W3C/AsyncLocalStorage y contexto persistido en SQLite separado del contrato de evento. [Collector/backend file local](../scripts/observability/collector.mjs), versión/digest fijos, puertos loopback conservados al reiniciar. [Adaptador](../scripts/graph/observations.ts) de identidades exactas por revisión/versión/entorno y símbolo; registros incompatibles/ambiguos permanecen pendientes. Dataset archivado/hash y correlaciones verificadas en snapshots; ninguna eliminación de aristas por falta de tráfico ni duplicación por retries. [Vista web](../apps/demo/src/components/ObservedTraces.tsx) de recorrido, tiempos, errores, mensajes, intentos, parents/enlaces y navegación al código del snapshot.
+
+### Validación y aceptación
+
+| Comando / criterio | Resultado |
+| --- | --- |
+| `CI=true pnpm validate` | Typecheck/build/grafo correctos; **178 Vitest pasados / 5 omitidos**, **3 Chromium pasados / 1 omitido** sin perfil broker. Log `.impact-runs/g7-validate.log`. |
+| `CI=true pnpm test:messaging` | **5 integraciones RabbitMQ y 4 Chromium pasados**: consumidores independientes, duplicados, reintentos, cola fallida y recuperación del publicador. Log `.impact-runs/g7-messaging.log`. Los omitidos del perfil básico se ejecutaron aquí. |
+| `node --import tsx scripts/verify-observability.ts` (`pnpm test:observability`) | **Aceptación real completa**: una traza propagada desde Chromium, **9 spans/4 servicios**, HTTP/outbox/publicación/ambos consumidores; notificaciones falla una vez, segundo intento visible con enlace explícito a publicación original. |
+| Archivo y reproducción | Dataset `b54aebefd08a91ad9c1466bca6ad30169252483e7ddb1ebfe2102203896169bc`; snapshot medido `4022660f857229fd68a1a2f48acef95a1f6ba413a81100ebaeb0e9786122f598`; todos los spans correlacionados en la revisión `content:21ba3f1676270cbb8975ee47d8563a93da2b48db37b58be63bfb3210861ba487`. Rebuild del mismo input/dataset idéntico. Versión incompatible queda pendiente. |
+| Grafo sin tráfico/retry | Aristas/nodos estáticos idénticos antes/después de observaciones; dos intentos referencian una misma dependencia lógica. Selección federada idéntica con/sin dataset. Overlay conserva dataset y recorre correlación contra la revisión nueva. |
+| Exportación opcional | Pedido y ambos efectos con Collector parado, tras reiniciarlo y tras reiniciar productor con SDK deshabilitado. Contexto W3C persistido/reabierto y migración SQLite previa comprobados en tests. |
+| Web | Chromium abre observación → símbolo → código archivado real; capturas escritorio y 390 px, sin overflow horizontal. |
+| `CI=true pnpm test:federated-execution` | **Correcto**: selected/full detectan el mismo fallo intencional `notifications-consumer`; full ejecuta proveedor externo y preparación. Dos suites broker figuran como no disponibles en este perfil de mutación, no pasadas (broker real validado por separado). Log `.impact-runs/g7-federated.log`. |
+| `graph:discover`, `graph:check:v2`, `graph:legacy:check`, `git diff --check` | Correctos: snapshot final estático `d652f9190c4ce162abd4e2a6fefacbbc3cb828b0d6d4e34150192f2ecb6c4550`, **364 nodos/518 aristas/432 diagnósticos**; semilla legacy 69/84/39 conservada. |
+
+Evidencia portable: [spans reales](../impact/evidence/g7-observations.json), [resumen](../impact/evidence/g7-trace-summary.json). Informe completo/capturas/logs/snapshot en `.impact-runs/g7-d3ac7ffd-75e0-4ee1-b472-fcdcf821c994/`, ignorado por Git. Contenedores propios G5/G7 retirados al terminar. Las ejecuciones iniciales fallidas están documentadas como incidencias, no aceptaciones.
+
+### Límites y siguiente acción
+
+Instrumentación manual y correlación acotadas al flujo local, servicio versión 1. Inventario tiene span en el cliente HTTP, sin atribuir spans internos al proveedor. Telemetría asíncrona/limitada, puede perder spans en caídas prolongadas; sin retención/rotación automática. Trazas no equivalen a assertions ni coverage, ni reducen la selección por ausencia de tráfico. Revisión nueva requiere reiniciar perfil; el explorador fija un conjunto al recargar. Backend de archivos local; sin mesh ni plataforma externa. Continúan SQLite experimental, aviso de bundle Monaco y runner local de confianza sin sandbox.
+
+Operación completa, decisiones e incidencias en [G7](G7-OBSERVABILITY.md). Punto de reanudación en [traspaso G7](G7-HANDOFF.md).
+
+**Fase G7 completada. Para iniciar G8, selecciona GPT-6 Sol / high y escribe «sigue».**
+
+## G8 — Service mesh
+
+Autorización del 2026-10-06: «sigue», interpretado como la siguiente fase pendiente G8. G7 se conserva sin commit; no se crean agentes, cambia de modelo ni se inicia G9. El despliegue es exclusivamente local, en un clúster propio con kubeconfig separado.
+
+### Entrega
+
+[Perfil Kubernetes](../scripts/mesh/lifecycle.mjs) opcional con kind 0.31.0/Kubernetes 1.35.0/Istio 1.31.0/Kiali 2.27.0/Prometheus 3.10.0, instalación local con checksums oficiales y versiones/images registradas. Se despliegan los seis workloads reales. [Adaptador](../scripts/graph/mesh.ts) de contadores HTTP/TCP y bindings de workload/namespace/versión/revisión; [comparación web](../apps/demo/src/components/MeshComparison.tsx) declarada/estática/observada, evidencia JSON archivada y navegación por locators existentes. Hash combinado compatible con archivos G7; overlays revisan correlación sin alterar la selección estática. [Inspector histórico](../scripts/mesh/inspect.ts) reproduce fuentes externas y dataset tras retirar el clúster.
+
+### Validación y aceptación
+
+| Comando / criterio | Resultado |
+| --- | --- |
+| `pnpm validate` | Build/typecheck/checks correctos; **185 Vitest pasados / 5 omitidos**, **3 Chromium pasados / 1 omitido** en perfil básico. `.impact-runs/g8-validate.log`. |
+| `pnpm test:messaging` | **5 integraciones RabbitMQ y 4 Chromium pasados** fuera de Kubernetes. `.impact-runs/g8-messaging.log`. |
+| `node --import tsx scripts/verify-mesh.ts` (entrypoint de `pnpm test:mesh`) | **Aceptación completa real, exit 0**: crea clúster, verifica versiones/despliegues, genera tráfico, consulta Prometheus/Kiali, valida dataset/snapshot/web y retira recursos automáticamente. `.impact-runs/g8-acceptance.log`. |
+| Grafo Kiali | **6 workloads / 5 comunicaciones reales**, JSON archivado y captura de consola. HTTP frontend → Orders API → Inventory; TCP Orders API/Notifications/Preparation → RabbitMQ. |
+| Discrepancia | Ventana `orders`: **6 requests** Orders API → Inventory; ventana `read-only`: **0 requests** a Inventory y **6** frontend → Orders API. La misma arista estática `invokes-endpoint` continúa declarada/resuelta en ambas. |
+| Versiones y bytes | Los seis bindings resueltos con versión `v1`, image IDs y revisiones exactas. Ventana de pedidos: Orders API → RabbitMQ **1012 bytes**; Notifications/Preparation → RabbitMQ **3126 bytes cada uno**. No se transforman en aristas de evento/handler. |
+| Integridad y selección | **14 tests focalizados** mesh/network/G7 correctos: negativos de namespace/versión/revisión, resets/duplicados, repositorio incompatible, hash/dato/correlación adulterados, overlays y selección invariante; compatibilidad de hash G7 preservada. Typecheck final correcto. |
+| Web y archivo | Inspector muestra ventanas y evidencia bruta validada. Chromium reproduce el snapshot final después de eliminar clúster/fuente temporal y abre el código archivado del proveedor; también 390 px sin overflow horizontal. No requiere Kubernetes para abrirlo. |
+| Limpieza | Perfil final `db40042e-4b38-4e96-a9f1-64d9a61ad4e5` eliminado en `finally`; perfiles fallidos también retirados. Sin clusters kind ni tags de imágenes propios G8 al cierre; caché de herramientas/imágenes base y evidencias conservadas. |
+| Grafo estático / legacy | `graph:discover`, `graph:check:v2`, `graph:legacy:check` correctos: **368 nodos / 531 aristas / 430 diagnósticos**; snapshot estático `7837766fb0ada3e0c27bda35cc2c79881af411c9aa14182ff2aa1faef9dbd171`; semilla **69 / 84 / 39** conservada. `git diff --check` correcto. |
+
+Snapshot medido `037fd6b5e06f73b0a2d0b922180b803ea391535c4ce88e44f3ef068fb2becd81`; dataset SHA-256 `9c5b7da9b32388f554df76217e0d509afb1f7a21c3b85296c90c9f5a64bb5f95`. Revisión producto `content:004e997af9571fa3b8daf1e104e8c60e8d4a444d49e81d78f829c4117dbad7cf`; inventario Git independiente `126d32f0b8adc8852a513e436741df0a8ab84f89`. Ventanas UTC: pedidos **07:07:49.549–07:08:04.219**, lecturas **07:08:04.219–07:08:20.444**, 2026-10-06.
+
+[Dataset portable](../impact/evidence/g8-mesh.json) y [resumen](../impact/evidence/g8-mesh-summary.json). Informe amplio/capturas/plataforma/despliegues/snapshot en `.impact-runs/mesh/db40042e-4b38-4e96-a9f1-64d9a61ad4e5/`, ignorado por Git.
+
+### Incidencias y límites
+
+El primer arranque no alcanzó readiness; en el segundo se identificó `INVENTORY_PORT` sobrescrito por Service links. Se corrigió con `enableServiceLinks: false`, probado desde cero en la aceptación final. La primera regresión tuvo dos fallos por el texto de error de URL; corregidos sin relajar la validación. Otros dos intentos completos fallaron: uno quedó preparando el nodo Docker y otro perdió el daemon/API tras desplegar servicios. Se endureció la limpieza sin kubeconfig, reabrió Docker Desktop cuando quedó sin daemon y retiraron exclusivamente perfiles propios. Esos intentos no cuentan como aceptación; la ejecución final pasó con limpieza automática.
+
+Las observaciones usan contadores muestreados y bindings explícitos; un anchor de código no demuestra qué función ejecutó el sidecar. TCP incluye acknowledgements/heartbeats: en la ventana de lectura se observaron **8 bytes** en cada conexión de los consumidores sin atribuirles un evento. Ausencia de requests conserva dependencias/tests. No hay retención automática ni cobertura universal. Los tags exactos de addons no se afirman inmutables; digest fijo para nodo/runtime/broker. Persisten SQLite experimental, aviso de bundle Monaco y runner local de confianza. Operación/límites en [G8](G8-SERVICE-MESH.md), siguiente acción en [traspaso G8](G8-HANDOFF.md).
+
+**Fase G8 completada. Para iniciar G9, selecciona GPT-6 Sol / high y escribe «sigue».**
+
+## G9 — Recorridos web y auditoría final
+
+Autorización del 2026-10-06: «sigue», después del cierre G8. **G9 completada.** Se conservan los cambios G7/G8 sin commit/push en este repositorio, sin agentes ni despliegue externo. Es la fase final del SDD.
+
+Implementados [seis recorridos de overlays](../apps/demo/src/journeys.ts) con diff, delta, evidencia archivada, impacto y ejecución real; explicación de fuentes/actualización/visibilidad; [auditoría](../scripts/audit-graph.ts) de todos los locators, corpus, identidad determinista y políticas del login; [guía de ampliación](EXTENDING-DISCOVERY.md). Las peticiones llevan bytes/IDs de snapshots, sin nombres de escenario ni comandos del cliente. Se corrige el entorno Playwright para conservar proveedor archivado y opt-ins broker; los fixtures solo eliminan raíces propias. El panel respeta las filas/anchura y limpia el foco al invalidar el análisis.
+
+### Aceptación final
+
+| Comando / ámbito | Resultado |
+| --- | --- |
+| `pnpm validate` | Build/typecheck/grafo correctos; **192 tests pasan / 5 omitidos sin broker**, **3 Chromium / 1 omitido**. Log `.impact-runs/g9-validate.log`. |
+| `node scripts/verify-messaging.mjs --compiled` | **5 integraciones fuentes + 5 compiladas + 4 Chromium**, correctos. Log `.impact-runs/g9-messaging-compiled.log`. |
+| `pnpm test:execution` | Selected **13** / full **39**, mismos **3 fallos deliberados**. |
+| `pnpm test:federated-execution` | Ambos detectan `notifications-consumer`; selected excluye preparación, broker ausente queda unavailable. |
+| `pnpm test:discovery-execution` | **39** tests reales, CRUD aislado, checkout intacto. |
+| `pnpm test:discovery-browser`, `pnpm test:evidence-browser` | CRUD, evidencia estática/revisada/HTTP/AMQP, proveedor Git, BEFORE/AFTER y anchura estrecha correctos. |
+| `pnpm test:journeys --broker` | **6 recorridos + full del fallo**, 39 tests login correctos cada vez, cero errores de página/relecturas de red; contratos y notificaciones fallan deliberadamente, con el resultado exacto esperado por suite. |
+| `pnpm test:observability` | **9 spans / 4 servicios**, reintento, outages/reinicio/SDK desactivado y navegación archivada correctos. |
+| `pnpm test:mesh` | Perfil **0c027834-61fd-4648-aa8d-f87dd7d5e4e0**, seis workloads, tráfico real y comparación Kiali/archivo; cleanup automático correcto. |
+| `pnpm graph:audit`, `pnpm graph:legacy:check` | **545** conexiones inspeccionables y **570** usos de evidencia; orden determinista, **69/84/39** del login conservados; corpus **26 casos / cero enlaces falsos**. |
+
+Informe completo, matriz de trazabilidad, correcciones y límites en [auditoría G9](G9-FINAL-AUDIT.md). [Resumen portable](../impact/evidence/g9-summary.json), [mesh](../impact/evidence/g9-mesh.json) y [observaciones](../impact/evidence/g9-observations.json). G7/G8 históricos conservados. Recorridos: `.impact-runs/g9-journeys-0a0f3b84-e4dc-490b-a55b-d1c1f84336ba/`; auditoría `.impact-runs/g9-audit-701cb1e3-b9fb-403d-bf90-c61eac1e52e1/`; traza `.impact-runs/g7-915f5041-55fa-4d63-93f4-32ba17c19a0c/`; mesh `.impact-runs/mesh/0c027834-61fd-4648-aa8d-f87dd7d5e4e0/`.
+
+Equipo: M1 Pro, **10 CPU / 32 GiB**, darwin arm64 25.6.0, Node 24.18.0. Dataset: **63 archivos / 77 367 bytes / 1 401 líneas**, 382 nodos / 545 aristas / 452 diagnósticos. Cinco muestras; medianas: full load/build **206,35 ms**, overlay full rebuild **127,09 ms**, refresh sin cambio/input capturado **1,37 ms**, cambio/rebuild/publish **159,53 ms**. No se implementa indexación parcial ni se comparan tiempos de distinto alcance como aceleración universal. Calls del corpus tienen exhaustividad **5/8**, sin contar diagnósticos como aciertos.
+
+Incidencias resueltas: bind sandbox `EPERM`, selectores del verificador, pérdida del proveedor/flags al filtrar el entorno y fixtures que recreaban proveedores al mutar el contrato. Un `ECONNRESET` en GET de estado motivó lectura acotada con conexión independiente y drenaje de runners antes de limpiar; cero retries en la pasada final. Los intentos anteriores permanecen como incidencias, no aceptaciones.
+
+Persisten límites de extracción, diagnósticos explícitos, cobertura desconocida/no universal, reconstrucción completa, snapshots sin retención automática y runner de confianza local sin aislamiento de SO. Todas las pruebas usan recursos locales propios; evidencias/cachés permanecen tras retirar contenedores y clúster.
+
+Typecheck, formato, hashes de datasets y `pnpm graph:check:v2` finales correctos. Índice por defecto solo contrato externo: `24e85962c0a04346366d50d2d2ac8248d83c1a022b792631e23c4e99ee5a9c33`, **368 / 531 / 430** nodos/aristas/diagnósticos. Sin contenedores del laboratorio, clusters kind ni tags temporales G8 al cierre; cachés y evidencias retenidas.
+
+**G1–G9 completadas. Parada final: entregar y detenerse. Cualquier ampliación requiere una nueva instrucción humana.**

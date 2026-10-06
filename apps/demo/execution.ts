@@ -207,6 +207,8 @@ export async function executeTests(input: RunInput): Promise<DemoExecution> {
   try {
     materializeOverlay(overlay, input.sourceSnapshot ?? readTree(input.root, executionEntries, ignoreExecution), input.edits, input.discoveryConfig ?? discoveryConfig);
     const environment = runnerEnvironment();
+    const pinnedInventory = input.sourceSnapshot?.['external/inventory/package.json']
+      ? { INVENTORY_ROOT: resolve(overlay, 'external/inventory') } : {};
     const installEnvironment = runnerEnvironment(environment, { CI: 'true' });
     let install = await command(overlay, 'pnpm', ['install', '--offline', '--frozen-lockfile', '--ignore-scripts'], installEnvironment);
     if (install.code !== 0 && install.output.includes('ERR_PNPM_NO_OFFLINE_TARBALL')) {
@@ -229,7 +231,7 @@ export async function executeTests(input: RunInput): Promise<DemoExecution> {
       publish(execution, input.onUpdate);
       const result = runner === 'vitest'
         ? await command(overlay, 'pnpm', ['exec', 'vitest', 'run', ...files, '--testNamePattern', `^${pattern}`, '--reporter=default', '--reporter=json', `--outputFile.json=${reportPath}`], environment)
-        : await command(overlay, process.execPath, ['scripts/e2e.mjs', ...files, '--grep', pattern, '--reporter=list,json'], runnerEnvironment(environment, { PLAYWRIGHT_JSON_OUTPUT_FILE: reportPath }));
+        : await command(overlay, process.execPath, ['scripts/e2e.mjs', ...files, '--grep', pattern, '--reporter=list,json'], runnerEnvironment(environment, { ...pinnedInventory, PLAYWRIGHT_JSON_OUTPUT_FILE: reportPath }));
       let parsed: TestExecution[] = [];
       try { parsed = runner === 'vitest' ? parseVitest(reportPath, tests, result.output) : parsePlaywright(reportPath, tests, result.output); }
       catch { /* Missing or malformed reports become explicit failed results below. */ }
@@ -248,14 +250,14 @@ export async function executeTests(input: RunInput): Promise<DemoExecution> {
       const external = suite.runner === 'node-test';
       const browser = suite.runner === 'playwright' || suite.runner === 'broker-playwright';
       const env = runnerEnvironment(environment, {
-        ...(input.sourceSnapshot?.['external/inventory/package.json'] ? { INVENTORY_ROOT: resolve(overlay, 'external/inventory') } : {}),
+        ...pinnedInventory,
         ...(suite.runner.startsWith('broker-') && process.env.BROKER_URL ? { BROKER_URL: process.env.BROKER_URL,
           ...(process.env.G5_BROKER_CONTAINER ? { G5_BROKER_CONTAINER: process.env.G5_BROKER_CONTAINER } : {}) } : {}),
       });
       const result = external
         ? await command(resolve(overlay, 'external/inventory'), process.execPath, ['--experimental-strip-types', '--test', '--test-reporter=tap', suite.file.slice('external/inventory/'.length)], env)
         : browser
-          ? await command(overlay, process.execPath, ['scripts/e2e.mjs', suite.file, '--reporter=list,json'], runnerEnvironment(env, { PLAYWRIGHT_JSON_OUTPUT_FILE: reportPath }))
+          ? await command(overlay, process.execPath, ['scripts/e2e.mjs', suite.file, '--reporter=list,json'], { ...env, PLAYWRIGHT_JSON_OUTPUT_FILE: reportPath })
           : await command(overlay, 'pnpm', ['exec', 'vitest', 'run', suite.file, '--reporter=default', '--reporter=json', `--outputFile.json=${reportPath}`], env);
       entry.durationMs = result.durationMs;
       try {

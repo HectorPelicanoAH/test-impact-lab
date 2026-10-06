@@ -8,6 +8,7 @@ import { DiscoveryExplorer } from './components/DiscoveryExplorer';
 import { ExecutionPanel } from './components/ExecutionPanel';
 import { TestInspector, TestLegend } from './components/TestInspector';
 import { applySuggestion, suggestions } from './suggestions';
+import { journeyEdits, journeys, type JourneyId } from './journeys';
 import type { DemoAnalysis, DemoAnalysisRequest, DemoExecution, DemoExecutionRequest, DemoSnapshot, ExecutionMode } from './types';
 
 type View = 'application' | 'code' | 'graph' | 'tests';
@@ -37,6 +38,8 @@ export function App() {
   const [pending, setPending] = useState(false);
   const [executions, setExecutions] = useState<Partial<Record<ExecutionMode, DemoExecution>>>({});
   const [error, setError] = useState<string>();
+  const [journey, setJourney] = useState<JourneyId>('screen');
+  const [appliedJourney, setAppliedJourney] = useState<JourneyId>();
   const inspectorRef = useRef<HTMLDivElement>(null);
   const workingRevision = useRef(0);
 
@@ -69,6 +72,7 @@ export function App() {
   function updateFile(value: string) {
     if (!snapshot || !selectedPath || deleted.has(selectedPath)) return;
     workingRevision.current++;
+    setAppliedJourney(undefined);
     setEdits(current => {
       const next = { ...current };
       if (value === original && snapshot.files.some(file => file.path === selectedPath)) delete next[selectedPath];
@@ -76,7 +80,7 @@ export function App() {
       return next;
     });
     setAnalysis(undefined);
-    setFocusTest(undefined);
+    setFocusTest(undefined); setFocusEdge(undefined);
     setExecutions({});
   }
 
@@ -88,18 +92,30 @@ export function App() {
       if (!file) throw new Error('Suggested source is absent from this snapshot.');
       const changed = applySuggestion(file.content, suggestion);
       workingRevision.current++;
+      setAppliedJourney(undefined);
       setEdits({ [suggestion.path]: changed });
       setDeleted(new Set());
       setSelectedPath(suggestion.path);
       setEditorMode('diff');
       setAnalysis(undefined);
-      setFocusTest(undefined);
+      setFocusTest(undefined); setFocusEdge(undefined);
       setExecutions({});
       setView('code');
       setError(undefined);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to apply suggested change.');
     }
+  }
+
+  function applyJourney() {
+    if (!snapshot) return;
+    try {
+      const overlay = journeyEdits(journey, Object.fromEntries(snapshot.files.map(file => [file.path, file.content])));
+      workingRevision.current++;
+      setEdits(Object.fromEntries(overlay.filter(edit => edit.operation !== 'delete').map(edit => [edit.path, edit.content])));
+      setDeleted(new Set()); setSelectedPath(overlay[0]!.path); setEditorMode('diff'); setView('code');
+      setAnalysis(undefined); setFocusTest(undefined); setFocusEdge(undefined); setExecutions({}); setError(undefined); setAppliedJourney(journey);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to apply journey.'); }
   }
 
   async function calculate() {
@@ -118,6 +134,7 @@ export function App() {
       setAnalysis(result);
       setExecutions({});
       setFocusTest(result.result.selectedTests[0]);
+      setFocusEdge(undefined);
       setView('graph');
     } catch (cause) {
       if (revision === workingRevision.current) setError(cause instanceof Error ? cause.message : 'Unable to calculate regression.');
@@ -136,8 +153,9 @@ export function App() {
       return;
     }
     workingRevision.current++;
+    setAppliedJourney(undefined);
     setEdits(current => ({ ...current, [path]: path.endsWith('.tsx') ? 'export function NewPage() {\n  return <main><h1>New page</h1></main>;\n}\n' : path.endsWith('.json') ? '{}\n' : '' }));
-    setSelectedPath(path); setEditorMode('edit'); setAnalysis(undefined); setFocusTest(undefined); setExecutions({}); setError(undefined);
+    setSelectedPath(path); setEditorMode('edit'); setAnalysis(undefined); setFocusTest(undefined); setFocusEdge(undefined); setExecutions({}); setError(undefined);
   }
 
   function createGuidedScreen() {
@@ -150,34 +168,38 @@ export function App() {
       return;
     }
     workingRevision.current++;
+    setAppliedJourney(undefined);
     const component = 'export function GuidedScreen() {\n  return <section aria-label="Guided screen"><h2>Guided screen</h2><p>Overlay-only example. No runtime route is claimed.</p></section>;\n}\n';
     const linked = `${page.includes("from './GuidedScreen'") ? '' : "import { GuidedScreen } from './GuidedScreen';\n"}${page.replace('<h1>Sign in</h1>', '<h1>Sign in</h1><GuidedScreen />')}`;
     setEdits(current => ({ ...current, [path]: component, [pagePath]: linked }));
     setNewPath(path); setSelectedPath(path); setEditorMode('edit'); setView('code');
-    setAnalysis(undefined); setFocusTest(undefined); setExecutions({}); setError(undefined);
+    setAnalysis(undefined); setFocusTest(undefined); setFocusEdge(undefined); setExecutions({}); setError(undefined);
   }
 
   function deleteSource() {
     if (!snapshot || !selectedPath || deleted.has(selectedPath)) return;
     workingRevision.current++;
+    setAppliedJourney(undefined);
     if (snapshot.files.some(file => file.path === selectedPath)) setDeleted(current => new Set([...current, selectedPath]));
     setEdits(current => { const next = { ...current }; delete next[selectedPath]; return next; });
     setSelectedPath(workingFiles.find(file => file.path !== selectedPath)?.path ?? '');
-    setAnalysis(undefined); setFocusTest(undefined); setExecutions({});
+    setAnalysis(undefined); setFocusTest(undefined); setFocusEdge(undefined); setExecutions({});
   }
 
   async function reloadSnapshot() {
     const revision = ++workingRevision.current;
+    setAppliedJourney(undefined);
     try {
       const next = await request<DemoSnapshot>('/api/snapshot');
       if (revision !== workingRevision.current) return;
-      setSnapshot(next); setEdits({}); setDeleted(new Set()); setAnalysis(undefined); setFocusTest(undefined); setExecutions({});
+      setSnapshot(next); setEdits({}); setDeleted(new Set()); setAnalysis(undefined); setFocusTest(undefined); setFocusEdge(undefined); setExecutions({});
       setSelectedPath(next.files[0]?.path ?? ''); setError(undefined);
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to reload snapshot.'); }
   }
 
   function explain(id: string) {
     setFocusTest(id);
+    setFocusEdge(undefined);
     setView('graph');
   }
 
@@ -225,7 +247,7 @@ export function App() {
     {error && <div className="error-banner"><span>{error}</span><button onClick={() => setError(undefined)}>Dismiss</button></div>}
 
     <div className="suggestion-strip"><div><span>QUICK CHANGES</span>{suggestions.map(item => <button key={item.id} onClick={() => chooseSuggestion(item.id)}><b>{item.title}</b><small>{item.description}</small></button>)}</div>
-      <button className="reset" disabled={!modified.size} onClick={() => { workingRevision.current++; setEdits({}); setDeleted(new Set()); setAnalysis(undefined); setFocusTest(undefined); setExecutions({}); setSelectedPath(snapshot.files[0]?.path ?? ''); }}>RESET</button>
+      <button className="reset" disabled={!modified.size} onClick={() => { workingRevision.current++; setAppliedJourney(undefined); setEdits({}); setDeleted(new Set()); setAnalysis(undefined); setFocusTest(undefined); setFocusEdge(undefined); setExecutions({}); setSelectedPath(snapshot.files[0]?.path ?? ''); }}>RESET</button>
       <button className="reset" onClick={reloadSnapshot}>RELOAD SNAPSHOT</button>
     </div>
 
@@ -235,6 +257,24 @@ export function App() {
         <i>{index + 1}</i><span><b>{step.label}</b><small>{step.detail}</small></span>
       </button>)}</div>
       <div className="workflow-proof"><i />DETERMINISTIC · REAL RUNNERS</div>
+    </section>
+
+    <section className="learning-journeys panel" aria-label="Learning journeys">
+      <div className="journey-choice"><label htmlFor="learning-journey">LEARNING JOURNEY</label><select id="learning-journey" value={journey} onChange={event => setJourney(event.target.value as JourneyId)}>{journeys.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select><button onClick={applyJourney} disabled={pending}>APPLY JOURNEY</button><small>Starts from this snapshot and replaces the current overlay.</small></div>
+      <p>{journeys.find(item => item.id === (appliedJourney ?? journey))!.description}</p>
+      {appliedJourney && <div className="journey-progress" aria-label="Journey evidence">
+        <span>Applied: {journeys.find(item => item.id === appliedJourney)!.title}</span>
+        {[...modified].map(path => <button key={path} onClick={() => showChange(path)}>{path} · SOURCE DIFF</button>)}
+        <button onClick={() => setView('graph')} disabled={!analysis}>DELTA · {analysis ? `${analysis.delta.edges.added.length} added / ${analysis.delta.edges.removed.length} removed edges` : 'calculate first'}</button>
+        <button disabled={!analysis} onClick={() => {
+          const edge = analysis?.delta.edges.added.find(item => item.type !== 'contains') ?? analysis?.delta.edges.removed.find(item => item.type !== 'contains')
+            ?? analysis?.discovery.edges.find(item => item.evidenceIds.some(id => analysis.discovery.evidence.some(proof => proof.id === id && 'path' in proof.locator && modified.has(proof.locator.path))));
+          setFocusTest(undefined); setFocusEdge(undefined); setFocusEdge(edge?.id); setView('graph');
+        }}>INSPECT JOURNEY EVIDENCE</button>
+        <button onClick={() => setView('tests')} disabled={!analysis}>IMPACT → EXECUTION{analysis ? ` · ${analysis.federated.mode}` : ''}</button>
+        <span role="status">{activeExecution ? `Execution: ${activeExecution.status}${activeExecution.suiteResults?.some(item => item.status === 'unavailable') ? ' · unavailable suites are not passes' : ''}` : 'Execution: not run'}</span>
+      </div>}
+      <details><summary>What the sources prove · refresh and visibility</summary><p>Compiler facts resolve supported imports, calls and JSX. HTTP and RabbitMQ adapters bind explicit contracts and registrations. Reviewed test subjects declare intent; they do not measure coverage. OpenTelemetry and mesh record observed traffic for their own revision and time window; absent traffic cannot remove a dependency.</p><p>Calculate analyzes the actual edited bytes against the pinned snapshot. Reload snapshot reads the current checkout and resets the overlay. Filesystem watching rebuilds the full index after a change; unchanged fingerprints skip extraction. Dynamic references, inaccessible repositories and unsupported patterns remain diagnostics and require conservative selection. Only registered, available suites can execute; failed, skipped and unavailable results remain visible.</p></details>
     </section>
 
     <main className="workspace">

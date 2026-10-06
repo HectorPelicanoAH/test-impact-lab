@@ -1,6 +1,6 @@
 # SDD — Descubrimiento de dependencias y sistemas distribuidos
 
-Fecha: 2026-10-05. Estado: G1–G6 completadas; G7 pendiente de autorización. Evidencias y siguiente acción en [el registro de estado](DEPENDENCY-GRAPH-STATE.md).
+Fecha: 2026-10-06. Estado: G1–G9 completadas. Auditoría final en [G9](G9-FINAL-AUDIT.md) y evidencias en [el registro de estado](DEPENDENCY-GRAPH-STATE.md). La ampliación termina aquí.
 
 Este documento amplía [el SDD original](SDD.md). Conserva el login, el motor determinista, las explicaciones causales y las ejecuciones reales. Las fases G1–G9 pertenecen a esta ampliación y no renumeran las fases históricas.
 
@@ -15,7 +15,7 @@ No se pretende resolver universalmente cualquier lenguaje, framework o destino d
 1. Crear este SDD no autoriza a iniciar G1. Esperar un «sigue» humano.
 2. Cada «sigue» autoriza exclusivamente la siguiente fase pendiente, incluyendo sus pruebas, correcciones y documentación. No autoriza todas las fases restantes.
 3. Al terminar una fase, detenerse. No iniciar código, instalaciones, servicios ni investigaciones propias de la siguiente fase.
-4. Entregar: cambios, evidencias de aceptación, pruebas ejecutadas y resultados, limitaciones, archivos relevantes, siguiente fase y modelo recomendado. Cerrar con «Fase Gx completada. Para iniciar Gy, selecciona [modelo/esfuerzo] y escribe “sigue”».
+4. Entregar: cambios, evidencias de aceptación, pruebas ejecutadas y resultados, limitaciones, archivos relevantes, siguiente fase y modelo recomendado. Cerrar con «Fase Gx completada. Para iniciar Gy, selecciona [modelo/esfuerzo] y escribe “sigue”». En G9 aplica la parada final del apartado 7: entregar y detenerse sin inventar una fase siguiente.
 5. Si falta un criterio obligatorio, declarar la fase incompleta y explicar el bloqueo; no avanzar ni convertir trabajo pendiente en una aceptación implícita.
 6. Las correcciones solicitadas pertenecen a la fase actual y no consumen ni implican autorización para la siguiente.
 7. Mantener `docs/DEPENDENCY-GRAPH-STATE.md` desde G1 con fases pendientes/en curso/completadas, decisiones, comandos, resultados y siguiente acción. En otro hilo, leer este SDD y ese estado antes de trabajar.

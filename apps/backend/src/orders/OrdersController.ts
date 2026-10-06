@@ -1,3 +1,4 @@
+import { code, inSpan } from '@test-impact/telemetry/context';
 import { randomUUID } from 'node:crypto';
 import { InventoryFailure } from './InventoryClient';
 import type { StockResponse } from '@test-impact/api-contract/inventory';
@@ -17,7 +18,7 @@ export function createOrdersController(getStock: (sku: string) => Promise<StockR
         const available = await getStock(body.sku);
         if (available.available < (body.quantity as number)) return { status: 409, body: { error: 'Not enough inventory available.' } };
         const order: Order = { id: randomUUID(), sku: body.sku, quantity: body.quantity as number, status: 'accepted' };
-        store.save(order);
+        await inSpan('outbox.save', code('apps/backend/src/orders/OrderStore.ts', 'OrderStore.save', { 'order.id': order.id }), async span => { const event = store.save(order); span.setAttribute('messaging.message.id', event.eventId); });
         return { status: 201, body: order };
       } catch (error) {
         if (error instanceof InventoryFailure) return { status: error.reason === 'timeout' ? 504 : 502, body: { error: `Inventory ${error.reason}; order was not created.` } };

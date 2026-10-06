@@ -16,7 +16,10 @@ async function freePort() {
   return port;
 }
 
-const materialized = JSON.parse(execFileSync(process.execPath, ['scripts/inventory/materialize.mjs'], { encoding: 'utf8' })) as { root: string };
+// Federated overlays supply the archived provider; never replace or remove that pinned input.
+const ownsInventory = !process.env.INVENTORY_ROOT;
+const materialized = process.env.INVENTORY_ROOT ? { root: process.env.INVENTORY_ROOT }
+  : JSON.parse(execFileSync(process.execPath, ['scripts/inventory/materialize.mjs'], { encoding: 'utf8' })) as { root: string };
 let inventory: ChildProcess;
 let server: ReturnType<typeof createHttpServer>;
 let base: string;
@@ -43,7 +46,7 @@ afterAll(async () => {
     inventory.kill('SIGTERM');
     await new Promise<void>(resolve => inventory.once('exit', () => resolve()));
   }
-  rmSync(materialized.root, { recursive: true, force: true });
+  if (ownsInventory) rmSync(materialized.root, { recursive: true, force: true });
 });
 
 async function place(sku: string, quantity: number, host = base) {

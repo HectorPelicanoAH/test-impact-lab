@@ -8,3 +8,5 @@ test-results/
 .impact-runs/
 .impact-snapshots/
 .pnpm-store/
+
+.impact-tools/

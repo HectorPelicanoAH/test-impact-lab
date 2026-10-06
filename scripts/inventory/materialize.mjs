@@ -18,6 +18,8 @@ export function materializeInventory(destination) {
     if (canonical === workspace || canonical.startsWith(`${workspace}${sep}`)) throw new Error('External inventory must be outside this checkout.');
     cpSync(template, target, { recursive: true, force: false });
     execFileSync('git', ['init', '-q', target]);
+    // This generated local fixture must not inherit interactive signing from the user's global Git config.
+    execFileSync('git', ['-C', target, 'config', 'commit.gpgsign', 'false']);
     execFileSync('git', ['-C', target, 'add', '.']);
     execFileSync('git', ['-C', target, '-c', 'user.name=Test Impact Lab', '-c', 'user.email=local@example.invalid', 'commit', '-qm', 'Materialize independent inventory source']);
     return { root: realpathSync(target), revision: execFileSync('git', ['-C', target, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim() };

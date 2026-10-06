@@ -1,10 +1,12 @@
+import { correlateMesh, observationsHash } from './mesh';
+import { readCollector, correlate, validateDataset, type ObservationDataset } from './observations';
 import { readFileSync, realpathSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import ts from 'typescript';
 import { validateGraph } from '../../packages/impact-engine/src/index';
 import type { GraphEdge, GraphNode, ImpactGraph, TestMetadata } from '../../packages/impact-engine/src/schema';
-import type { DiscoveryArchive, DiscoveryConfig, GraphSnapshotV2, SourceFiles } from '../../packages/impact-engine/src/schema-v2';
+import type { DiscoveryArchive, DiscoveryConfig, GraphSnapshotV2, MeshDataset, SourceFiles } from '../../packages/impact-engine/src/schema-v2';
 import { GraphBuilder, canonical, fileHashes, hash, nodeId, ordered, validateSnapshot } from './core';
 import { authorizedPath, inventory, readTree, safePath } from './files';
 import { extractTypescript, location, parseSource } from './extract';
@@ -16,7 +18,7 @@ export const ignoreExecution = (path: string) => path.split('/').some(segment =>
 export interface WorkspaceInput {
   sources: SourceFiles; configuration: SourceFiles; config: DiscoveryConfig; executionFiles: SourceFiles;
   legacyGraph: ImpactGraph; catalogue: TestMetadata[];
-  inventoryRevision?: string;
+  inventoryRevision?: string; meshDataset?: MeshDataset; observationDataset?: ObservationDataset;
 }
 export function loadWorkspace(root: string, inventoryRoot = process.env.INVENTORY_ROOT): WorkspaceInput {
   const read = (path: string) => readFileSync(resolve(root, path), 'utf8');
@@ -49,7 +51,9 @@ export function loadWorkspace(root: string, inventoryRoot = process.env.INVENTOR
       if (path === 'package.json') configuration[virtualPath] = content;
     }
   }
-  return { sources, configuration, config, legacyGraph, catalogue, executionFiles, ...(inventoryRevision ? { inventoryRevision } : {}) };
+  const observationDataset = process.env.OTEL_COLLECTOR_PATH ? readCollector(readFileSync(resolve(process.env.OTEL_COLLECTOR_PATH), 'utf8').split('\n').slice(0, -1).join('\n')) : process.env.OTEL_DATASET_PATH ? JSON.parse(readFileSync(resolve(process.env.OTEL_DATASET_PATH), 'utf8')) as ObservationDataset : undefined;
+  const meshDataset = process.env.MESH_DATASET_PATH ? JSON.parse(readFileSync(resolve(process.env.MESH_DATASET_PATH), 'utf8')) as MeshDataset : undefined;
+  return { ...(meshDataset ? { meshDataset } : {}), sources, configuration, config, legacyGraph, catalogue, executionFiles, ...(observationDataset ? { observationDataset } : {}), ...(inventoryRevision ? { inventoryRevision } : {}) };
 }
 
 interface ReviewedMetadata {
@@ -155,8 +159,13 @@ export function buildArchive(input: WorkspaceInput): DiscoveryArchive {
       policiesHash: hash(ordered(builder.policies.values())), observationsHash: null },
     nodes: ordered(builder.nodes.values()), edges: ordered(builder.edges.values()), evidence: ordered(builder.evidence.values()), diagnostics: ordered(builder.diagnostics.values()), policies: ordered(builder.policies.values()), observations: [],
   };
+  if (input.observationDataset) { body.observations = correlate(input.observationDataset, body); body.inputs.observationsHash = hash(input.observationDataset); }
+  if (input.meshDataset) body.mesh = correlateMesh(input.meshDataset, body);
+  body.inputs.observationsHash = observationsHash(input.observationDataset, input.meshDataset);
   const graph: GraphSnapshotV2 = { ...body, id: hash(body) };
   const archive = { graph, sources: input.sources, configuration, executionFiles, config: input.config, catalogue: input.catalogue, externalCatalogue, legacyGraph: input.legacyGraph,
+    ...(input.meshDataset ? { meshDataset: input.meshDataset } : {}),
+    ...(input.observationDataset ? { observationDataset: input.observationDataset } : {}),
     ...(input.inventoryRevision ? { inventoryRevision: input.inventoryRevision } : {}) };
   validateArchive(archive);
   return archive;
@@ -165,6 +174,13 @@ export function buildArchive(input: WorkspaceInput): DiscoveryArchive {
 export function validateArchive(archive: DiscoveryArchive) {
   const { graph, sources, configuration, executionFiles } = archive;
   validateSnapshot(graph, sources, configuration);
+  if (archive.observationDataset) {
+    validateDataset(archive.observationDataset);
+    if (graph.inputs.observationsHash !== observationsHash(archive.observationDataset, archive.meshDataset) || canonical(graph.observations) !== canonical(correlate(archive.observationDataset, graph))) throw new Error('Observation dataset/correlation mismatch');
+  } else if ((!archive.meshDataset && graph.inputs.observationsHash !== null) || graph.observations.length) throw new Error('Missing archived observation dataset');
+  if (graph.inputs.observationsHash !== observationsHash(archive.observationDataset, archive.meshDataset)) throw new Error('Observation input hash mismatch');
+  if (archive.meshDataset) { if (canonical(graph.mesh) !== canonical(correlateMesh(archive.meshDataset, graph))) throw new Error('Mesh dataset/correlation mismatch'); }
+  else if (graph.mesh) throw new Error('Missing archived mesh dataset');
   for (const [path, value] of [['impact/discovery.json', archive.config], ['impact/catalogue.json', archive.catalogue], ['impact/graph.json', archive.legacyGraph]] as const) {
     if (canonical(value) !== canonical(JSON.parse(configuration[path]!))) throw new Error(`Archive manifest mismatch: ${path}`);
   }

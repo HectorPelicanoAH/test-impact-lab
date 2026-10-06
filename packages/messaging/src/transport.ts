@@ -1,3 +1,4 @@
+import { serviceHostAllowed } from './network';
 import { connect, type ConfirmChannel, type ChannelModel, type Options } from 'amqplib';
 import definition from './topology.json';
 
@@ -10,7 +11,7 @@ export function topology(namespace = process.env.BROKER_NAMESPACE ?? 'impact.loc
 }
 export async function openBroker(url: string): Promise<ChannelModel> {
   const address = new URL(url);
-  if (address.protocol !== 'amqp:' || !['127.0.0.1', 'localhost'].includes(address.hostname)) throw new Error('Broker must be a local AMQP endpoint');
+  if (address.protocol !== 'amqp:' || !serviceHostAllowed(address.hostname, 'rabbitmq')) throw new Error('Broker must be a local AMQP endpoint');
   const connection = await connect(url, { timeout: 2_000 });
   connection.on('error', () => { /* Channel operations surface the failure; reconnect loop owns recovery. */ });
   return connection;
