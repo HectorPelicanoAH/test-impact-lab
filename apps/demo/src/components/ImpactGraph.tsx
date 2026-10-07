@@ -3,7 +3,7 @@ import { Background, Controls, MarkerType, MiniMap, ReactFlow, type Edge, type N
 import '@xyflow/react/dist/style.css';
 import type { DemoAnalysis, DemoSnapshot } from '../types';
 
-const layerOrder = ['e2e', 'component', 'frontend-unit', 'UI', 'UI composition', 'UI behavior', 'UI validation', 'Frontend application', 'Frontend validation', 'API client', 'API contract', 'Primary adapter', 'HTTP transport', 'HTTP transport behavior', 'Application', 'Application behavior', 'Domain', 'Domain behavior', 'Domain invariant', 'Domain identity', 'Port', 'Secondary adapter', 'integration', 'backend-unit'];
+const layerOrder = ['e2e', 'component', 'frontend-unit', 'UI', 'UI composition', 'UI behavior', 'UI validation', 'Frontend application', 'Frontend validation', 'API client', 'API contract', 'Primary adapter', 'HTTP transport', 'HTTP transport behavior', 'Application', 'Application behavior', 'Domain', 'Domain behavior', 'Domain invariant', 'Domain identity', 'Port', 'Secondary adapter', 'integration', 'backend-unit', 'Discovered code'];
 
 export function ImpactGraph({ snapshot, analysis, focusTest, onFocusTest }: {
   snapshot: DemoSnapshot; analysis?: DemoAnalysis; focusTest?: string; onFocusTest: (id?: string) => void;

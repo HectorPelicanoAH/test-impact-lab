@@ -1,0 +1,1 @@
+export function disconnected() { return 42; }

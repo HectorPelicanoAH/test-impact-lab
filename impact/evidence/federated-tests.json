@@ -1,0 +1,14 @@
+[
+  { "id": "orders-controller", "file": "apps/backend/src/orders/OrdersController.test.ts", "runner": "vitest", "subjects": ["apps/backend/src/orders/OrdersController.ts", "apps/backend/src/orders/InventoryClient.ts"] },
+  { "id": "orders-store", "file": "apps/backend/src/orders/OrderStore.test.ts", "runner": "vitest", "subjects": ["apps/backend/src/orders/OrderStore.ts", "packages/messaging/src/ConsumerStore.ts"] },
+  { "id": "inventory-contract", "file": "tests/contract/inventory.test.ts", "runner": "vitest", "subjects": ["packages/api-contract/src/inventory-contract.json", "packages/api-contract/src/inventory.ts", "apps/backend/src/orders/InventoryClient.ts"] },
+  { "id": "order-created-contract", "file": "tests/contract/order-created.test.ts", "runner": "vitest", "subjects": ["packages/api-contract/src/order-created-v1.json", "packages/api-contract/src/order-created.ts"] },
+  { "id": "orders-integration", "file": "tests/integration/orders.test.ts", "runner": "vitest", "subjects": ["apps/backend/src/orders/OrdersController.ts", "apps/backend/src/orders/InventoryClient.ts", "external/inventory/src/server.ts"] },
+  { "id": "messaging-transport", "file": "packages/messaging/src/transport.test.ts", "runner": "vitest", "subjects": ["packages/messaging/src/transport.ts", "packages/messaging/src/topology.json"] },
+  { "id": "notifications-consumer", "file": "apps/notifications/src/main.test.ts", "runner": "vitest", "subjects": ["apps/notifications/src/main.ts", "packages/api-contract/src/order-created-v1.json"] },
+  { "id": "preparation-consumer", "file": "apps/preparation/src/main.test.ts", "runner": "vitest", "subjects": ["apps/preparation/src/main.ts", "packages/api-contract/src/order-created-v1.json"] },
+  { "id": "messaging-runtime", "file": "tests/messaging/runtime.test.ts", "runner": "broker-vitest", "subjects": ["apps/backend/src/orders/OutboxPublisher.ts", "packages/messaging/src/consumer.ts", "apps/notifications/src/main.ts", "apps/preparation/src/main.ts", "packages/api-contract/src/order-created-v1.json", "packages/messaging/src/topology.json"] },
+  { "id": "orders-browser", "file": "tests/e2e/orders.spec.ts", "runner": "playwright", "subjects": ["apps/frontend/src/OrdersPage.tsx", "apps/backend/src/orders/OrdersController.ts", "apps/backend/src/orders/InventoryClient.ts", "external/inventory/src/server.ts"] },
+  { "id": "messaging-browser", "file": "tests/e2e/messaging.spec.ts", "runner": "broker-playwright", "subjects": ["apps/frontend/src/OrdersPage.tsx", "apps/backend/src/orders/OutboxPublisher.ts", "apps/notifications/src/main.ts", "apps/preparation/src/main.ts", "packages/api-contract/src/order-created-v1.json"] },
+  { "id": "inventory-provider", "file": "external/inventory/test/inventory.test.ts", "runner": "node-test", "subjects": ["external/inventory/src/server.ts", "external/inventory/contract/inventory-stock-v1.json", "packages/api-contract/src/inventory-contract.json"] }
+]

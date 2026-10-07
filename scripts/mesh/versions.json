@@ -1,0 +1,12 @@
+{
+  "kind": "0.31.0",
+  "kubernetes": "1.35.0",
+  "nodeImage": "kindest/node:v1.35.0@sha256:452d707d4862f52530247495d180205e029056831160e22870e37e3f6c1ac31f",
+  "istio": "1.31.0",
+  "kiali": "2.27.0",
+  "prometheus": "3.10.0",
+  "configReloader": "0.89.0",
+  "runtimeImage": "node:24.18.0-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d",
+  "rabbitmqImage": "rabbitmq:4.2.0-management@sha256:6431bbd0f22df99ace800138399367d7d6181442dfff09feb2795e15d4bd4b7a",
+  "namespace": "impact-g8"
+}

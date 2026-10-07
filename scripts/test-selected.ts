@@ -3,13 +3,17 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { calculateImpact } from '../packages/impact-engine/src/index';
-import type { ImpactGraph, TestMetadata } from '../packages/impact-engine/src/schema';
+import type { TestMetadata } from '../packages/impact-engine/src/schema';
+import { buildArchive, compatibilityGraph, loadWorkspace } from './graph/snapshot';
 
 const changedEntityIds = process.argv.slice(2);
 if (!changedEntityIds.length) throw new Error('Usage: pnpm test:selected LoginButton [User ...]');
-const graph = JSON.parse(readFileSync('impact/graph.json', 'utf8')) as ImpactGraph;
-const catalogue = JSON.parse(readFileSync('impact/catalogue.json', 'utf8')) as TestMetadata[];
-const selection = calculateImpact({ graph, catalogue, changedEntityIds, diff: [], uncertaintyReasons: [] });
+const archive = buildArchive(loadWorkspace(process.cwd()));
+const graph = compatibilityGraph(archive), catalogue = archive.catalogue;
+const uncertaintyReasons = changedEntityIds.some(id => !archive.legacyGraph.nodes.some(node => node.id === id))
+  || archive.graph.diagnostics.some(item => item.code === 'legacy-unverified' || item.code === 'parse-failed')
+  ? ['No proven reviewed compatibility scope; full available catalogue selected.'] : [];
+const selection = calculateImpact({ graph, catalogue, changedEntityIds, diff: [], uncertaintyReasons });
 const selected = catalogue.filter(test => selection.selectedTests.includes(test.id));
 mkdirSync('.impact-runs', { recursive: true });
 const directory = resolve(mkdtempSync('.impact-runs/selected-'));

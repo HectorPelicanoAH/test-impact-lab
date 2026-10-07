@@ -1,0 +1,14 @@
+{
+  "name": "@test-impact/messaging",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "@test-impact/api-contract": "workspace:*",
+    "amqplib": "2.2.0",
+    "@test-impact/telemetry": "workspace:*"
+  }
+}

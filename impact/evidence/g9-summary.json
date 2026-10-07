@@ -1,0 +1,1102 @@
+{
+  "phase": "G9",
+  "status": "passed",
+  "audit": {
+    "status": "passed",
+    "measuredAt": "2026-10-06T08:02:33.984Z",
+    "snapshotId": "b51c85f4e2f4eb4b6ac8ecbbe6dd0c69f69fa2da839f6e6489c05d78190da687",
+    "hardware": {
+      "platform": "darwin",
+      "release": "25.6.0",
+      "architecture": "arm64",
+      "cpu": "Apple M1 Pro",
+      "logicalCpus": 10,
+      "memoryBytes": 34359738368,
+      "availableMemoryBytes": 90505216,
+      "node": "v24.18.0"
+    },
+    "dataset": {
+      "sourceFiles": 63,
+      "sourceBytes": 77367,
+      "sourceLines": 1401,
+      "executionFiles": 231,
+      "nodes": 382,
+      "edges": 545,
+      "diagnostics": 452,
+      "inspectedEvidenceUses": 570,
+      "legacyNodes": 69,
+      "legacyEdges": 84,
+      "legacyTests": 39,
+      "inventoryRevision": "1a96d7cd08f8fb314319226f6108d598f9d8ccde"
+    },
+    "corpus": {
+      "metrics": {
+        "calls": {
+          "expected": 8,
+          "truePositives": 5,
+          "falsePositives": 0,
+          "falseNegatives": 3,
+          "precision": 1,
+          "recall": 0.625
+        },
+        "implements": {
+          "expected": 1,
+          "truePositives": 1,
+          "falsePositives": 0,
+          "falseNegatives": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "imports": {
+          "expected": 9,
+          "truePositives": 9,
+          "falsePositives": 0,
+          "falseNegatives": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "renders": {
+          "expected": 1,
+          "truePositives": 1,
+          "falsePositives": 0,
+          "falseNegatives": 0,
+          "precision": 1,
+          "recall": 1
+        }
+      },
+      "cases": 26,
+      "falseLinks": 0
+    },
+    "timings": {
+      "repetitions": 5,
+      "fullLoadAndBuild": {
+        "samples": [
+          205.39024999999992,
+          252.3181669999999,
+          228.7389999999998,
+          200.73000000000002,
+          206.35087499999963
+        ],
+        "medianMs": 206.35087499999963,
+        "minMs": 200.73000000000002,
+        "maxMs": 252.3181669999999
+      },
+      "overlayAnalysisFullRebuild": {
+        "samples": [
+          153.19866699999966,
+          130.4734169999997,
+          123.93362500000012,
+          127.08908400000018,
+          123.19358299999976
+        ],
+        "medianMs": 127.08908400000018,
+        "minMs": 123.19358299999976,
+        "maxMs": 153.19866699999966
+      },
+      "unchangedRefreshWithCapturedInput": {
+        "samples": [
+          1.5114579999999478,
+          1.3627919999998994,
+          1.3737080000000788,
+          1.3580000000001746,
+          1.387250000000222
+        ],
+        "medianMs": 1.3737080000000788,
+        "minMs": 1.3580000000001746,
+        "maxMs": 1.5114579999999478
+      },
+      "changedRefreshFullRebuildAndPublish": {
+        "samples": [
+          135.12679100000014,
+          174.0987500000001,
+          170.15499999999975,
+          159.53429099999994,
+          148.24441600000046
+        ],
+        "medianMs": 159.53429099999994,
+        "minMs": 135.12679100000014,
+        "maxMs": 174.0987500000001
+      },
+      "scope": "Same-process warmed samples on this machine. Full includes filesystem reads; refresh uses a captured-input loader to isolate fingerprint/build/store costs. Changes rebuild the entire index; partial incremental indexing is not implemented. No universal timing claim."
+    },
+    "invariants": [
+      "all edge evidence and node locators readable",
+      "input ordering deterministic",
+      "unique node identities",
+      "all legacy policies and subjects preserved",
+      "corpus false links zero; diagnosed omissions remain in recall",
+      "checkout sources unchanged"
+    ]
+  },
+  "journeys": {
+    "status": "passed",
+    "snapshot": "004ed0e0ea41933e1bae3f3c087e3b3d9d81af1b2fe4db0c0c2c21114c4dd557",
+    "inventoryRevision": "b165af42c2d00f4a4b9d25744bf9a77f2130435f",
+    "brokerEnabled": true,
+    "retriedReads": 0,
+    "browserErrors": [],
+    "results": [
+      {
+        "journey": "screen",
+        "before": "004ed0e0ea41933e1bae3f3c087e3b3d9d81af1b2fe4db0c0c2c21114c4dd557",
+        "after": "52fac4a4b9d8faa392697857c191ee98a6cbcdae4abb6dda11a20fbd68d3015e",
+        "delta": {
+          "added": 3,
+          "removed": 0
+        },
+        "mode": "graph",
+        "diagnostics": [
+          "unresolved-symbol"
+        ],
+        "selected": {
+          "status": "passed",
+          "tests": 39,
+          "suites": [],
+          "durationMs": 25055.42425
+        }
+      },
+      {
+        "journey": "http",
+        "before": "004ed0e0ea41933e1bae3f3c087e3b3d9d81af1b2fe4db0c0c2c21114c4dd557",
+        "after": "83726a9266fa43e8214ceacff99027e38e902364d841705ad134765407a5735b",
+        "delta": {
+          "added": 0,
+          "removed": 4
+        },
+        "mode": "conservative-full",
+        "diagnostics": [
+          "missing-contract"
+        ],
+        "selected": {
+          "status": "failed",
+          "tests": 39,
+          "suites": [
+            {
+              "id": "inventory-contract",
+              "status": "failed"
+            },
+            {
+              "id": "inventory-provider",
+              "status": "passed"
+            },
+            {
+              "id": "messaging-browser",
+              "status": "passed"
+            },
+            {
+              "id": "messaging-runtime",
+              "status": "passed"
+            },
+            {
+              "id": "messaging-transport",
+              "status": "passed"
+            },
+            {
+              "id": "notifications-consumer",
+              "status": "passed"
+            },
+            {
+              "id": "order-created-contract",
+              "status": "passed"
+            },
+            {
+              "id": "orders-browser",
+              "status": "passed"
+            },
+            {
+              "id": "orders-controller",
+              "status": "passed"
+            },
+            {
+              "id": "orders-integration",
+              "status": "passed"
+            },
+            {
+              "id": "orders-store",
+              "status": "passed"
+            },
+            {
+              "id": "preparation-consumer",
+              "status": "passed"
+            }
+          ],
+          "durationMs": 54074.198542
+        }
+      },
+      {
+        "journey": "event",
+        "before": "004ed0e0ea41933e1bae3f3c087e3b3d9d81af1b2fe4db0c0c2c21114c4dd557",
+        "after": "f979567ea9955381ae7186002d2dcad663f90db4577f2dc0b40b03ffdc188205",
+        "delta": {
+          "added": 0,
+          "removed": 9
+        },
+        "mode": "conservative-full",
+        "diagnostics": [
+          "missing-contract"
+        ],
+        "selected": {
+          "status": "failed",
+          "tests": 39,
+          "suites": [
+            {
+              "id": "inventory-contract",
+              "status": "passed"
+            },
+            {
+              "id": "inventory-provider",
+              "status": "passed"
+            },
+            {
+              "id": "messaging-browser",
+              "status": "passed"
+            },
+            {
+              "id": "messaging-runtime",
+              "status": "passed"
+            },
+            {
+              "id": "messaging-transport",
+              "status": "passed"
+            },
+            {
+              "id": "notifications-consumer",
+              "status": "passed"
+            },
+            {
+              "id": "order-created-contract",
+              "status": "failed"
+            },
+            {
+              "id": "orders-browser",
+              "status": "passed"
+            },
+            {
+              "id": "orders-controller",
+              "status": "passed"
+            },
+            {
+              "id": "orders-integration",
+              "status": "passed"
+            },
+            {
+              "id": "orders-store",
+              "status": "passed"
+            },
+            {
+              "id": "preparation-consumer",
+              "status": "passed"
+            }
+          ],
+          "durationMs": 54701.31512500001
+        }
+      },
+      {
+        "journey": "consumer",
+        "before": "004ed0e0ea41933e1bae3f3c087e3b3d9d81af1b2fe4db0c0c2c21114c4dd557",
+        "after": "e0f366722d0c6bdd4b4213b6c4037e9876df7f7fe42c982498c2c25581818153",
+        "delta": {
+          "added": 7,
+          "removed": 0
+        },
+        "mode": "graph",
+        "diagnostics": [],
+        "selected": {
+          "status": "passed",
+          "tests": 39,
+          "suites": [
+            {
+              "id": "messaging-browser",
+              "status": "passed"
+            },
+            {
+              "id": "messaging-runtime",
+              "status": "passed"
+            },
+            {
+              "id": "messaging-transport",
+              "status": "passed"
+            },
+            {
+              "id": "notifications-consumer",
+              "status": "passed"
+            },
+            {
+              "id": "order-created-contract",
+              "status": "passed"
+            },
+            {
+              "id": "orders-browser",
+              "status": "passed"
+            },
+            {
+              "id": "orders-controller",
+              "status": "passed"
+            },
+            {
+              "id": "orders-integration",
+              "status": "passed"
+            },
+            {
+              "id": "orders-store",
+              "status": "passed"
+            },
+            {
+              "id": "preparation-consumer",
+              "status": "passed"
+            }
+          ],
+          "durationMs": 55241.314125000004
+        }
+      },
+      {
+        "journey": "retry",
+        "before": "004ed0e0ea41933e1bae3f3c087e3b3d9d81af1b2fe4db0c0c2c21114c4dd557",
+        "after": "6f89e1dd10b227f616ee921b4de2ef343c5edefae4da7efad28ec4d945d6a328",
+        "delta": {
+          "added": 0,
+          "removed": 0
+        },
+        "mode": "graph",
+        "diagnostics": [
+          "unresolved-symbol",
+          "unresolved-symbol"
+        ],
+        "selected": {
+          "status": "failed",
+          "tests": 39,
+          "suites": [
+            {
+              "id": "messaging-browser",
+              "status": "failed"
+            },
+            {
+              "id": "messaging-runtime",
+              "status": "failed"
+            },
+            {
+              "id": "messaging-transport",
+              "status": "passed"
+            },
+            {
+              "id": "notifications-consumer",
+              "status": "failed"
+            }
+          ],
+          "durationMs": 111103.92508299998
+        },
+        "full": {
+          "status": "failed",
+          "tests": 39,
+          "suites": [
+            {
+              "id": "inventory-contract",
+              "status": "passed"
+            },
+            {
+              "id": "inventory-provider",
+              "status": "passed"
+            },
+            {
+              "id": "messaging-browser",
+              "status": "failed"
+            },
+            {
+              "id": "messaging-runtime",
+              "status": "failed"
+            },
+            {
+              "id": "messaging-transport",
+              "status": "passed"
+            },
+            {
+              "id": "notifications-consumer",
+              "status": "failed"
+            },
+            {
+              "id": "order-created-contract",
+              "status": "passed"
+            },
+            {
+              "id": "orders-browser",
+              "status": "passed"
+            },
+            {
+              "id": "orders-controller",
+              "status": "passed"
+            },
+            {
+              "id": "orders-integration",
+              "status": "passed"
+            },
+            {
+              "id": "orders-store",
+              "status": "passed"
+            },
+            {
+              "id": "preparation-consumer",
+              "status": "passed"
+            }
+          ],
+          "durationMs": 125267.599209
+        }
+      },
+      {
+        "journey": "unresolved",
+        "before": "004ed0e0ea41933e1bae3f3c087e3b3d9d81af1b2fe4db0c0c2c21114c4dd557",
+        "after": "0ad12e913a70bbc9103f51c7e9fee32df6c297100439a1bcef0795d548337afb",
+        "delta": {
+          "added": 0,
+          "removed": 4
+        },
+        "mode": "conservative-full",
+        "diagnostics": [
+          "unresolved-symbol",
+          "unresolved-symbol",
+          "unresolved-symbol",
+          "unresolved-symbol",
+          "unresolved-symbol",
+          "unresolved-symbol",
+          "unresolved-symbol",
+          "missing-contract",
+          "unresolved-symbol",
+          "missing-contract",
+          "unresolved-symbol",
+          "unresolved-symbol",
+          "unresolved-symbol"
+        ],
+        "selected": {
+          "status": "passed",
+          "tests": 39,
+          "suites": [
+            {
+              "id": "inventory-contract",
+              "status": "passed"
+            },
+            {
+              "id": "inventory-provider",
+              "status": "passed"
+            },
+            {
+              "id": "messaging-browser",
+              "status": "passed"
+            },
+            {
+              "id": "messaging-runtime",
+              "status": "passed"
+            },
+            {
+              "id": "messaging-transport",
+              "status": "passed"
+            },
+            {
+              "id": "notifications-consumer",
+              "status": "passed"
+            },
+            {
+              "id": "order-created-contract",
+              "status": "passed"
+            },
+            {
+              "id": "orders-browser",
+              "status": "passed"
+            },
+            {
+              "id": "orders-controller",
+              "status": "passed"
+            },
+            {
+              "id": "orders-integration",
+              "status": "passed"
+            },
+            {
+              "id": "orders-store",
+              "status": "passed"
+            },
+            {
+              "id": "preparation-consumer",
+              "status": "passed"
+            }
+          ],
+          "durationMs": 60850.24304199999
+        }
+      }
+    ]
+  },
+  "mesh": {
+    "bindings": [
+      {
+        "image": "sha256:bf531e3f0409445844b281c916fa158a2695acf873b866c996226ec3ba3b8709",
+        "namespace": "impact-g8",
+        "productId": "test-impact-lab",
+        "repositoryId": "login",
+        "revision": "content:004e997af9571fa3b8daf1e104e8c60e8d4a444d49e81d78f829c4117dbad7cf",
+        "selector": {
+          "kind": "symbol",
+          "label": "OrdersPage",
+          "path": "apps/frontend/src/OrdersPage.tsx"
+        },
+        "service": "frontend",
+        "version": "v1",
+        "workload": "frontend"
+      },
+      {
+        "image": "sha256:bf531e3f0409445844b281c916fa158a2695acf873b866c996226ec3ba3b8709",
+        "namespace": "impact-g8",
+        "productId": "test-impact-lab",
+        "repositoryId": "login",
+        "revision": "content:004e997af9571fa3b8daf1e104e8c60e8d4a444d49e81d78f829c4117dbad7cf",
+        "selector": {
+          "kind": "symbol",
+          "label": "createHttpServer",
+          "path": "apps/backend/src/http.ts"
+        },
+        "service": "orders-api",
+        "version": "v1",
+        "workload": "orders-api"
+      },
+      {
+        "image": "sha256:f8af72bf5b40eadc095906780ea1daf1d515106e9041041468d098f2e4cb2c74",
+        "namespace": "impact-g8",
+        "productId": "inventory",
+        "repositoryId": "external-inventory",
+        "revision": "945bd5b7bdeb8fd62f88ee4f651ae31f7f41ddc3",
+        "selector": {
+          "kind": "symbol",
+          "label": "createInventoryServer",
+          "path": "external/inventory/src/server.ts"
+        },
+        "service": "inventory",
+        "version": "v1",
+        "workload": "inventory"
+      },
+      {
+        "image": "sha256:bf531e3f0409445844b281c916fa158a2695acf873b866c996226ec3ba3b8709",
+        "namespace": "impact-g8",
+        "productId": "test-impact-lab",
+        "repositoryId": "login",
+        "revision": "content:004e997af9571fa3b8daf1e104e8c60e8d4a444d49e81d78f829c4117dbad7cf",
+        "selector": {
+          "kind": "symbol",
+          "label": "notify",
+          "path": "apps/notifications/src/main.ts"
+        },
+        "service": "notifications",
+        "version": "v1",
+        "workload": "notifications"
+      },
+      {
+        "image": "sha256:bf531e3f0409445844b281c916fa158a2695acf873b866c996226ec3ba3b8709",
+        "namespace": "impact-g8",
+        "productId": "test-impact-lab",
+        "repositoryId": "login",
+        "revision": "content:004e997af9571fa3b8daf1e104e8c60e8d4a444d49e81d78f829c4117dbad7cf",
+        "selector": {
+          "kind": "symbol",
+          "label": "prepare",
+          "path": "apps/preparation/src/main.ts"
+        },
+        "service": "preparation",
+        "version": "v1",
+        "workload": "preparation"
+      },
+      {
+        "image": "docker.io/library/rabbitmq@sha256:6431bbd0f22df99ace800138399367d7d6181442dfff09feb2795e15d4bd4b7a",
+        "namespace": "impact-g8",
+        "productId": "test-impact-lab",
+        "repositoryId": "login",
+        "revision": "content:004e997af9571fa3b8daf1e104e8c60e8d4a444d49e81d78f829c4117dbad7cf",
+        "selector": {
+          "kind": "broker-resource",
+          "label": "local/orders-rabbitmq"
+        },
+        "service": "rabbitmq",
+        "version": "v1",
+        "workload": "rabbitmq"
+      }
+    ],
+    "comparisons": [
+      {
+        "captureId": "orders",
+        "correlation": {
+          "nodeIds": [
+            "urn:impact:test-impact-lab:login:symbol:apps%2Ffrontend%2Fsrc%2FOrdersPage.tsx%23OrdersPage%3AFunctionDeclaration",
+            "urn:impact:test-impact-lab:login:symbol:apps%2Fbackend%2Fsrc%2Fhttp.ts%23createHttpServer%3AFunctionDeclaration"
+          ],
+          "reason": "Mapped workload identities and declared configuration only; no static code call edge is invented.",
+          "status": "resolved"
+        },
+        "declared": true,
+        "destinationVersion": "v1",
+        "from": "frontend",
+        "measured": 6,
+        "observed": true,
+        "protocol": "http",
+        "sourceVersion": "v1",
+        "staticEdgeIds": [],
+        "to": "orders-api",
+        "unit": "requests"
+      },
+      {
+        "captureId": "orders",
+        "correlation": {
+          "nodeIds": [
+            "urn:impact:test-impact-lab:login:symbol:apps%2Fbackend%2Fsrc%2Fhttp.ts%23createHttpServer%3AFunctionDeclaration",
+            "urn:impact:inventory:external-inventory:symbol:external%2Finventory%2Fsrc%2Fserver.ts%23createInventoryServer%3AFunctionDeclaration"
+          ],
+          "reason": "Exact workload versions/revisions mapped to an existing static HTTP contract edge; traffic is limited to this window.",
+          "status": "resolved"
+        },
+        "declared": true,
+        "destinationVersion": "v1",
+        "from": "orders-api",
+        "measured": 6,
+        "observed": true,
+        "protocol": "http",
+        "sourceVersion": "v1",
+        "staticEdgeIds": [
+          "50b72b891cba222355768f9e9efd5ddb8c0b284f19a3e1d60e159be030d4953f"
+        ],
+        "to": "inventory",
+        "unit": "requests"
+      },
+      {
+        "captureId": "orders",
+        "correlation": {
+          "nodeIds": [
+            "urn:impact:test-impact-lab:login:symbol:apps%2Fbackend%2Fsrc%2Fhttp.ts%23createHttpServer%3AFunctionDeclaration",
+            "urn:impact:test-impact-lab:login:symbol:apps%2Fnotifications%2Fsrc%2Fmain.ts%23notify%3AFunctionDeclaration"
+          ],
+          "reason": "Mapped workload identities and declared configuration only; no static code call edge is invented.",
+          "status": "resolved"
+        },
+        "declared": true,
+        "destinationVersion": "v1",
+        "from": "orders-api",
+        "measured": 0,
+        "observed": false,
+        "protocol": "http",
+        "sourceVersion": "v1",
+        "staticEdgeIds": [],
+        "to": "notifications",
+        "unit": "requests"
+      },
+      {
+        "captureId": "orders",
+        "correlation": {
+          "nodeIds": [
+            "urn:impact:test-impact-lab:login:symbol:apps%2Fbackend%2Fsrc%2Fhttp.ts%23createHttpServer%3AFunctionDeclaration",
+            "urn:impact:test-impact-lab:login:symbol:apps%2Fpreparation%2Fsrc%2Fmain.ts%23prepare%3AFunctionDeclaration"
+          ],
+          "reason": "Mapped workload identities and declared configuration only; no static code call edge is invented.",
+          "status": "resolved"
+        },
+        "declared": true,
+        "destinationVersion": "v1",
+        "from": "orders-api",
+        "measured": 0,
+        "observed": false,
+        "protocol": "http",
+        "sourceVersion": "v1",
+        "staticEdgeIds": [],
+        "to": "preparation",
+        "unit": "requests"
+      },
+      {
+        "captureId": "orders",
+        "correlation": {
+          "nodeIds": [
+            "urn:impact:test-impact-lab:login:symbol:apps%2Fnotifications%2Fsrc%2Fmain.ts%23notify%3AFunctionDeclaration",
+            "urn:impact:test-impact-lab:login:broker-resource:local%3Aorders-rabbitmq"
+          ],
+          "reason": "Mapped transport endpoints only. Broker traffic cannot identify event, subscription or consumer handler.",
+          "status": "resolved"
+        },
+        "declared": true,
+        "destinationVersion": "v1",
+        "from": "notifications",
+        "measured": 0,
+        "observed": false,
+        "protocol": "tcp",
+        "sourceVersion": "v1",
+        "staticEdgeIds": [],
+        "to": "rabbitmq",
+        "unit": "bytes"
+      },
+      {
+        "captureId": "orders",
+        "correlation": {
+          "nodeIds": [
+            "urn:impact:test-impact-lab:login:symbol:apps%2Fbackend%2Fsrc%2Fhttp.ts%23createHttpServer%3AFunctionDeclaration",
+            "urn:impact:test-impact-lab:login:broker-resource:local%3Aorders-rabbitmq"
+          ],
+          "reason": "Mapped transport endpoints only. Broker traffic cannot identify event, subscription or consumer handler.",
+          "status": "resolved"
+        },
+        "declared": true,
+        "destinationVersion": "v1",
+        "from": "orders-api",
+        "measured": 1012,
+        "observed": true,
+        "protocol": "tcp",
+        "sourceVersion": "v1",
+        "staticEdgeIds": [],
+        "to": "rabbitmq",
+        "unit": "bytes"
+      },
+      {
+        "captureId": "orders",
+        "correlation": {
+          "nodeIds": [
+            "urn:impact:test-impact-lab:login:symbol:apps%2Fpreparation%2Fsrc%2Fmain.ts%23prepare%3AFunctionDeclaration",
+            "urn:impact:test-impact-lab:login:broker-resource:local%3Aorders-rabbitmq"
+          ],
+          "reason": "Mapped transport endpoints only. Broker traffic cannot identify event, subscription or consumer handler.",
+          "status": "resolved"
+        },
+        "declared": true,
+        "destinationVersion": "v1",
+        "from": "preparation",
+        "measured": 4577,
+        "observed": true,
+        "protocol": "tcp",
+        "sourceVersion": "v1",
+        "staticEdgeIds": [],
+        "to": "rabbitmq",
+        "unit": "bytes"
+      },
+      {
+        "captureId": "read-only",
+        "correlation": {
+          "nodeIds": [
+            "urn:impact:test-impact-lab:login:symbol:apps%2Ffrontend%2Fsrc%2FOrdersPage.tsx%23OrdersPage%3AFunctionDeclaration",
+            "urn:impact:test-impact-lab:login:symbol:apps%2Fbackend%2Fsrc%2Fhttp.ts%23createHttpServer%3AFunctionDeclaration"
+          ],
+          "reason": "Mapped workload identities and declared configuration only; no static code call edge is invented.",
+          "status": "resolved"
+        },
+        "declared": true,
+        "destinationVersion": "v1",
+        "from": "frontend",
+        "measured": 6,
+        "observed": true,
+        "protocol": "http",
+        "sourceVersion": "v1",
+        "staticEdgeIds": [],
+        "to": "orders-api",
+        "unit": "requests"
+      },
+      {
+        "captureId": "read-only",
+        "correlation": {
+          "nodeIds": [
+            "urn:impact:test-impact-lab:login:symbol:apps%2Fbackend%2Fsrc%2Fhttp.ts%23createHttpServer%3AFunctionDeclaration",
+            "urn:impact:inventory:external-inventory:symbol:external%2Finventory%2Fsrc%2Fserver.ts%23createInventoryServer%3AFunctionDeclaration"
+          ],
+          "reason": "Exact workload versions/revisions mapped to an existing static HTTP contract edge; traffic is limited to this window.",
+          "status": "resolved"
+        },
+        "declared": true,
+        "destinationVersion": "v1",
+        "from": "orders-api",
+        "measured": 0,
+        "observed": false,
+        "protocol": "http",
+        "sourceVersion": "v1",
+        "staticEdgeIds": [
+          "50b72b891cba222355768f9e9efd5ddb8c0b284f19a3e1d60e159be030d4953f"
+        ],
+        "to": "inventory",
+        "unit": "requests"
+      },
+      {
+        "captureId": "read-only",
+        "correlation": {
+          "nodeIds": [
+            "urn:impact:test-impact-lab:login:symbol:apps%2Fbackend%2Fsrc%2Fhttp.ts%23createHttpServer%3AFunctionDeclaration",
+            "urn:impact:test-impact-lab:login:symbol:apps%2Fnotifications%2Fsrc%2Fmain.ts%23notify%3AFunctionDeclaration"
+          ],
+          "reason": "Mapped workload identities and declared configuration only; no static code call edge is invented.",
+          "status": "resolved"
+        },
+        "declared": true,
+        "destinationVersion": "v1",
+        "from": "orders-api",
+        "measured": 0,
+        "observed": false,
+        "protocol": "http",
+        "sourceVersion": "v1",
+        "staticEdgeIds": [],
+        "to": "notifications",
+        "unit": "requests"
+      },
+      {
+        "captureId": "read-only",
+        "correlation": {
+          "nodeIds": [
+            "urn:impact:test-impact-lab:login:symbol:apps%2Fbackend%2Fsrc%2Fhttp.ts%23createHttpServer%3AFunctionDeclaration",
+            "urn:impact:test-impact-lab:login:symbol:apps%2Fpreparation%2Fsrc%2Fmain.ts%23prepare%3AFunctionDeclaration"
+          ],
+          "reason": "Mapped workload identities and declared configuration only; no static code call edge is invented.",
+          "status": "resolved"
+        },
+        "declared": true,
+        "destinationVersion": "v1",
+        "from": "orders-api",
+        "measured": 0,
+        "observed": false,
+        "protocol": "http",
+        "sourceVersion": "v1",
+        "staticEdgeIds": [],
+        "to": "preparation",
+        "unit": "requests"
+      },
+      {
+        "captureId": "read-only",
+        "correlation": {
+          "nodeIds": [
+            "urn:impact:test-impact-lab:login:symbol:apps%2Fnotifications%2Fsrc%2Fmain.ts%23notify%3AFunctionDeclaration",
+            "urn:impact:test-impact-lab:login:broker-resource:local%3Aorders-rabbitmq"
+          ],
+          "reason": "Mapped transport endpoints only. Broker traffic cannot identify event, subscription or consumer handler.",
+          "status": "resolved"
+        },
+        "declared": true,
+        "destinationVersion": "v1",
+        "from": "notifications",
+        "measured": 4577,
+        "observed": true,
+        "protocol": "tcp",
+        "sourceVersion": "v1",
+        "staticEdgeIds": [],
+        "to": "rabbitmq",
+        "unit": "bytes"
+      },
+      {
+        "captureId": "read-only",
+        "correlation": {
+          "nodeIds": [
+            "urn:impact:test-impact-lab:login:symbol:apps%2Fbackend%2Fsrc%2Fhttp.ts%23createHttpServer%3AFunctionDeclaration",
+            "urn:impact:test-impact-lab:login:broker-resource:local%3Aorders-rabbitmq"
+          ],
+          "reason": "Mapped transport endpoints only. Broker traffic cannot identify event, subscription or consumer handler.",
+          "status": "resolved"
+        },
+        "declared": true,
+        "destinationVersion": "v1",
+        "from": "orders-api",
+        "measured": 0,
+        "observed": false,
+        "protocol": "tcp",
+        "sourceVersion": "v1",
+        "staticEdgeIds": [],
+        "to": "rabbitmq",
+        "unit": "bytes"
+      },
+      {
+        "captureId": "read-only",
+        "correlation": {
+          "nodeIds": [
+            "urn:impact:test-impact-lab:login:symbol:apps%2Fpreparation%2Fsrc%2Fmain.ts%23prepare%3AFunctionDeclaration",
+            "urn:impact:test-impact-lab:login:broker-resource:local%3Aorders-rabbitmq"
+          ],
+          "reason": "Mapped transport endpoints only. Broker traffic cannot identify event, subscription or consumer handler.",
+          "status": "resolved"
+        },
+        "declared": true,
+        "destinationVersion": "v1",
+        "from": "preparation",
+        "measured": 0,
+        "observed": false,
+        "protocol": "tcp",
+        "sourceVersion": "v1",
+        "staticEdgeIds": [],
+        "to": "rabbitmq",
+        "unit": "bytes"
+      }
+    ],
+    "datasetHash": "922dd3136b4e14fb1ca28a9042f923085cc7b5c460fad02e7ed5d9bdf017fa35",
+    "profileId": "0c027834-61fd-4648-aa8d-f87dd7d5e4e0",
+    "snapshotId": "6ae92a2dcb6ef07462d953af42bb20236971bb0578b34899a390db647a6e473b",
+    "versions": {
+      "configReloader": "0.89.0",
+      "istio": "1.31.0",
+      "kiali": "2.27.0",
+      "kind": "0.31.0",
+      "kubernetes": "1.35.0",
+      "namespace": "impact-g8",
+      "nodeImage": "kindest/node:v1.35.0@sha256:452d707d4862f52530247495d180205e029056831160e22870e37e3f6c1ac31f",
+      "prometheus": "3.10.0",
+      "rabbitmqImage": "rabbitmq:4.2.0-management@sha256:6431bbd0f22df99ace800138399367d7d6181442dfff09feb2795e15d4bd4b7a",
+      "runtimeImage": "node:24.18.0-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d"
+    }
+  },
+  "observability": {
+    "phase": "G7",
+    "snapshot": "737bfc7981ab7b18c9924b1e4200cb0581f9a0cd2c73cf1f5c5d76a90a15c68f",
+    "datasetHash": "ebbf782a24caf447fc55fe3b867bf11501e9c10dfc5a8ed2c0c73d962e0e44e5",
+    "revision": "content:004e997af9571fa3b8daf1e104e8c60e8d4a444d49e81d78f829c4117dbad7cf",
+    "traceId": "f3624939531ff67c441f172b67798294",
+    "spans": 9,
+    "services": [
+      "orders-screen",
+      "orders-api",
+      "notifications",
+      "preparation"
+    ],
+    "retryObserved": true,
+    "staticEdgesPreserved": true,
+    "incompatibleVersionPending": true,
+    "collectorOutageAndRestart": true,
+    "disabledTelemetry": true,
+    "archivedNavigation": true,
+    "desktopAndNarrow": true,
+    "brokerImage": "rabbitmq:4.2.0-management@sha256:6431bbd0f22df99ace800138399367d7d6181442dfff09feb2795e15d4bd4b7a",
+    "collectorImage": "otel/opentelemetry-collector-contrib:0.140.0@sha256:ffc818ee108d0b934fd14207fd87ff247c9b64f344ed349d0b66c166c18a2312",
+    "ownedContainers": [
+      "impact-g5-555f35dc-f65d-4dfe-9b2e-5d32fc15475f",
+      "impact-g7-2819f381-6f29-4c27-aefc-e8ab021a5d79"
+    ]
+  },
+  "validation": {
+    "command": "pnpm validate",
+    "build": "passed",
+    "vitestPassed": 192,
+    "vitestSkippedWithoutBroker": 5,
+    "chromiumPassed": 3,
+    "chromiumSkippedWithoutBroker": 1,
+    "log": ".impact-runs/g9-validate.log"
+  },
+  "messaging": {
+    "command": "node scripts/verify-messaging.mjs --compiled",
+    "sourceIntegrationPassed": 5,
+    "compiledIntegrationPassed": 5,
+    "chromiumPassed": 4,
+    "log": ".impact-runs/g9-messaging-compiled.log"
+  },
+  "legacySelectedFull": {
+    "selected": {
+      "tests": 13,
+      "passed": 10,
+      "failures": [
+        "BU3",
+        "BU8",
+        "I4"
+      ],
+      "durationMs": 16026.734,
+      "report": ".impact-runs/verification-selected-1791272448949/summary.json"
+    },
+    "full": {
+      "tests": 39,
+      "passed": 36,
+      "failures": [
+        "BU3",
+        "BU8",
+        "I4"
+      ],
+      "durationMs": 27324.511958000003,
+      "report": ".impact-runs/verification-full-1791272473982/summary.json"
+    }
+  },
+  "federatedSelectedFull": {
+    "selected": {
+      "status": "failed",
+      "failures": [
+        "notifications-consumer"
+      ],
+      "suites": [
+        {
+          "id": "messaging-browser",
+          "status": "unavailable"
+        },
+        {
+          "id": "messaging-runtime",
+          "status": "unavailable"
+        },
+        {
+          "id": "notifications-consumer",
+          "status": "failed"
+        }
+      ]
+    },
+    "full": {
+      "status": "failed",
+      "failures": [
+        "notifications-consumer"
+      ],
+      "suites": [
+        {
+          "id": "inventory-contract",
+          "status": "passed"
+        },
+        {
+          "id": "inventory-provider",
+          "status": "passed"
+        },
+        {
+          "id": "messaging-browser",
+          "status": "unavailable"
+        },
+        {
+          "id": "messaging-runtime",
+          "status": "unavailable"
+        },
+        {
+          "id": "messaging-transport",
+          "status": "passed"
+        },
+        {
+          "id": "notifications-consumer",
+          "status": "failed"
+        },
+        {
+          "id": "order-created-contract",
+          "status": "passed"
+        },
+        {
+          "id": "orders-browser",
+          "status": "passed"
+        },
+        {
+          "id": "orders-controller",
+          "status": "passed"
+        },
+        {
+          "id": "orders-integration",
+          "status": "passed"
+        },
+        {
+          "id": "orders-store",
+          "status": "passed"
+        },
+        {
+          "id": "preparation-consumer",
+          "status": "passed"
+        }
+      ]
+    }
+  },
+  "discoveryBrowser": {
+    "status": "passed",
+    "before": "77d30808948892d7ccea6bf24ffd161b4964d8ec7b162140b0b9d45ecc57e6be",
+    "after": "77d30808948892d7ccea6bf24ffd161b4964d8ec7b162140b0b9d45ecc57e6be",
+    "added": "92893744c61db6fa763c7c4c5a5d58d4bf2d2ee763a1d65d6fab16117314d8a5",
+    "connected": "5921ee8013b1671456cd2c7bc0e205504c184d413f97b5e93c21e2d117247172",
+    "deleted": "95f4fffc0e743dee33bb55c75fe1c09e67d024f478585fb227e50dba89e689e3",
+    "browserErrors": []
+  },
+  "evidenceBrowser": {
+    "status": "passed",
+    "baseline": "193ddd809b2f8a7a8706586c4f0561716758db52cee3df01a7fd4b10d8c87f01",
+    "connected": "51e6e1acc22f07462d7eb48c53cb3f27f1308adf4a8aa0152736b05ff944dad2",
+    "removed": "627e49c16eb0fb307f1199d0c54f3f358981da3c089b92db22182c8026aa9d18",
+    "browserErrors": []
+  },
+  "scope": "Each report retains its own captured snapshot and revision. Deliberate mutation failures are expected acceptance results. These are registered tests/suites, not universal coverage. G7/G8 historical portable samples are preserved.",
+  "reports": {
+    "audit": ".impact-runs/g9-audit-701cb1e3-b9fb-403d-bf90-c61eac1e52e1",
+    "journeys": ".impact-runs/g9-journeys-0a0f3b84-e4dc-490b-a55b-d1c1f84336ba",
+    "mesh": ".impact-runs/mesh/0c027834-61fd-4648-aa8d-f87dd7d5e4e0",
+    "observability": ".impact-runs/g7-915f5041-55fa-4d63-93f4-32ba17c19a0c"
+  }
+}

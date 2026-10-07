@@ -23,6 +23,10 @@ function RunCard({ execution, onInspect }: { execution: DemoExecution; onInspect
       <i /><b>{result.testId}</b><button className="run-inspect" onClick={() => onInspect(result.testId)}>{result.name} · VIEW TEST ↗</button><small>{result.status.toUpperCase()} · {duration(result.durationMs)}</small>
       {result.output && <details><summary>OUTPUT</summary><pre>{result.output}</pre></details>}
     </div>)}</div>
+    {!!execution.suiteResults?.length && <div className="run-results"><div className="panel-title">DISTRIBUTED SUITES</div>{execution.suiteResults.map(suite =>
+      <div className={suite.status} key={suite.id}><i /><b>{suite.id}</b><span>{suite.file}</span><small>{suite.status.toUpperCase()} · {duration(suite.durationMs)}</small>
+        {suite.output && <details><summary>OUTPUT</summary><pre>{suite.output}</pre></details>}
+      </div>)}</div>}
   </article>;
 }
 
@@ -34,7 +38,7 @@ export function ExecutionPanel({ selectedCount, totalCount, executions, busy, di
   const reduction = selected?.durationMs !== undefined && full?.durationMs
     ? (1 - selected.durationMs / full.durationMs) * 100 : undefined;
   return <section className="execution-panel">
-    <div className="execution-actions"><div><span>PHYSICAL EXECUTION</span><h2>Run the calculated regression in an isolated source overlay.</h2><p>The server maps trusted catalogue IDs to fixed Vitest and Playwright commands.</p></div><div>
+    <div className="execution-actions"><div><span>PHYSICAL EXECUTION</span><h2>Run the calculated regression in an isolated source overlay.</h2><p>The server derives fixed runners from the pinned local and external catalogues. Unavailable suites remain visible.</p></div><div>
       <button disabled={disabled || busy || selectedCount === 0} onClick={() => onRun('selected')}>{selectedBusy ? 'RUNNING…' : `RUN SELECTED TESTS · ${selectedCount}`}</button>
       <button disabled={disabled || busy} onClick={() => onRun('full')}>{fullBusy ? 'RUNNING…' : `RUN FULL SUITE · ${totalCount}`}</button>
     </div></div>

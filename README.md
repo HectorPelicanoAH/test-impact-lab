@@ -1,6 +1,6 @@
 # Test Impact Lab
 
-A real login application and deterministic test-impact engine in a TypeScript monorepo. **Phase 6 complete:** the audited explorer guides a real source edit through deterministic impact analysis, contract boundaries and physically measured selected/full regression runs. The catalogue contains 39 meaningful product tests.
+A real login and orders application with a deterministic test-impact engine in a TypeScript monorepo. The explorer guides source edits through versioned dependency discovery, deterministic impact analysis and physically measured selected/full regression runs. The reviewed login catalogue contains 39 tests. **G2–G9** add static discovery, immutable graph archives, evidence navigation, a separately materialized inventory HTTP provider, real RabbitMQ processing by independent consumers, distributed impact selection, versioned OpenTelemetry observations, an optional local service mesh and six source-based learning journeys.
 
 ## Run
 
@@ -12,9 +12,21 @@ pnpm exec playwright install chromium
 pnpm dev
 ```
 
-Open [the interactive explorer](http://127.0.0.1:5175) or [the login application](http://127.0.0.1:5173). The login API listens on `127.0.0.1:3001`; the snapshot/analysis API listens on `127.0.0.1:3002`. Override `DEMO_PORT`, `DEMO_API_PORT`, `FRONTEND_PORT` or `BACKEND_PORT` if occupied.
+Open [the interactive explorer](http://127.0.0.1:5175), [the login application](http://127.0.0.1:5173) or [the orders page](http://127.0.0.1:5173/orders). The product API listens on `127.0.0.1:3001`, the snapshot/analysis API on `127.0.0.1:3002`, and independent inventory on `127.0.0.1:3003`. Override `DEMO_PORT`, `DEMO_API_PORT`, `FRONTEND_PORT`, `BACKEND_PORT` or `INVENTORY_PORT` if occupied. `pnpm dev` creates a disposable independent Git repository for inventory outside the checkout and removes it after the launched services exit. This is a local demo, not a production order processor.
+
+To inspect or edit a persistent external repository, first run `node scripts/inventory/materialize.mjs /absolute/empty/directory`. This creates and commits the template under that directory; use the returned `root` as `INVENTORY_ROOT` when invoking `pnpm dev`, `pnpm graph:discover`, `pnpm graph:check:v2` or `pnpm dev:demo-api`. Set `INVENTORY_ROOT` only to your own clean independent Git checkout. The demo never deletes a user-provided root. For an automatic disposable root, leave it unset with `pnpm dev`; a standalone `pnpm dev:inventory` also creates and cleans its own root but does not share it with separately launched services. Stop `pnpm dev` with Ctrl+C; do not delete a root while its server is running.
+
+Without `INVENTORY_ROOT`, discovery enters **contract-only** mode: it can inspect the qualified client contract, but cannot open provider code or claim that external tests passed. Orders need a running inventory service to succeed. For an independent provider check, run `node --experimental-strip-types --test examples/external-inventory/test/inventory.test.ts` (1 test). With a pinned external source, the G6 runner can execute its reviewed provider suite in an isolated overlay. Without that source it marks the suite unavailable.
 
 Credentials: `demo@example.com` / `impact-demo`. Wrong credentials produce an error; success navigates to `/home`. This is a credential-checking demo, without persistent sessions or protected pages.
+
+### Optional local messaging profile (G5)
+
+With Docker running, use `pnpm dev:events` **instead of** `pnpm dev`. It starts a pinned RabbitMQ 4.2.0 container, the existing applications and independent notification/preparation processes on ports 3004/3005. Create an order and use **Refresh processing status** to query their persisted effects over HTTP. Notifications are a local mailbox, not real email. Override `NOTIFICATIONS_PORT` and `PREPARATION_PORT`, together with the existing port settings, if occupied. No existing service is stopped by the launcher.
+
+Ctrl+C closes launched services and removes only its broker (including its data volume), temporary databases and temporary inventory repository. A supplied `DATA_DIR` or `INVENTORY_ROOT` is retained. This profile is disposable: deleting its broker deliberately discards queued messages; retaining SQLite alone does not recover messages already marked published. For durable manual operation, retain both broker data and separate service databases. Plain `pnpm dev` needs no broker: it stores orders/outbox locally under the ignored `.impact-data/` directory and shows event processing as **not enabled**, not successfully delivered.
+
+Run `pnpm test:messaging` for five real-broker integration/failure tests and four Chromium journeys. After `pnpm build`, `node scripts/verify-messaging.mjs --compiled` additionally repeats all five integration tests against the built executables. Verification creates its own broker, ports, databases and namespace and cleans them afterwards. Ordinary `pnpm validate` explicitly skips the five broker tests and one messaging journey when the profile is absent; it does not count them as passed. [G5 operations, exact versions and limitations](docs/G5-MESSAGING.md).
 
 ```sh
 pnpm build                         # Typecheck, graph generation, production bundles
@@ -26,13 +38,26 @@ pnpm impact LoginButton            # Explain a hypothetical entity change
 pnpm impact 'User.authenticate'
 pnpm impact 'POST /login'
 pnpm test:selected LoginButton     # Physically run the computed subset
+pnpm test:evidence-browser          # G3 Chromium evidence/navigation flow on ephemeral servers
+pnpm test:discovery-browser         # G2 add/connect/delete browser flow
+pnpm test:discovery-execution       # G2 CRUD overlay executes 39 real login tests
+pnpm test:federated-execution       # G6 selected/full mutation across local and external suites
+pnpm graph:legacy:check             # Historical login seed topology/policies
+pnpm test:journeys                 # Six Chromium overlays, actual evidence and runners
+pnpm graph:audit                   # All locators, corpus, determinism and measured indexing
 ```
 
-The explorer serves an immutable hash-addressed snapshot of allowlisted source files. Monaco edits stay in browser memory; Calculate Regression sends replacements to the local API, which maps the real line diff to graph ranges and invokes the shared impact engine. Suggested changes modify source text and do not send scenario names or test IDs.
+The explorer serves an immutable SHA-256-addressed snapshot of source files under [explicit product roots](impact/discovery.json), including disconnected files. Monaco edits stay in browser memory. **ADD FILE / DELETE FILE** operate only on that working copy; connect a new component with an import/JSX reference, then **CALCULATE REGRESSION**. The API rebuilds the edited graph and returns before/after IDs, node/edge delta and explicit unresolved-dependency diagnostics. Suggested changes modify source text and do not send scenario names or test IDs. **RELOAD SNAPSHOT** discards browser edits and loads current checkout inputs; old analyses cannot execute after those inputs change.
+
+In **IMPACT GRAPH**, switch between system, configured source areas (not inferred runtime services) and code. Select a node or edge with the canvas or searchable keyboard buttons to inspect direction, policy, origin/revision, reason, dependencies and consumers. Filter by area, relation or evidence kind. Open exact archived UTF-16 ranges for static code or reviewed JSON configuration; **BACK TO PATH** returns to the inspector. Before/after and topology delta keep removed source navigable in its original revision. When source/range is unproven the UI reports that and offers no false code link. The canvas displays a legible bounded neighborhood; the index searches all filtered nodes. On narrow screens zoom or use the keyboard index. **CREATE GUIDED SCREEN** adds a component and links it from the login page *in the overlay only*; it does not claim a new route. Then calculate to see its new graph facts and archived source.
+
+Discovery commands: `pnpm graph:generate` (also `graph:discover`) publishes v2; `pnpm graph:check` verifies it against a complete rebuild; `pnpm graph:watch` watches inputs and performs debounced **complete rebuilds**, not incremental AST indexing. To publish/check a snapshot with external code, pass the same clean `INVENTORY_ROOT` to both commands. The snapshot pins that repository's Git commit separately from the product's content revision; an uncommitted external source change is rejected. `pnpm test:discovery-browser` and `pnpm test:evidence-browser` run real Chromium flows on ephemeral servers; `pnpm test:discovery-execution` executes an added/connected component and deleted stylesheet against all 39 login tests. No running developer services are reused by verification.
 
 In **TESTS**, the ID legend defines `BU` (backend unit), `FU` (frontend unit), `C` (component), `CT` (HTTP contract), `I` (integration) and `E` (browser E2E). Select any catalogue row or executed result to open its actual test file at that test's highlighted declaration and assertions, alongside the selection reason and runner output. **VIEW SOURCE CHANGE** opens the edited product file; **COMPARE** shows removed original lines in red and added edited lines in green. Use **EDIT** to return to the editable file. Test source is part of the immutable snapshot hash.
 
 RUN SELECTED TESTS and RUN FULL SUITE execute browser edits in disposable source overlays. The browser sends only a snapshot ID, analysis ID and fixed mode; the server derives trusted catalogue IDs and maps them to fixed Vitest/Playwright commands. Results, failures and durations come from the runners, and audit reports are stored in `.impact-runs/`. `test:selected` remains the checkout-oriented CLI runner. `test:e2e` launches its own services and never reuses another running server.
+
+G6 adds [reviewed federated suites](impact/evidence/federated-tests.json) for orders, inventory, notification, preparation and messaging paths. Impact uses the old and new v2 graphs and relation-specific propagation; each selected suite shows its causal path, and each excluded suite its reason. The runner executes fixed commands for available local and pinned external suites. Broker suites need a live G5 broker profile and are explicitly **unavailable** otherwise. Missing external source, skipped tests and missing runner reports never count as passes. `pnpm test:federated-execution` checks a controlled notification defect with selected and full runs on the same pinned source revisions.
 
 This runner is a local, trusted-user tool. Edited TypeScript is executable code: the runner filters inherited environment variables, validates fixed test identities and removes its overlay, but it is not an OS sandbox and the edited code still runs with the current user's filesystem and network permissions. Keep the API bound to loopback and never expose it as a public execution service.
 
@@ -69,11 +94,37 @@ Current graph-derived examples (not engine rules):
 
 The CLI accepts explicit changed entity IDs. The explorer derives changed entities from real line diffs and the narrowest graph source ranges, backed by immutable source, graph and catalogue hashes. Unknown or unmapped changes conservatively select the full catalogue. Completeness depends on the reviewed graph evidence, not a claim of universal coverage.
 
-`impact/graph.json` and `impact/catalogue.json` are generated from TypeScript imports, literal test titles and [reviewed metadata](impact/evidence/architecture.json). Metadata edges explain HTTP routing, repository injection and locally exercised test subjects. These are explicit relationships, not measured runtime coverage.
+[The legacy graph](impact/graph.json) and [catalogue](impact/catalogue.json) remain a frozen reviewed compatibility seed. Normal generation now publishes v2 from compiler-resolved imports, lexical symbols, direct calls/construction, JSX and the supported React Router pattern, plus [reviewed metadata](impact/evidence/architecture.json). The migration revalidates source locations/imports, preserves login policies and classifies manual test subjects as declarations, **not measured coverage**. The test selector still consumes a compatibility projection; the interactive inspector displays the full v2 graph and resolves locators by ID against immutable archived sources.
 
-To add a node/test: register its stable ID, file, architectural layer and local subjects in the metadata; add a real top-level test with a unique `[ID]` title; run `pnpm graph:generate`, `pnpm graph:check`, and relevant tests. Never add scenario-to-test lists. TypeScript 5.9 is retained for its stable compiler API.
+New product files do **not** require registration in legacy metadata. To change the reviewed test catalogue, register the test's stable ID/local subjects in metadata, add a real top-level test with a unique `[ID]` title, explicitly run the legacy generator with `--legacy-review`, then rebuild v2 and validate. `pnpm graph:legacy:check` audits this historical seed; it is not the production discovery gate. Never add scenario-to-test lists. TypeScript 5.9 is retained for its stable compiler API.
+
+Archives include sources, tests, runner inputs, manifests and evidence. `GET /api/snapshots/:id` reads historical bytes, including when a current rebuild fails. Publication is atomic; failure retains the previous pointer and the API reports 503 rather than claiming freshness. Local archives/reports are ignored by Git and have no automatic retention policy; they can contain source code. Discovery supports UTF-8 text and the configured product roots plus the separately versioned inventory root. It rejects symlinks, binary input and path collisions. For HTTP it supports **only** the explicit local inventory `GET /v1/stock/:sku` v1 binding: service, environment, method, route template and version must agree with declarations and source occurrences. A matching URL alone gives no authoritative edge. Other HTTP transports, external libraries, runtime dispatch and unsupported route forms remain diagnostics; this is not universal TypeScript or distributed-system coverage. New topology or unproven scope selects the full **available login** catalogue, which does not include external tests.
 
 - [Architecture and algorithm](docs/ARCHITECTURE.md)
 - [Implementation state and optional Phase 7 handoff](docs/IMPLEMENTATION_STATE.md)
 - [Graph, catalogue and API types](packages/impact-engine/src/schema.ts)
 - [Supplied SDD](docs/SDD.md)
+
+## Dependency discovery extension
+
+The [dependency-graph SDD](docs/SDD-DEPENDENCY-GRAPH.md) is a separate, phase-gated extension. G1 defines the [v2 contract and migration](docs/GRAPH-V2-CONTRACT.md) and evaluates TypeScript/CodeGraphContext on a [reproducible corpus](impact/corpus/g1/README.md). G2 implements the TypeScript adapter selected by the [indexer ADR](docs/ADR-G1-INDEXER.md), preserving the reviewed login behavior. G3 implements the versioned evidence inspector and guided-screen browser flow. G4 implements orders, independent inventory HTTP, qualified graph evidence and navigation to pinned external source. G5 adds transactional outbox/inboxes, RabbitMQ, independent consumers, bounded retries/failed queues and source/configuration-backed messaging facts. G6 adds causal policies, federated suite selection and local cross-project execution. G7 adds real propagated traces, measured spans, retries, exact revision correlation and archived code navigation. G8 adds an optional local Istio/Kiali mesh with real workload traffic, archived counters and declared/static/observed comparisons. No consumer-to-consumer dependency is inferred from sharing a broker. See [phase status and validation evidence](docs/DEPENDENCY-GRAPH-STATE.md) before continuing. G9 completes the six learning journeys and final audit. The extension ends at G9; further expansion requires a new human instruction.
+
+Continuing on another machine or license? Start with the [G9 final audit and clean-environment commands](docs/G9-FINAL-AUDIT.md), then read the phase SDD and status log linked there. The [extension guide](docs/EXTENDING-DISCOVERY.md) describes how to add a project, independent provider or bounded extractor.
+
+### G9 learning journeys
+
+Choose **LEARNING JOURNEY → APPLY JOURNEY** for a new screen, external HTTP contract, incompatible event, new consumer, retry/failure or unresolved dependency. Each starts from the pinned source snapshot and replaces the current browser overlay. Review **SOURCE DIFF**, calculate, inspect the actual **DELTA** and archived **EVIDENCE**, then follow **IMPACT → EXECUTION**. Contract/failure journeys deliberately produce real failures; dynamic dependencies require conservative selection. A new consumer overlay neither deploys a service nor invents test coverage. Reset/reload clears its results.
+
+Compiler and explicit configuration facts describe dependencies; traces/mesh describe traffic in their own revision/window; reviewed test subjects describe intent. These are different from measured coverage. Changes currently rebuild the whole index; unchanged fingerprints skip extraction. See [G9 audit, measurements and limits](docs/G9-FINAL-AUDIT.md).
+
+### G7 optional local tracing
+
+Run `pnpm dev:observability` with Docker available to start a pinned OpenTelemetry Collector/file backend plus the events profile. Create an order at `/orders`, reload the explorer and open **IMPACT GRAPH → Observed traces**. The inspector shows measured times, errors, message IDs, attempts, parents/links and code from the matching snapshot. Static selection works without telemetry; absent traffic never removes dependencies. Incompatible versions/revisions remain pending.
+
+`pnpm test:observability` verifies a real Chromium → HTTP → outbox → RabbitMQ → both-consumer trace, a retry, Collector outage/restart, disabled telemetry and archived navigation. See [G7 operations and limits](docs/G7-OBSERVABILITY.md) and [real archived spans](impact/evidence/g7-observations.json). To replay them, start `OTEL_DATASET_PATH=impact/evidence/g7-observations.json pnpm dev`.
+
+### G8 optional local service mesh
+
+With Docker (6+ GiB/4+ CPUs) and kubectl 1.34–1.36 available, run `pnpm mesh:setup`, then `pnpm test:mesh`. The profile creates its own kind cluster/kubeconfig, deploys six real workloads with Istio/Kiali, creates orders and reads stored orders, archives the measured traffic and removes its resources. The basic profile remains independent of Kubernetes.
+
+For interactive operation use `pnpm mesh:up`, then `pnpm mesh:check <UUID>`, `pnpm mesh:view <UUID>` and `pnpm mesh:down <UUID>`. `pnpm mesh:inspect <UUID>` opens **IMPACT GRAPH → Service mesh** from the archived snapshot, including independent provider source after cluster cleanup. The table distinguishes declared configuration, existing static dependencies and traffic per window; broker TCP cannot identify an event or consumer handler. See [G8 operations and limits](docs/G8-SERVICE-MESH.md), [real dataset](impact/evidence/g8-mesh.json) and [measured results](docs/DEPENDENCY-GRAPH-STATE.md).

@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "environment": "local",
+  "service": "inventory",
+  "method": "GET",
+  "path": "/v1/stock/:sku",
+  "response": { "version": "1", "sku": "string", "available": "nonnegative integer" }
+}

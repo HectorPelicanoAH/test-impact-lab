@@ -16,3 +16,6 @@ button:disabled { opacity: .6; cursor: wait; }
 [role="alert"] { color: #ffaaa7; margin: 0; font-size: 14px; }
 aside { padding-top: 20px; border-top: 1px solid #2c3546; }
 a { color: #a4c6ff; }
+.orders-card select { width: 100%; border: 1px solid #39455b; border-radius: 7px; padding: 12px; background: #0d1420; color: #fff; font: inherit; }
+.orders-card [role="status"] { padding: 14px; border: 1px solid #477d68; border-radius: 8px; background: #132b23; overflow-wrap: anywhere; }
+.orders-card [role="status"] h2 { margin: 0; color: #a6ecc1; font-size: 19px; }

@@ -1,0 +1,14 @@
+{
+  "broker": "orders-rabbitmq",
+  "environment": "local",
+  "exchange": "orders.events",
+  "exchangeType": "direct",
+  "routingKey": "order.created.v1",
+  "schema": "OrderCreated",
+  "version": 1,
+  "maxAttempts": 3,
+  "subscriptions": [
+    { "id": "notifications", "queue": "notifications.order-created.v1", "failedQueue": "notifications.failed.v1", "source": "apps/notifications/src/main.ts", "handler": "notify" },
+    { "id": "preparation", "queue": "preparation.order-created.v1", "failedQueue": "preparation.failed.v1", "source": "apps/preparation/src/main.ts", "handler": "prepare" }
+  ]
+}

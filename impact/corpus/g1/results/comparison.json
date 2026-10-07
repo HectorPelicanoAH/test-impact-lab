@@ -1,0 +1,1770 @@
+{
+  "schemaVersion": 1,
+  "corpusVersion": 1,
+  "oracleHash": "74a6933ca5b73123805a6ad2692aab2251f13d9287f1a4520dd15ff4e88703f0",
+  "machine": {
+    "platform": "darwin",
+    "release": "25.6.0",
+    "arch": "arm64",
+    "cpu": "Apple M1 Pro",
+    "logicalCpus": 10
+  },
+  "size": {
+    "files": 14,
+    "bytes": 1601,
+    "lines": 40
+  },
+  "typescript": {
+    "version": "5.9.3",
+    "node": "v24.18.0",
+    "extractor": "typescript-checker-g1@1",
+    "baselineMs": 32.532332999999994,
+    "evolvedRebuildMs": 5.160082999999986,
+    "evaluation": {
+      "cases": [
+        {
+          "case": "path-alias",
+          "status": "resolved"
+        },
+        {
+          "case": "homonym-import",
+          "status": "resolved"
+        },
+        {
+          "case": "barrel-import",
+          "status": "resolved"
+        },
+        {
+          "case": "type-only",
+          "status": "resolved"
+        },
+        {
+          "case": "aliased-call",
+          "status": "resolved"
+        },
+        {
+          "case": "homonym-call",
+          "status": "resolved"
+        },
+        {
+          "case": "reexport-call",
+          "status": "resolved"
+        },
+        {
+          "case": "callback-registration",
+          "status": "resolved"
+        },
+        {
+          "case": "dynamic-literal",
+          "status": "resolved"
+        },
+        {
+          "case": "local-alias",
+          "status": "diagnostic"
+        },
+        {
+          "case": "reexport",
+          "status": "resolved"
+        },
+        {
+          "case": "interface-import",
+          "status": "resolved"
+        },
+        {
+          "case": "interface-implementation",
+          "status": "resolved"
+        },
+        {
+          "case": "constructor",
+          "status": "diagnostic"
+        },
+        {
+          "case": "injection",
+          "status": "diagnostic"
+        },
+        {
+          "case": "jsx-import",
+          "status": "resolved"
+        },
+        {
+          "case": "jsx-render",
+          "status": "resolved"
+        },
+        {
+          "case": "namespace-import",
+          "status": "resolved"
+        },
+        {
+          "case": "namespace-call",
+          "status": "resolved"
+        },
+        {
+          "case": "interface-dispatch",
+          "status": "diagnostic"
+        },
+        {
+          "case": "callback-dispatch",
+          "status": "diagnostic"
+        },
+        {
+          "case": "dynamic-nonliteral",
+          "status": "diagnostic"
+        },
+        {
+          "case": "missing-module",
+          "status": "diagnostic"
+        },
+        {
+          "case": "missing-call",
+          "status": "diagnostic"
+        },
+        {
+          "case": "parse-error",
+          "status": "diagnostic"
+        },
+        {
+          "case": "unsupported-language",
+          "status": "diagnostic"
+        }
+      ],
+      "metrics": {
+        "calls": {
+          "expected": 8,
+          "truePositives": 5,
+          "falsePositives": 0,
+          "falseNegatives": 3,
+          "precision": 1,
+          "recall": 0.625
+        },
+        "implements": {
+          "expected": 1,
+          "truePositives": 1,
+          "falsePositives": 0,
+          "falseNegatives": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "imports": {
+          "expected": 9,
+          "truePositives": 9,
+          "falsePositives": 0,
+          "falseNegatives": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "renders": {
+          "expected": 1,
+          "truePositives": 1,
+          "falsePositives": 0,
+          "falseNegatives": 0,
+          "precision": 1,
+          "recall": 1
+        }
+      },
+      "falseLinks": [],
+      "unexpectedDiagnostics": []
+    },
+    "baseline": {
+      "nodes": [
+        "adapter.ts",
+        "adapter.ts#Adapter",
+        "adapter.ts#Adapter.send",
+        "adapter.ts#compose",
+        "broken.ts",
+        "lib/barrel.ts",
+        "lib/one.ts",
+        "lib/one.ts#same",
+        "lib/two.ts",
+        "lib/two.ts#same",
+        "main.ts",
+        "main.ts#aliasLocal",
+        "main.ts#callbackUser",
+        "main.ts#direct",
+        "main.ts#dynamic",
+        "main.ts#invoke",
+        "main.ts#literal",
+        "main.ts#viaPort",
+        "missing.ts",
+        "missing.ts#missing",
+        "namespace.ts",
+        "namespace.ts#namespaced",
+        "orphan.ts",
+        "orphan.ts#disconnected",
+        "port.ts",
+        "port.ts#Port",
+        "port.ts#Port.send",
+        "screen.tsx",
+        "screen.tsx#Screen",
+        "tsconfig.json",
+        "unsupported.vue",
+        "widget.tsx",
+        "widget.tsx#Button"
+      ],
+      "files": {
+        "adapter.ts": "16e2363c8b9ec15e55411ee3787d45ef73cbc330aaf175e1c9c54feb390c6313",
+        "broken.ts": "447efb0b9de9403014c5cbc38572b51c1b5712bdd97e582834d0fd3a3746c202",
+        "lib/barrel.ts": "a451c7d25e0d410657e42c6ba68b830f6f4a0daa3ddec67d8e650f4740b64c30",
+        "lib/one.ts": "d2ad68c10064d85c5aa5412b444197f4a8870ad45c33d6626cdd50c472d5eff3",
+        "lib/two.ts": "87d5c9a43b2c5282dd2c209af1c935be0c0a61852aa894649461882af90515b9",
+        "main.ts": "85f67064031018ec8d981f6f4a85d7e1e51722f80a677d7c8800fb60b81468ba",
+        "missing.ts": "8f2ea55c9cc6172e3173b8c11e19afed29e183547ff586f1ab43ef86509c36fd",
+        "namespace.ts": "110ef1883d3b4ab34cbb14a16822f1a02754e89cc3dc54ed7f30b13da91db610",
+        "orphan.ts": "18bbf797092c7161f6dcd9fa9adbefc56d75a1fe2b6b1ded410cecec1506a9c1",
+        "port.ts": "e9cc2941f40455101deccbefba5983bec79648a3832ffef4dab7e4ab0eada0bb",
+        "screen.tsx": "9e44c5cfca29df75c2412fcf7e41642e9f13aaecd4c55a4099afb5aa444fd015",
+        "tsconfig.json": "bbf4bbba1edc4728ad0e7d7b572670ec0e8c785d10c3f92a9b31f0650abf286b",
+        "unsupported.vue": "90db89508ac8a74f349ecc870373e9a3dd4d48dd411fb09af2c46ea9582cbab8",
+        "widget.tsx": "79e383a1be08ab3834a04380a79cf0de83bcdaeb7cc6e1c480e36ae53288bbf5"
+      },
+      "relations": [
+        {
+          "path": "adapter.ts",
+          "start": 26,
+          "end": 34,
+          "line": 1,
+          "column": 27,
+          "endLine": 1,
+          "endColumn": 35,
+          "text": "'./port'",
+          "sourceHash": "16e2363c8b9ec15e55411ee3787d45ef73cbc330aaf175e1c9c54feb390c6313",
+          "extractor": "typescript-checker-g1@1",
+          "type": "imports",
+          "from": "adapter.ts",
+          "to": "port.ts"
+        },
+        {
+          "path": "adapter.ts",
+          "start": 68,
+          "end": 72,
+          "line": 2,
+          "column": 33,
+          "endLine": 2,
+          "endColumn": 37,
+          "text": "Port",
+          "sourceHash": "16e2363c8b9ec15e55411ee3787d45ef73cbc330aaf175e1c9c54feb390c6313",
+          "extractor": "typescript-checker-g1@1",
+          "type": "implements",
+          "from": "adapter.ts#Adapter",
+          "to": "port.ts#Port"
+        },
+        {
+          "path": "lib/barrel.ts",
+          "start": 32,
+          "end": 39,
+          "line": 1,
+          "column": 33,
+          "endLine": 1,
+          "endColumn": 40,
+          "text": "'./one'",
+          "sourceHash": "a451c7d25e0d410657e42c6ba68b830f6f4a0daa3ddec67d8e650f4740b64c30",
+          "extractor": "typescript-checker-g1@1",
+          "type": "imports",
+          "from": "lib/barrel.ts",
+          "to": "lib/one.ts"
+        },
+        {
+          "path": "main.ts",
+          "start": 110,
+          "end": 124,
+          "line": 3,
+          "column": 25,
+          "endLine": 3,
+          "endColumn": 39,
+          "text": "'./lib/barrel'",
+          "sourceHash": "85f67064031018ec8d981f6f4a85d7e1e51722f80a677d7c8800fb60b81468ba",
+          "extractor": "typescript-checker-g1@1",
+          "type": "imports",
+          "from": "main.ts",
+          "to": "lib/barrel.ts"
+        },
+        {
+          "path": "main.ts",
+          "start": 152,
+          "end": 160,
+          "line": 4,
+          "column": 27,
+          "endLine": 4,
+          "endColumn": 35,
+          "text": "'./port'",
+          "sourceHash": "85f67064031018ec8d981f6f4a85d7e1e51722f80a677d7c8800fb60b81468ba",
+          "extractor": "typescript-checker-g1@1",
+          "type": "imports",
+          "from": "main.ts",
+          "to": "port.ts"
+        },
+        {
+          "path": "main.ts",
+          "start": 189,
+          "end": 196,
+          "line": 5,
+          "column": 28,
+          "endLine": 5,
+          "endColumn": 35,
+          "text": "first()",
+          "sourceHash": "85f67064031018ec8d981f6f4a85d7e1e51722f80a677d7c8800fb60b81468ba",
+          "extractor": "typescript-checker-g1@1",
+          "type": "calls",
+          "from": "main.ts#direct",
+          "to": "lib/one.ts#same"
+        },
+        {
+          "path": "main.ts",
+          "start": 198,
+          "end": 206,
+          "line": 5,
+          "column": 37,
+          "endLine": 5,
+          "endColumn": 45,
+          "text": "second()",
+          "sourceHash": "85f67064031018ec8d981f6f4a85d7e1e51722f80a677d7c8800fb60b81468ba",
+          "extractor": "typescript-checker-g1@1",
+          "type": "calls",
+          "from": "main.ts#direct",
+          "to": "lib/two.ts#same"
+        },
+        {
+          "path": "main.ts",
+          "start": 208,
+          "end": 217,
+          "line": 5,
+          "column": 47,
+          "endLine": 5,
+          "endColumn": 56,
+          "text": "renamed()",
+          "sourceHash": "85f67064031018ec8d981f6f4a85d7e1e51722f80a677d7c8800fb60b81468ba",
+          "extractor": "typescript-checker-g1@1",
+          "type": "calls",
+          "from": "main.ts#direct",
+          "to": "lib/one.ts#same"
+        },
+        {
+          "path": "main.ts",
+          "start": 30,
+          "end": 40,
+          "line": 1,
+          "column": 31,
+          "endLine": 1,
+          "endColumn": 41,
+          "text": "'@lib/one'",
+          "sourceHash": "85f67064031018ec8d981f6f4a85d7e1e51722f80a677d7c8800fb60b81468ba",
+          "extractor": "typescript-checker-g1@1",
+          "type": "imports",
+          "from": "main.ts",
+          "to": "lib/one.ts"
+        },
+        {
+          "path": "main.ts",
+          "start": 375,
+          "end": 388,
+          "line": 8,
+          "column": 34,
+          "endLine": 8,
+          "endColumn": 47,
+          "text": "invoke(first)",
+          "sourceHash": "85f67064031018ec8d981f6f4a85d7e1e51722f80a677d7c8800fb60b81468ba",
+          "extractor": "typescript-checker-g1@1",
+          "type": "calls",
+          "from": "main.ts#callbackUser",
+          "to": "main.ts#invoke"
+        },
+        {
+          "path": "main.ts",
+          "start": 440,
+          "end": 451,
+          "line": 9,
+          "column": 49,
+          "endLine": 9,
+          "endColumn": 60,
+          "text": "'./lib/one'",
+          "sourceHash": "85f67064031018ec8d981f6f4a85d7e1e51722f80a677d7c8800fb60b81468ba",
+          "extractor": "typescript-checker-g1@1",
+          "type": "imports",
+          "from": "main.ts",
+          "to": "lib/one.ts"
+        },
+        {
+          "path": "main.ts",
+          "start": 73,
+          "end": 84,
+          "line": 2,
+          "column": 32,
+          "endLine": 2,
+          "endColumn": 43,
+          "text": "'./lib/two'",
+          "sourceHash": "85f67064031018ec8d981f6f4a85d7e1e51722f80a677d7c8800fb60b81468ba",
+          "extractor": "typescript-checker-g1@1",
+          "type": "imports",
+          "from": "main.ts",
+          "to": "lib/two.ts"
+        },
+        {
+          "path": "namespace.ts",
+          "start": 21,
+          "end": 32,
+          "line": 1,
+          "column": 22,
+          "endLine": 1,
+          "endColumn": 33,
+          "text": "'./lib/one'",
+          "sourceHash": "110ef1883d3b4ab34cbb14a16822f1a02754e89cc3dc54ed7f30b13da91db610",
+          "extractor": "typescript-checker-g1@1",
+          "type": "imports",
+          "from": "namespace.ts",
+          "to": "lib/one.ts"
+        },
+        {
+          "path": "namespace.ts",
+          "start": 72,
+          "end": 82,
+          "line": 2,
+          "column": 39,
+          "endLine": 2,
+          "endColumn": 49,
+          "text": "one.same()",
+          "sourceHash": "110ef1883d3b4ab34cbb14a16822f1a02754e89cc3dc54ed7f30b13da91db610",
+          "extractor": "typescript-checker-g1@1",
+          "type": "calls",
+          "from": "namespace.ts#namespaced",
+          "to": "lib/one.ts#same"
+        },
+        {
+          "path": "screen.tsx",
+          "start": 33,
+          "end": 43,
+          "line": 1,
+          "column": 34,
+          "endLine": 1,
+          "endColumn": 44,
+          "text": "'./widget'",
+          "sourceHash": "9e44c5cfca29df75c2412fcf7e41642e9f13aaecd4c55a4099afb5aa444fd015",
+          "extractor": "typescript-checker-g1@1",
+          "type": "imports",
+          "from": "screen.tsx",
+          "to": "widget.tsx"
+        },
+        {
+          "path": "screen.tsx",
+          "start": 80,
+          "end": 86,
+          "line": 2,
+          "column": 36,
+          "endLine": 2,
+          "endColumn": 42,
+          "text": "Action",
+          "sourceHash": "9e44c5cfca29df75c2412fcf7e41642e9f13aaecd4c55a4099afb5aa444fd015",
+          "extractor": "typescript-checker-g1@1",
+          "type": "renders",
+          "from": "screen.tsx#Screen",
+          "to": "widget.tsx#Button"
+        }
+      ],
+      "diagnostics": [
+        {
+          "path": "adapter.ts",
+          "start": 148,
+          "end": 161,
+          "line": 3,
+          "column": 48,
+          "endLine": 3,
+          "endColumn": 61,
+          "text": "new Adapter()",
+          "sourceHash": "16e2363c8b9ec15e55411ee3787d45ef73cbc330aaf175e1c9c54feb390c6313",
+          "extractor": "typescript-checker-g1@1",
+          "code": "unsupported-extractor",
+          "reason": "Constructor dispatch is not implemented in this bounded experiment."
+        },
+        {
+          "path": "adapter.ts",
+          "start": 170,
+          "end": 181,
+          "line": 3,
+          "column": 70,
+          "endLine": 3,
+          "endColumn": 81,
+          "text": "port.send()",
+          "sourceHash": "16e2363c8b9ec15e55411ee3787d45ef73cbc330aaf175e1c9c54feb390c6313",
+          "extractor": "typescript-checker-g1@1",
+          "code": "ambiguous-dispatch",
+          "reason": "Interface/parameter is not evidence of a concrete runtime implementation."
+        },
+        {
+          "path": "broken.ts",
+          "start": 0,
+          "end": 25,
+          "line": 1,
+          "column": 1,
+          "endLine": 1,
+          "endColumn": 26,
+          "text": "export function broken( {",
+          "sourceHash": "447efb0b9de9403014c5cbc38572b51c1b5712bdd97e582834d0fd3a3746c202",
+          "extractor": "typescript-checker-g1@1",
+          "code": "parse-failed",
+          "reason": "Syntax errors: no authoritative relations emitted from parser recovery."
+        },
+        {
+          "path": "main.ts",
+          "start": 266,
+          "end": 277,
+          "line": 6,
+          "column": 46,
+          "endLine": 6,
+          "endColumn": 57,
+          "text": "port.send()",
+          "sourceHash": "85f67064031018ec8d981f6f4a85d7e1e51722f80a677d7c8800fb60b81468ba",
+          "extractor": "typescript-checker-g1@1",
+          "code": "ambiguous-dispatch",
+          "reason": "Interface/parameter is not evidence of a concrete runtime implementation."
+        },
+        {
+          "path": "main.ts",
+          "start": 328,
+          "end": 338,
+          "line": 7,
+          "column": 48,
+          "endLine": 7,
+          "endColumn": 58,
+          "text": "callback()",
+          "sourceHash": "85f67064031018ec8d981f6f4a85d7e1e51722f80a677d7c8800fb60b81468ba",
+          "extractor": "typescript-checker-g1@1",
+          "code": "ambiguous-dispatch",
+          "reason": "Interface/parameter is not evidence of a concrete runtime implementation."
+        },
+        {
+          "path": "main.ts",
+          "start": 509,
+          "end": 521,
+          "line": 10,
+          "column": 54,
+          "endLine": 10,
+          "endColumn": 66,
+          "text": "import(name)",
+          "sourceHash": "85f67064031018ec8d981f6f4a85d7e1e51722f80a677d7c8800fb60b81468ba",
+          "extractor": "typescript-checker-g1@1",
+          "code": "dynamic-reference",
+          "reason": "Nonliteral import target; source set cannot be proven complete."
+        },
+        {
+          "path": "main.ts",
+          "start": 574,
+          "end": 578,
+          "line": 11,
+          "column": 50,
+          "endLine": 11,
+          "endColumn": 54,
+          "text": "fn()",
+          "sourceHash": "85f67064031018ec8d981f6f4a85d7e1e51722f80a677d7c8800fb60b81468ba",
+          "extractor": "typescript-checker-g1@1",
+          "code": "unresolved-symbol",
+          "reason": "Call target is outside supported direct declaration resolution; no name-based link."
+        },
+        {
+          "path": "missing.ts",
+          "start": 28,
+          "end": 45,
+          "line": 1,
+          "column": 29,
+          "endLine": 1,
+          "endColumn": 46,
+          "text": "'./not-available'",
+          "sourceHash": "8f2ea55c9cc6172e3173b8c11e19afed29e183547ff586f1ab43ef86509c36fd",
+          "extractor": "typescript-checker-g1@1",
+          "code": "source-inaccessible",
+          "reason": "Module cannot be resolved within the evaluated source set."
+        },
+        {
+          "path": "missing.ts",
+          "start": 82,
+          "end": 95,
+          "line": 2,
+          "column": 36,
+          "endLine": 2,
+          "endColumn": 49,
+          "text": "unavailable()",
+          "sourceHash": "8f2ea55c9cc6172e3173b8c11e19afed29e183547ff586f1ab43ef86509c36fd",
+          "extractor": "typescript-checker-g1@1",
+          "code": "unresolved-symbol",
+          "reason": "Call target is outside supported direct declaration resolution; no name-based link."
+        },
+        {
+          "path": "unsupported.vue",
+          "start": 0,
+          "end": 38,
+          "line": 1,
+          "column": 1,
+          "endLine": 1,
+          "endColumn": 39,
+          "text": "<template><UnknownWidget /></template>",
+          "sourceHash": "90db89508ac8a74f349ecc870373e9a3dd4d48dd411fb09af2c46ea9582cbab8",
+          "extractor": "typescript-checker-g1@1",
+          "code": "unsupported-extractor",
+          "reason": "Only TS/TSX is supported by this experiment."
+        }
+      ],
+      "hash": "d6e55f5200577197d15ea5dffb1f2f41ba8371cc2fda9570fbf5c9a0368d67e2"
+    },
+    "evolved": {
+      "nodes": [
+        "adapter.ts",
+        "adapter.ts#Adapter",
+        "adapter.ts#Adapter.send",
+        "adapter.ts#compose",
+        "added.ts",
+        "added.ts#added",
+        "broken.ts",
+        "lib/barrel.ts",
+        "lib/one.ts",
+        "lib/one.ts#same",
+        "lib/renamed-two.ts",
+        "lib/renamed-two.ts#same",
+        "main.ts",
+        "main.ts#aliasLocal",
+        "main.ts#callbackUser",
+        "main.ts#direct",
+        "main.ts#dynamic",
+        "main.ts#invoke",
+        "main.ts#literal",
+        "main.ts#viaPort",
+        "missing.ts",
+        "missing.ts#missing",
+        "namespace.ts",
+        "namespace.ts#namespaced",
+        "port.ts",
+        "port.ts#Port",
+        "port.ts#Port.send",
+        "screen.tsx",
+        "screen.tsx#Screen",
+        "tsconfig.json",
+        "unsupported.vue",
+        "widget.tsx",
+        "widget.tsx#Button"
+      ],
+      "files": {
+        "adapter.ts": "16e2363c8b9ec15e55411ee3787d45ef73cbc330aaf175e1c9c54feb390c6313",
+        "added.ts": "1699eda6dd270501571f6c007eeef8538bd2fe8768340503bd42e1044ba8a9db",
+        "broken.ts": "447efb0b9de9403014c5cbc38572b51c1b5712bdd97e582834d0fd3a3746c202",
+        "lib/barrel.ts": "a451c7d25e0d410657e42c6ba68b830f6f4a0daa3ddec67d8e650f4740b64c30",
+        "lib/one.ts": "d2ad68c10064d85c5aa5412b444197f4a8870ad45c33d6626cdd50c472d5eff3",
+        "lib/renamed-two.ts": "87d5c9a43b2c5282dd2c209af1c935be0c0a61852aa894649461882af90515b9",
+        "main.ts": "f4b648db03da6f0db0fe8f7a5d48a863ef84d4458726c514552887665227cd98",
+        "missing.ts": "8f2ea55c9cc6172e3173b8c11e19afed29e183547ff586f1ab43ef86509c36fd",
+        "namespace.ts": "110ef1883d3b4ab34cbb14a16822f1a02754e89cc3dc54ed7f30b13da91db610",
+        "port.ts": "e9cc2941f40455101deccbefba5983bec79648a3832ffef4dab7e4ab0eada0bb",
+        "screen.tsx": "9e44c5cfca29df75c2412fcf7e41642e9f13aaecd4c55a4099afb5aa444fd015",
+        "tsconfig.json": "bbf4bbba1edc4728ad0e7d7b572670ec0e8c785d10c3f92a9b31f0650abf286b",
+        "unsupported.vue": "90db89508ac8a74f349ecc870373e9a3dd4d48dd411fb09af2c46ea9582cbab8",
+        "widget.tsx": "2ffc8952366c98d97e94566949c13c5b781186a9022fdfeaaffd2204fbb08fe9"
+      },
+      "relations": [
+        {
+          "path": "adapter.ts",
+          "start": 26,
+          "end": 34,
+          "line": 1,
+          "column": 27,
+          "endLine": 1,
+          "endColumn": 35,
+          "text": "'./port'",
+          "sourceHash": "16e2363c8b9ec15e55411ee3787d45ef73cbc330aaf175e1c9c54feb390c6313",
+          "extractor": "typescript-checker-g1@1",
+          "type": "imports",
+          "from": "adapter.ts",
+          "to": "port.ts"
+        },
+        {
+          "path": "adapter.ts",
+          "start": 68,
+          "end": 72,
+          "line": 2,
+          "column": 33,
+          "endLine": 2,
+          "endColumn": 37,
+          "text": "Port",
+          "sourceHash": "16e2363c8b9ec15e55411ee3787d45ef73cbc330aaf175e1c9c54feb390c6313",
+          "extractor": "typescript-checker-g1@1",
+          "type": "implements",
+          "from": "adapter.ts#Adapter",
+          "to": "port.ts#Port"
+        },
+        {
+          "path": "added.ts",
+          "start": 23,
+          "end": 31,
+          "line": 1,
+          "column": 24,
+          "endLine": 1,
+          "endColumn": 32,
+          "text": "'./main'",
+          "sourceHash": "1699eda6dd270501571f6c007eeef8538bd2fe8768340503bd42e1044ba8a9db",
+          "extractor": "typescript-checker-g1@1",
+          "type": "imports",
+          "from": "added.ts",
+          "to": "main.ts"
+        },
+        {
+          "path": "added.ts",
+          "start": 59,
+          "end": 67,
+          "line": 2,
+          "column": 27,
+          "endLine": 2,
+          "endColumn": 35,
+          "text": "direct()",
+          "sourceHash": "1699eda6dd270501571f6c007eeef8538bd2fe8768340503bd42e1044ba8a9db",
+          "extractor": "typescript-checker-g1@1",
+          "type": "calls",
+          "from": "added.ts#added",
+          "to": "main.ts#direct"
+        },
+        {
+          "path": "lib/barrel.ts",
+          "start": 32,
+          "end": 39,
+          "line": 1,
+          "column": 33,
+          "endLine": 1,
+          "endColumn": 40,
+          "text": "'./one'",
+          "sourceHash": "a451c7d25e0d410657e42c6ba68b830f6f4a0daa3ddec67d8e650f4740b64c30",
+          "extractor": "typescript-checker-g1@1",
+          "type": "imports",
+          "from": "lib/barrel.ts",
+          "to": "lib/one.ts"
+        },
+        {
+          "path": "main.ts",
+          "start": 118,
+          "end": 132,
+          "line": 3,
+          "column": 25,
+          "endLine": 3,
+          "endColumn": 39,
+          "text": "'./lib/barrel'",
+          "sourceHash": "f4b648db03da6f0db0fe8f7a5d48a863ef84d4458726c514552887665227cd98",
+          "extractor": "typescript-checker-g1@1",
+          "type": "imports",
+          "from": "main.ts",
+          "to": "lib/barrel.ts"
+        },
+        {
+          "path": "main.ts",
+          "start": 160,
+          "end": 168,
+          "line": 4,
+          "column": 27,
+          "endLine": 4,
+          "endColumn": 35,
+          "text": "'./port'",
+          "sourceHash": "f4b648db03da6f0db0fe8f7a5d48a863ef84d4458726c514552887665227cd98",
+          "extractor": "typescript-checker-g1@1",
+          "type": "imports",
+          "from": "main.ts",
+          "to": "port.ts"
+        },
+        {
+          "path": "main.ts",
+          "start": 197,
+          "end": 204,
+          "line": 5,
+          "column": 28,
+          "endLine": 5,
+          "endColumn": 35,
+          "text": "first()",
+          "sourceHash": "f4b648db03da6f0db0fe8f7a5d48a863ef84d4458726c514552887665227cd98",
+          "extractor": "typescript-checker-g1@1",
+          "type": "calls",
+          "from": "main.ts#direct",
+          "to": "lib/one.ts#same"
+        },
+        {
+          "path": "main.ts",
+          "start": 206,
+          "end": 214,
+          "line": 5,
+          "column": 37,
+          "endLine": 5,
+          "endColumn": 45,
+          "text": "second()",
+          "sourceHash": "f4b648db03da6f0db0fe8f7a5d48a863ef84d4458726c514552887665227cd98",
+          "extractor": "typescript-checker-g1@1",
+          "type": "calls",
+          "from": "main.ts#direct",
+          "to": "lib/renamed-two.ts#same"
+        },
+        {
+          "path": "main.ts",
+          "start": 216,
+          "end": 225,
+          "line": 5,
+          "column": 47,
+          "endLine": 5,
+          "endColumn": 56,
+          "text": "renamed()",
+          "sourceHash": "f4b648db03da6f0db0fe8f7a5d48a863ef84d4458726c514552887665227cd98",
+          "extractor": "typescript-checker-g1@1",
+          "type": "calls",
+          "from": "main.ts#direct",
+          "to": "lib/one.ts#same"
+        },
+        {
+          "path": "main.ts",
+          "start": 30,
+          "end": 40,
+          "line": 1,
+          "column": 31,
+          "endLine": 1,
+          "endColumn": 41,
+          "text": "'@lib/one'",
+          "sourceHash": "f4b648db03da6f0db0fe8f7a5d48a863ef84d4458726c514552887665227cd98",
+          "extractor": "typescript-checker-g1@1",
+          "type": "imports",
+          "from": "main.ts",
+          "to": "lib/one.ts"
+        },
+        {
+          "path": "main.ts",
+          "start": 383,
+          "end": 396,
+          "line": 8,
+          "column": 34,
+          "endLine": 8,
+          "endColumn": 47,
+          "text": "invoke(first)",
+          "sourceHash": "f4b648db03da6f0db0fe8f7a5d48a863ef84d4458726c514552887665227cd98",
+          "extractor": "typescript-checker-g1@1",
+          "type": "calls",
+          "from": "main.ts#callbackUser",
+          "to": "main.ts#invoke"
+        },
+        {
+          "path": "main.ts",
+          "start": 448,
+          "end": 459,
+          "line": 9,
+          "column": 49,
+          "endLine": 9,
+          "endColumn": 60,
+          "text": "'./lib/one'",
+          "sourceHash": "f4b648db03da6f0db0fe8f7a5d48a863ef84d4458726c514552887665227cd98",
+          "extractor": "typescript-checker-g1@1",
+          "type": "imports",
+          "from": "main.ts",
+          "to": "lib/one.ts"
+        },
+        {
+          "path": "main.ts",
+          "start": 73,
+          "end": 92,
+          "line": 2,
+          "column": 32,
+          "endLine": 2,
+          "endColumn": 51,
+          "text": "'./lib/renamed-two'",
+          "sourceHash": "f4b648db03da6f0db0fe8f7a5d48a863ef84d4458726c514552887665227cd98",
+          "extractor": "typescript-checker-g1@1",
+          "type": "imports",
+          "from": "main.ts",
+          "to": "lib/renamed-two.ts"
+        },
+        {
+          "path": "namespace.ts",
+          "start": 21,
+          "end": 32,
+          "line": 1,
+          "column": 22,
+          "endLine": 1,
+          "endColumn": 33,
+          "text": "'./lib/one'",
+          "sourceHash": "110ef1883d3b4ab34cbb14a16822f1a02754e89cc3dc54ed7f30b13da91db610",
+          "extractor": "typescript-checker-g1@1",
+          "type": "imports",
+          "from": "namespace.ts",
+          "to": "lib/one.ts"
+        },
+        {
+          "path": "namespace.ts",
+          "start": 72,
+          "end": 82,
+          "line": 2,
+          "column": 39,
+          "endLine": 2,
+          "endColumn": 49,
+          "text": "one.same()",
+          "sourceHash": "110ef1883d3b4ab34cbb14a16822f1a02754e89cc3dc54ed7f30b13da91db610",
+          "extractor": "typescript-checker-g1@1",
+          "type": "calls",
+          "from": "namespace.ts#namespaced",
+          "to": "lib/one.ts#same"
+        },
+        {
+          "path": "screen.tsx",
+          "start": 33,
+          "end": 43,
+          "line": 1,
+          "column": 34,
+          "endLine": 1,
+          "endColumn": 44,
+          "text": "'./widget'",
+          "sourceHash": "9e44c5cfca29df75c2412fcf7e41642e9f13aaecd4c55a4099afb5aa444fd015",
+          "extractor": "typescript-checker-g1@1",
+          "type": "imports",
+          "from": "screen.tsx",
+          "to": "widget.tsx"
+        },
+        {
+          "path": "screen.tsx",
+          "start": 80,
+          "end": 86,
+          "line": 2,
+          "column": 36,
+          "endLine": 2,
+          "endColumn": 42,
+          "text": "Action",
+          "sourceHash": "9e44c5cfca29df75c2412fcf7e41642e9f13aaecd4c55a4099afb5aa444fd015",
+          "extractor": "typescript-checker-g1@1",
+          "type": "renders",
+          "from": "screen.tsx#Screen",
+          "to": "widget.tsx#Button"
+        }
+      ],
+      "diagnostics": [
+        {
+          "path": "adapter.ts",
+          "start": 148,
+          "end": 161,
+          "line": 3,
+          "column": 48,
+          "endLine": 3,
+          "endColumn": 61,
+          "text": "new Adapter()",
+          "sourceHash": "16e2363c8b9ec15e55411ee3787d45ef73cbc330aaf175e1c9c54feb390c6313",
+          "extractor": "typescript-checker-g1@1",
+          "code": "unsupported-extractor",
+          "reason": "Constructor dispatch is not implemented in this bounded experiment."
+        },
+        {
+          "path": "adapter.ts",
+          "start": 170,
+          "end": 181,
+          "line": 3,
+          "column": 70,
+          "endLine": 3,
+          "endColumn": 81,
+          "text": "port.send()",
+          "sourceHash": "16e2363c8b9ec15e55411ee3787d45ef73cbc330aaf175e1c9c54feb390c6313",
+          "extractor": "typescript-checker-g1@1",
+          "code": "ambiguous-dispatch",
+          "reason": "Interface/parameter is not evidence of a concrete runtime implementation."
+        },
+        {
+          "path": "broken.ts",
+          "start": 0,
+          "end": 25,
+          "line": 1,
+          "column": 1,
+          "endLine": 1,
+          "endColumn": 26,
+          "text": "export function broken( {",
+          "sourceHash": "447efb0b9de9403014c5cbc38572b51c1b5712bdd97e582834d0fd3a3746c202",
+          "extractor": "typescript-checker-g1@1",
+          "code": "parse-failed",
+          "reason": "Syntax errors: no authoritative relations emitted from parser recovery."
+        },
+        {
+          "path": "main.ts",
+          "start": 274,
+          "end": 285,
+          "line": 6,
+          "column": 46,
+          "endLine": 6,
+          "endColumn": 57,
+          "text": "port.send()",
+          "sourceHash": "f4b648db03da6f0db0fe8f7a5d48a863ef84d4458726c514552887665227cd98",
+          "extractor": "typescript-checker-g1@1",
+          "code": "ambiguous-dispatch",
+          "reason": "Interface/parameter is not evidence of a concrete runtime implementation."
+        },
+        {
+          "path": "main.ts",
+          "start": 336,
+          "end": 346,
+          "line": 7,
+          "column": 48,
+          "endLine": 7,
+          "endColumn": 58,
+          "text": "callback()",
+          "sourceHash": "f4b648db03da6f0db0fe8f7a5d48a863ef84d4458726c514552887665227cd98",
+          "extractor": "typescript-checker-g1@1",
+          "code": "ambiguous-dispatch",
+          "reason": "Interface/parameter is not evidence of a concrete runtime implementation."
+        },
+        {
+          "path": "main.ts",
+          "start": 517,
+          "end": 529,
+          "line": 10,
+          "column": 54,
+          "endLine": 10,
+          "endColumn": 66,
+          "text": "import(name)",
+          "sourceHash": "f4b648db03da6f0db0fe8f7a5d48a863ef84d4458726c514552887665227cd98",
+          "extractor": "typescript-checker-g1@1",
+          "code": "dynamic-reference",
+          "reason": "Nonliteral import target; source set cannot be proven complete."
+        },
+        {
+          "path": "main.ts",
+          "start": 582,
+          "end": 586,
+          "line": 11,
+          "column": 50,
+          "endLine": 11,
+          "endColumn": 54,
+          "text": "fn()",
+          "sourceHash": "f4b648db03da6f0db0fe8f7a5d48a863ef84d4458726c514552887665227cd98",
+          "extractor": "typescript-checker-g1@1",
+          "code": "unresolved-symbol",
+          "reason": "Call target is outside supported direct declaration resolution; no name-based link."
+        },
+        {
+          "path": "missing.ts",
+          "start": 28,
+          "end": 45,
+          "line": 1,
+          "column": 29,
+          "endLine": 1,
+          "endColumn": 46,
+          "text": "'./not-available'",
+          "sourceHash": "8f2ea55c9cc6172e3173b8c11e19afed29e183547ff586f1ab43ef86509c36fd",
+          "extractor": "typescript-checker-g1@1",
+          "code": "source-inaccessible",
+          "reason": "Module cannot be resolved within the evaluated source set."
+        },
+        {
+          "path": "missing.ts",
+          "start": 82,
+          "end": 95,
+          "line": 2,
+          "column": 36,
+          "endLine": 2,
+          "endColumn": 49,
+          "text": "unavailable()",
+          "sourceHash": "8f2ea55c9cc6172e3173b8c11e19afed29e183547ff586f1ab43ef86509c36fd",
+          "extractor": "typescript-checker-g1@1",
+          "code": "unresolved-symbol",
+          "reason": "Call target is outside supported direct declaration resolution; no name-based link."
+        },
+        {
+          "path": "unsupported.vue",
+          "start": 0,
+          "end": 38,
+          "line": 1,
+          "column": 1,
+          "endLine": 1,
+          "endColumn": 39,
+          "text": "<template><UnknownWidget /></template>",
+          "sourceHash": "90db89508ac8a74f349ecc870373e9a3dd4d48dd411fb09af2c46ea9582cbab8",
+          "extractor": "typescript-checker-g1@1",
+          "code": "unsupported-extractor",
+          "reason": "Only TS/TSX is supported by this experiment."
+        }
+      ],
+      "hash": "9efe72afbfd2c12b75f05a33f1a80bd891704588ca46cbc5db417e050f9d63af"
+    },
+    "deterministic": true,
+    "updateMode": "full rebuild only; incremental/watch intentionally deferred to G2",
+    "delta": {
+      "addedNodes": [
+        "added.ts",
+        "added.ts#added",
+        "lib/renamed-two.ts",
+        "lib/renamed-two.ts#same"
+      ],
+      "removedNodes": [
+        "lib/two.ts",
+        "lib/two.ts#same",
+        "orphan.ts",
+        "orphan.ts#disconnected"
+      ],
+      "changedFiles": [
+        "main.ts",
+        "widget.tsx"
+      ]
+    }
+  },
+  "cgc": {
+    "version": "0.6.13",
+    "rawEvidence": "cgc.json",
+    "evaluation": {
+      "metrics": {
+        "calls": {
+          "expected": 8,
+          "truePositives": 4,
+          "falsePositives": 1,
+          "falseNegatives": 4,
+          "precision": 0.8,
+          "recall": 0.5
+        },
+        "implements": {
+          "expected": 1,
+          "truePositives": 0,
+          "falsePositives": 0,
+          "falseNegatives": 1,
+          "precision": null,
+          "recall": 0
+        },
+        "imports": {
+          "expected": 9,
+          "truePositives": 1,
+          "falsePositives": 0,
+          "falseNegatives": 8,
+          "precision": 1,
+          "recall": 0.1111111111111111
+        },
+        "renders": {
+          "expected": 1,
+          "truePositives": 0,
+          "falsePositives": 0,
+          "falseNegatives": 1,
+          "precision": null,
+          "recall": 0
+        }
+      },
+      "cases": [
+        {
+          "case": "path-alias",
+          "status": "diagnostic-by-evaluator",
+          "reason": "No correct resolved CGC relation for this oracle occurrence. Missing or false candidates must not be admitted.",
+          "candidate": null
+        },
+        {
+          "case": "homonym-import",
+          "status": "diagnostic-by-evaluator",
+          "reason": "No correct resolved CGC relation for this oracle occurrence. Missing or false candidates must not be admitted.",
+          "candidate": null
+        },
+        {
+          "case": "barrel-import",
+          "status": "diagnostic-by-evaluator",
+          "reason": "No correct resolved CGC relation for this oracle occurrence. Missing or false candidates must not be admitted.",
+          "candidate": null
+        },
+        {
+          "case": "type-only",
+          "status": "diagnostic-by-evaluator",
+          "reason": "No correct resolved CGC relation for this oracle occurrence. Missing or false candidates must not be admitted.",
+          "candidate": null
+        },
+        {
+          "case": "aliased-call",
+          "status": "semantic-match",
+          "reason": "Semantic target matches; CGC has no exact column/end-range/revision evidence in this export, so this is NOT v2 admission.",
+          "candidate": {
+            "type": "calls",
+            "from": "main.ts#direct",
+            "to": "lib/one.ts#same",
+            "path": "main.ts",
+            "line": 5,
+            "text": "first()",
+            "raw": {
+              "fromKind": "Function",
+              "fromName": "direct",
+              "fromPath": "./main.ts",
+              "type": "CALLS",
+              "toKind": "Function",
+              "toName": "same",
+              "toPath": "./lib/one.ts",
+              "line": 5,
+              "text": "first()",
+              "confidence": 0.85,
+              "tier": 6,
+              "source": null,
+              "method": null
+            }
+          }
+        },
+        {
+          "case": "homonym-call",
+          "status": "diagnostic-by-evaluator",
+          "reason": "No correct resolved CGC relation for this oracle occurrence. Missing or false candidates must not be admitted.",
+          "candidate": null
+        },
+        {
+          "case": "reexport-call",
+          "status": "diagnostic-by-evaluator",
+          "reason": "No correct resolved CGC relation for this oracle occurrence. Missing or false candidates must not be admitted.",
+          "candidate": null
+        },
+        {
+          "case": "callback-registration",
+          "status": "semantic-match",
+          "reason": "Semantic target matches; CGC has no exact column/end-range/revision evidence in this export, so this is NOT v2 admission.",
+          "candidate": {
+            "type": "calls",
+            "from": "main.ts#callbackUser",
+            "to": "main.ts#invoke",
+            "path": "main.ts",
+            "line": 8,
+            "text": "invoke(first)",
+            "raw": {
+              "fromKind": "Function",
+              "fromName": "callbackUser",
+              "fromPath": "./main.ts",
+              "type": "CALLS",
+              "toKind": "Function",
+              "toName": "invoke",
+              "toPath": "./main.ts",
+              "line": 8,
+              "text": "invoke(first)",
+              "confidence": 0.95,
+              "tier": 2,
+              "source": null,
+              "method": null
+            }
+          }
+        },
+        {
+          "case": "dynamic-literal",
+          "status": "semantic-match",
+          "reason": "Semantic target matches; CGC has no exact column/end-range/revision evidence in this export, so this is NOT v2 admission.",
+          "candidate": {
+            "type": "imports",
+            "from": "main.ts",
+            "to": "lib/one.ts",
+            "path": "main.ts",
+            "line": 9,
+            "text": "'./lib/one'",
+            "raw": {
+              "fromKind": "Function",
+              "fromName": "literal",
+              "fromPath": "./main.ts",
+              "type": "CALLS",
+              "toKind": "File",
+              "toName": "one.ts",
+              "toPath": "./lib/one.ts",
+              "line": 9,
+              "text": "import('./lib/one')",
+              "confidence": 0.5,
+              "tier": 6,
+              "source": null,
+              "method": null
+            }
+          }
+        },
+        {
+          "case": "local-alias",
+          "status": "diagnostic-by-evaluator",
+          "reason": "No correct resolved CGC relation for this oracle occurrence. Missing or false candidates must not be admitted.",
+          "candidate": null
+        },
+        {
+          "case": "reexport",
+          "status": "diagnostic-by-evaluator",
+          "reason": "No correct resolved CGC relation for this oracle occurrence. Missing or false candidates must not be admitted.",
+          "candidate": null
+        },
+        {
+          "case": "interface-import",
+          "status": "diagnostic-by-evaluator",
+          "reason": "No correct resolved CGC relation for this oracle occurrence. Missing or false candidates must not be admitted.",
+          "candidate": null
+        },
+        {
+          "case": "interface-implementation",
+          "status": "diagnostic-by-evaluator",
+          "reason": "No correct resolved CGC relation for this oracle occurrence. Missing or false candidates must not be admitted.",
+          "candidate": null
+        },
+        {
+          "case": "constructor",
+          "status": "semantic-match",
+          "reason": "Semantic target matches; CGC has no exact column/end-range/revision evidence in this export, so this is NOT v2 admission.",
+          "candidate": {
+            "type": "calls",
+            "from": "adapter.ts#compose",
+            "to": "adapter.ts#Adapter",
+            "path": "adapter.ts",
+            "line": 3,
+            "text": "new Adapter()",
+            "raw": {
+              "fromKind": "Function",
+              "fromName": "compose",
+              "fromPath": "./adapter.ts",
+              "type": "CALLS",
+              "toKind": "Class",
+              "toName": "Adapter",
+              "toPath": "./adapter.ts",
+              "line": 3,
+              "text": "new Adapter()",
+              "confidence": 0.95,
+              "tier": 2,
+              "source": null,
+              "method": null
+            }
+          }
+        },
+        {
+          "case": "injection",
+          "status": "semantic-match",
+          "reason": "Semantic target matches; CGC has no exact column/end-range/revision evidence in this export, so this is NOT v2 admission.",
+          "candidate": {
+            "type": "calls",
+            "from": "adapter.ts#compose",
+            "to": "adapter.ts#Adapter.send",
+            "path": "adapter.ts",
+            "line": 3,
+            "text": "port.send()",
+            "raw": {
+              "fromKind": "Function",
+              "fromName": "compose",
+              "fromPath": "./adapter.ts",
+              "type": "CALLS",
+              "toKind": "Function",
+              "toName": "send",
+              "toPath": "./adapter.ts",
+              "line": 3,
+              "text": "port.send()",
+              "confidence": 0.95,
+              "tier": 2,
+              "source": null,
+              "method": null
+            }
+          }
+        },
+        {
+          "case": "jsx-import",
+          "status": "diagnostic-by-evaluator",
+          "reason": "No correct resolved CGC relation for this oracle occurrence. Missing or false candidates must not be admitted.",
+          "candidate": null
+        },
+        {
+          "case": "jsx-render",
+          "status": "diagnostic-by-evaluator",
+          "reason": "No correct resolved CGC relation for this oracle occurrence. Missing or false candidates must not be admitted.",
+          "candidate": null
+        },
+        {
+          "case": "namespace-import",
+          "status": "diagnostic-by-evaluator",
+          "reason": "No correct resolved CGC relation for this oracle occurrence. Missing or false candidates must not be admitted.",
+          "candidate": null
+        },
+        {
+          "case": "namespace-call",
+          "status": "diagnostic-by-evaluator",
+          "reason": "No correct resolved CGC relation for this oracle occurrence. Missing or false candidates must not be admitted.",
+          "candidate": null
+        },
+        {
+          "case": "interface-dispatch",
+          "status": "diagnostic-by-evaluator",
+          "reason": "Requires ambiguous-dispatch; no structured native diagnostic for this occurrence in the queried CGC graph.",
+          "candidate": null
+        },
+        {
+          "case": "callback-dispatch",
+          "status": "diagnostic-by-evaluator",
+          "reason": "Requires ambiguous-dispatch; no structured native diagnostic for this occurrence in the queried CGC graph.",
+          "candidate": null
+        },
+        {
+          "case": "dynamic-nonliteral",
+          "status": "diagnostic-by-evaluator",
+          "reason": "Requires dynamic-reference; no structured native diagnostic for this occurrence in the queried CGC graph.",
+          "candidate": null
+        },
+        {
+          "case": "missing-module",
+          "status": "diagnostic-by-evaluator",
+          "reason": "Requires source-inaccessible; no structured native diagnostic for this occurrence in the queried CGC graph.",
+          "candidate": null
+        },
+        {
+          "case": "missing-call",
+          "status": "diagnostic-by-evaluator",
+          "reason": "Requires unresolved-symbol; no structured native diagnostic for this occurrence in the queried CGC graph.",
+          "candidate": null
+        },
+        {
+          "case": "parse-error",
+          "status": "diagnostic-by-evaluator",
+          "reason": "Requires parse-failed; no structured native diagnostic for this occurrence in the queried CGC graph.",
+          "candidate": null
+        },
+        {
+          "case": "unsupported-language",
+          "status": "diagnostic-by-evaluator",
+          "reason": "Requires unsupported-extractor; no structured native diagnostic for this occurrence in the queried CGC graph.",
+          "candidate": null
+        }
+      ],
+      "candidates": [
+        {
+          "type": "imports",
+          "from": "main.ts",
+          "to": "lib/one.ts",
+          "path": "main.ts",
+          "line": 9,
+          "text": "'./lib/one'",
+          "raw": {
+            "fromKind": "Function",
+            "fromName": "literal",
+            "fromPath": "./main.ts",
+            "type": "CALLS",
+            "toKind": "File",
+            "toName": "one.ts",
+            "toPath": "./lib/one.ts",
+            "line": 9,
+            "text": "import('./lib/one')",
+            "confidence": 0.5,
+            "tier": 6,
+            "source": null,
+            "method": null
+          }
+        },
+        {
+          "type": "calls",
+          "from": "main.ts#direct",
+          "to": "lib/one.ts#same",
+          "path": "main.ts",
+          "line": 5,
+          "text": "first()",
+          "raw": {
+            "fromKind": "Function",
+            "fromName": "direct",
+            "fromPath": "./main.ts",
+            "type": "CALLS",
+            "toKind": "Function",
+            "toName": "same",
+            "toPath": "./lib/one.ts",
+            "line": 5,
+            "text": "first()",
+            "confidence": 0.85,
+            "tier": 6,
+            "source": null,
+            "method": null
+          }
+        },
+        {
+          "type": "calls",
+          "from": "main.ts#direct",
+          "to": "lib/one.ts#same",
+          "path": "main.ts",
+          "line": 5,
+          "text": "second()",
+          "raw": {
+            "fromKind": "Function",
+            "fromName": "direct",
+            "fromPath": "./main.ts",
+            "type": "CALLS",
+            "toKind": "Function",
+            "toName": "same",
+            "toPath": "./lib/one.ts",
+            "line": 5,
+            "text": "second()",
+            "confidence": 0.85,
+            "tier": 6,
+            "source": null,
+            "method": null
+          }
+        },
+        {
+          "type": "calls",
+          "from": "main.ts#callbackUser",
+          "to": "main.ts#invoke",
+          "path": "main.ts",
+          "line": 8,
+          "text": "invoke(first)",
+          "raw": {
+            "fromKind": "Function",
+            "fromName": "callbackUser",
+            "fromPath": "./main.ts",
+            "type": "CALLS",
+            "toKind": "Function",
+            "toName": "invoke",
+            "toPath": "./main.ts",
+            "line": 8,
+            "text": "invoke(first)",
+            "confidence": 0.95,
+            "tier": 2,
+            "source": null,
+            "method": null
+          }
+        },
+        {
+          "type": "calls",
+          "from": "adapter.ts#compose",
+          "to": "adapter.ts#Adapter",
+          "path": "adapter.ts",
+          "line": 3,
+          "text": "new Adapter()",
+          "raw": {
+            "fromKind": "Function",
+            "fromName": "compose",
+            "fromPath": "./adapter.ts",
+            "type": "CALLS",
+            "toKind": "Class",
+            "toName": "Adapter",
+            "toPath": "./adapter.ts",
+            "line": 3,
+            "text": "new Adapter()",
+            "confidence": 0.95,
+            "tier": 2,
+            "source": null,
+            "method": null
+          }
+        },
+        {
+          "type": "calls",
+          "from": "adapter.ts#compose",
+          "to": "adapter.ts#Adapter.send",
+          "path": "adapter.ts",
+          "line": 3,
+          "text": "port.send()",
+          "raw": {
+            "fromKind": "Function",
+            "fromName": "compose",
+            "fromPath": "./adapter.ts",
+            "type": "CALLS",
+            "toKind": "Function",
+            "toName": "send",
+            "toPath": "./adapter.ts",
+            "line": 3,
+            "text": "port.send()",
+            "confidence": 0.95,
+            "tier": 2,
+            "source": null,
+            "method": null
+          }
+        }
+      ],
+      "falseLinks": [
+        {
+          "type": "calls",
+          "from": "main.ts#direct",
+          "to": "lib/one.ts#same",
+          "path": "main.ts",
+          "line": 5,
+          "text": "second()",
+          "raw": {
+            "fromKind": "Function",
+            "fromName": "direct",
+            "fromPath": "./main.ts",
+            "type": "CALLS",
+            "toKind": "Function",
+            "toName": "same",
+            "toPath": "./lib/one.ts",
+            "line": 5,
+            "text": "second()",
+            "confidence": 0.85,
+            "tier": 6,
+            "source": null,
+            "method": null
+          }
+        }
+      ],
+      "unresolved": [
+        {
+          "raw": {
+            "fromKind": "Function",
+            "fromName": "namespaced",
+            "fromPath": "./namespace.ts",
+            "type": "HEURISTIC_CALLS",
+            "toKind": "Function",
+            "toName": "same",
+            "toPath": "./lib/one.ts",
+            "line": 2,
+            "text": "one.same()",
+            "confidence": 0.25,
+            "tier": 8,
+            "source": null,
+            "method": null
+          },
+          "reason": "Heuristic candidate is not an authoritative relation, regardless of name similarity."
+        },
+        {
+          "raw": {
+            "fromKind": "Function",
+            "fromName": "viaPort",
+            "fromPath": "./main.ts",
+            "type": "HEURISTIC_CALLS",
+            "toKind": "Function",
+            "toName": "send",
+            "toPath": "./adapter.ts",
+            "line": 6,
+            "text": "port.send()",
+            "confidence": 0.25,
+            "tier": 8,
+            "source": null,
+            "method": null
+          },
+          "reason": "Heuristic candidate is not an authoritative relation, regardless of name similarity."
+        },
+        {
+          "raw": {
+            "fromKind": "Class",
+            "fromName": "Adapter",
+            "fromPath": "./adapter.ts",
+            "type": "INHERITS",
+            "toKind": "ExternalClass",
+            "toName": "Port",
+            "toPath": null,
+            "line": null,
+            "text": null,
+            "confidence": null,
+            "tier": null,
+            "source": null,
+            "method": null
+          },
+          "reason": "Exported target has no source identity; no TypeScript resolver is silently added to CGC scores."
+        },
+        {
+          "raw": {
+            "fromKind": "File",
+            "fromName": "adapter.ts",
+            "fromPath": "./adapter.ts",
+            "type": "IMPORTS",
+            "toKind": "Module",
+            "toName": "./port",
+            "toPath": null,
+            "line": 1,
+            "text": null,
+            "confidence": null,
+            "tier": null,
+            "source": null,
+            "method": null
+          },
+          "reason": "Exported target has no source identity; no TypeScript resolver is silently added to CGC scores."
+        },
+        {
+          "raw": {
+            "fromKind": "File",
+            "fromName": "main.ts",
+            "fromPath": "./main.ts",
+            "type": "IMPORTS",
+            "toKind": "Module",
+            "toName": "@lib/one",
+            "toPath": null,
+            "line": 1,
+            "text": null,
+            "confidence": null,
+            "tier": null,
+            "source": null,
+            "method": null
+          },
+          "reason": "Exported target has no source identity; no TypeScript resolver is silently added to CGC scores."
+        },
+        {
+          "raw": {
+            "fromKind": "File",
+            "fromName": "main.ts",
+            "fromPath": "./main.ts",
+            "type": "IMPORTS",
+            "toKind": "Module",
+            "toName": "./lib/two",
+            "toPath": null,
+            "line": 2,
+            "text": null,
+            "confidence": null,
+            "tier": null,
+            "source": null,
+            "method": null
+          },
+          "reason": "Exported target has no source identity; no TypeScript resolver is silently added to CGC scores."
+        },
+        {
+          "raw": {
+            "fromKind": "File",
+            "fromName": "main.ts",
+            "fromPath": "./main.ts",
+            "type": "IMPORTS",
+            "toKind": "Module",
+            "toName": "./lib/barrel",
+            "toPath": null,
+            "line": 3,
+            "text": null,
+            "confidence": null,
+            "tier": null,
+            "source": null,
+            "method": null
+          },
+          "reason": "Exported target has no source identity; no TypeScript resolver is silently added to CGC scores."
+        },
+        {
+          "raw": {
+            "fromKind": "File",
+            "fromName": "main.ts",
+            "fromPath": "./main.ts",
+            "type": "IMPORTS",
+            "toKind": "Module",
+            "toName": "./port",
+            "toPath": null,
+            "line": 4,
+            "text": null,
+            "confidence": null,
+            "tier": null,
+            "source": null,
+            "method": null
+          },
+          "reason": "Exported target has no source identity; no TypeScript resolver is silently added to CGC scores."
+        },
+        {
+          "raw": {
+            "fromKind": "File",
+            "fromName": "missing.ts",
+            "fromPath": "./missing.ts",
+            "type": "IMPORTS",
+            "toKind": "Module",
+            "toName": "./not-available",
+            "toPath": null,
+            "line": 1,
+            "text": null,
+            "confidence": null,
+            "tier": null,
+            "source": null,
+            "method": null
+          },
+          "reason": "Exported target has no source identity; no TypeScript resolver is silently added to CGC scores."
+        },
+        {
+          "raw": {
+            "fromKind": "File",
+            "fromName": "namespace.ts",
+            "fromPath": "./namespace.ts",
+            "type": "IMPORTS",
+            "toKind": "Module",
+            "toName": "./lib/one",
+            "toPath": null,
+            "line": 1,
+            "text": null,
+            "confidence": null,
+            "tier": null,
+            "source": null,
+            "method": null
+          },
+          "reason": "Exported target has no source identity; no TypeScript resolver is silently added to CGC scores."
+        },
+        {
+          "raw": {
+            "fromKind": "File",
+            "fromName": "screen.tsx",
+            "fromPath": "./screen.tsx",
+            "type": "IMPORTS",
+            "toKind": "Module",
+            "toName": "./widget",
+            "toPath": null,
+            "line": 1,
+            "text": null,
+            "confidence": null,
+            "tier": null,
+            "source": null,
+            "method": null
+          },
+          "reason": "Exported target has no source identity; no TypeScript resolver is silently added to CGC scores."
+        }
+      ],
+      "authoritativeV2EdgesAdmitted": 0,
+      "diagnosticOrigin": "G1 evaluator, not CGC",
+      "normalization": "Class ownership from CONTAINS; literal CALLS-to-File import retyped as imports. No oracle lookup to resolve destinations, no compiler added."
+    }
+  }
+}

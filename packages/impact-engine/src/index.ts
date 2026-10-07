@@ -6,7 +6,7 @@ export { analyzeSourceEdits, type SourceAnalysisResult } from './analysis';
 const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const sorted = (values: Iterable<string>) => [...new Set(values)].sort(compare);
 
-export function validateGraph(graph: ImpactGraph, catalogue: TestMetadata[]): void {
+export function validateGraph(graph: ImpactGraph, catalogue: TestMetadata[], allowUnboundTests = false): void {
   if (graph.schemaVersion !== 1) throw new Error('Unsupported graph version');
   const nodes = new Map(graph.nodes.map(node => [node.id, node]));
   if (nodes.size !== graph.nodes.length) throw new Error('Duplicate node ID');
@@ -32,7 +32,7 @@ export function validateGraph(graph: ImpactGraph, catalogue: TestMetadata[]): vo
     if (!test.title.startsWith(`[${test.id}] `)) throw new Error(`Test title does not contain its stable ID: ${test.id}`);
     const node = nodes.get(test.nodeId);
     if (node?.kind !== 'test' || node.testId !== test.id) throw new Error(`Missing test node: ${test.id}`);
-    if (!graph.edges.some(edge => edge.from === test.nodeId && edge.type === 'exercises' && edge.policy.reverseImpact)) {
+    if (!allowUnboundTests && !graph.edges.some(edge => edge.from === test.nodeId && edge.type === 'exercises' && edge.policy.reverseImpact)) {
       throw new Error(`Missing local test relationship: ${test.id}`);
     }
   }
@@ -47,7 +47,9 @@ interface Visit { node: string; mode: TraversalMode; origin: string; path: PathS
 /** Pure traversal of validated local evidence; no scenario names or test lists. */
 export function calculateImpact(input: ImpactInput): ImpactResult {
   const { graph, catalogue } = input;
-  validateGraph(graph, catalogue);
+  // A deleted subject cannot retain a fabricated current edge. Missing subjects are permitted
+  // only when explicit uncertainty forces every available test to be selected below.
+  validateGraph(graph, catalogue, input.uncertaintyReasons.length > 0);
   const nodes = new Map(graph.nodes.map(node => [node.id, node]));
   const tests = new Map(catalogue.map(test => [test.nodeId, test]));
   const changed = sorted(input.changedEntityIds);
