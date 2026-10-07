@@ -12,6 +12,7 @@ import { authorizedPath, inventory, readTree, safePath } from './files';
 import { extractTypescript, location, parseSource } from './extract';
 import { externalTests, extractExternalRepository, extractInventoryHttp, inventoryPrefix } from './inventory-http';
 import { extractMessaging } from './messaging';
+import { progressStep, type ProgressObserver } from './progress';
 
 export const executionEntries = ['apps', 'packages', 'tests', 'scripts', 'impact', 'examples/external-inventory', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.json', 'vitest.config.ts', 'playwright.config.ts'];
 export const ignoreExecution = (path: string) => path.split('/').some(segment => ['node_modules', 'dist', 'dist-server', '__pycache__'].includes(segment) || segment.startsWith('.'));
@@ -128,7 +129,10 @@ function migrate(builder: GraphBuilder, input: WorkspaceInput) {
   }
 }
 
-export function buildArchive(input: WorkspaceInput): DiscoveryArchive {
+export function buildArchive(input: WorkspaceInput, observe?: ProgressObserver): DiscoveryArchive {
+  progressStep(observe, { phase: 'inventory', title: 'Inventariar fuentes', message: 'Identifico los archivos, las raíces y las revisiones que entran en este mapeo.', technique: 'Raíces configuradas, exclusiones y huellas SHA-256.' }, () => Object.keys(input.sources), paths => ({ paths,
+    counts: { files: paths.length, repositories: input.inventoryRevision ? 2 : 1 },
+    message: `${paths.length} archivos capturados. Inventario externo: ${input.inventoryRevision ? 'fuente Git disponible y fijada' : 'solo contrato; fuente inaccesible'}.` }));
   const executionFiles = { ...input.executionFiles };
   for (const path of Object.keys(executionFiles)) if (authorizedPath(path, input.config) && input.sources[path] === undefined) delete executionFiles[path];
   Object.assign(executionFiles, input.sources);
@@ -139,11 +143,19 @@ export function buildArchive(input: WorkspaceInput): DiscoveryArchive {
   configuration['extractor-manifest.json'] = JSON.stringify(extractors);
   const localSources = Object.fromEntries(Object.entries(input.sources).filter(([path]) => !path.startsWith(inventoryPrefix)));
   const builder = new GraphBuilder(input.sources, input.config, configuration, `content:${hash(fileHashes(localSources))}`);
-  extractTypescript(builder);
-  migrate(builder, input);
-  if (input.inventoryRevision) extractExternalRepository(builder, input.sources, configuration, input.inventoryRevision);
-  extractInventoryHttp(builder, input.sources, input.config, input.inventoryRevision);
-  extractMessaging(builder);
+  let previousEvidence = new Set<string>(), previousDiagnostics = new Set<string>();
+  const facts = () => {
+    const evidenceIds = [...builder.evidence.keys()].filter(id => !previousEvidence.has(id)).sort();
+    const diagnosticIds = [...builder.diagnostics.keys()].filter(id => !previousDiagnostics.has(id)).sort();
+    previousEvidence = new Set(builder.evidence.keys()); previousDiagnostics = new Set(builder.diagnostics.keys());
+    return { nodeIds: [...builder.nodes.keys()].sort(), edgeIds: [...builder.edges.keys()].sort(), evidenceIds, diagnosticIds,
+      counts: { nodes: builder.nodes.size, edges: builder.edges.size, diagnostics: builder.diagnostics.size, newEvidence: evidenceIds.length } };
+  };
+  progressStep(observe, { phase: 'typescript', title: 'Resolver código', message: 'Resuelvo imports, llamadas directas, JSX e interfaces a declaraciones concretas. Los destinos no demostrables quedan diagnosticados.', technique: 'AST, resolución de módulos y símbolos del compilador TypeScript.' }, () => extractTypescript(builder), facts);
+  progressStep(observe, { phase: 'reviewed', title: 'Vincular arquitectura y tests', message: `Revalido la arquitectura del login y los objetivos declarados de sus ${input.catalogue.length} tests. Estas declaraciones expresan intención, no cobertura medida.`, technique: 'Metadatos revisados y verificación de sus fuentes.' }, () => migrate(builder, input), facts);
+  progressStep(observe, { phase: 'external', title: 'Leer el proveedor externo', message: input.inventoryRevision ? 'Descubro el proveedor de inventario en su revisión Git independiente.' : 'Conservo el contrato externo. Sin fuente del proveedor no afirmo ejecución de sus tests.', technique: 'Repositorio Git fijado y adaptador del proveedor de inventario.' }, () => { if (input.inventoryRevision) extractExternalRepository(builder, input.sources, configuration, input.inventoryRevision); }, facts);
+  progressStep(observe, { phase: 'http', title: 'Conectar HTTP', message: 'Compruebo cliente, método, endpoint y versión del contrato. Una coincidencia incompleta produce un diagnóstico y no un binding.', technique: 'Adaptador HTTP acotado; contrato y registros explícitos.' }, () => extractInventoryHttp(builder, input.sources, input.config, input.inventoryRevision), facts);
+  progressStep(observe, { phase: 'messaging', title: 'Descubrir eventos y consumidores', message: 'Relaciono publicación, canal, colas y handlers mediante su configuración y registro. Compartir broker no conecta a los consumidores entre sí.', technique: 'Adaptador RabbitMQ, topología JSON y registros literales de handlers.' }, () => extractMessaging(builder), facts);
   const externalSources = Object.fromEntries(Object.entries(input.sources).filter(([path]) => path.startsWith(inventoryPrefix)));
   const externalCatalogue = externalTests(input.sources);
   const localContract = input.sources['packages/api-contract/src/inventory-contract.json'];
@@ -159,15 +171,17 @@ export function buildArchive(input: WorkspaceInput): DiscoveryArchive {
       policiesHash: hash(ordered(builder.policies.values())), observationsHash: null },
     nodes: ordered(builder.nodes.values()), edges: ordered(builder.edges.values()), evidence: ordered(builder.evidence.values()), diagnostics: ordered(builder.diagnostics.values()), policies: ordered(builder.policies.values()), observations: [],
   };
-  if (input.observationDataset) { body.observations = correlate(input.observationDataset, body); body.inputs.observationsHash = hash(input.observationDataset); }
-  if (input.meshDataset) body.mesh = correlateMesh(input.meshDataset, body);
+  progressStep(observe, { phase: 'observations', title: 'Identificar observaciones', message: input.observationDataset || input.meshDataset ? 'Correlaciono tráfico con su revisión y ventana. La ausencia de tráfico no elimina dependencias.' : 'Sin observaciones cargadas. El descubrimiento estático funciona con las fuentes y la configuración.', technique: 'Correlación versionada de OpenTelemetry y mesh; distinta de cobertura.' }, () => {
+    if (input.observationDataset) { body.observations = correlate(input.observationDataset, body); body.inputs.observationsHash = hash(input.observationDataset); }
+    if (input.meshDataset) body.mesh = correlateMesh(input.meshDataset, body);
+  }, () => ({ ...facts(), counts: { observations: body.observations.length } }));
   body.inputs.observationsHash = observationsHash(input.observationDataset, input.meshDataset);
   const graph: GraphSnapshotV2 = { ...body, id: hash(body) };
   const archive = { graph, sources: input.sources, configuration, executionFiles, config: input.config, catalogue: input.catalogue, externalCatalogue, legacyGraph: input.legacyGraph,
     ...(input.meshDataset ? { meshDataset: input.meshDataset } : {}),
     ...(input.observationDataset ? { observationDataset: input.observationDataset } : {}),
     ...(input.inventoryRevision ? { inventoryRevision: input.inventoryRevision } : {}) };
-  validateArchive(archive);
+  progressStep(observe, { phase: 'validation', title: 'Validar el mapeo', message: 'Verifico relaciones, evidencias y fuentes archivadas. El mapeo completo queda listo para publicar.', technique: 'Validación del grafo y snapshot inmutable reproducible.' }, () => validateArchive(archive), () => ({ ...facts(), snapshotId: graph.id }));
   return archive;
 }
 

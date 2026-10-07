@@ -344,3 +344,83 @@ button:focus-visible { outline: 2px solid #8ab8ff; outline-offset: -2px; }
 .journey-progress button { overflow-wrap: anywhere; text-align: left; }
 .learning-journeys summary { cursor: pointer; color: #aab8cc; font-size: 12px; }
 @media (max-width: 600px) { .learning-journeys { margin: 8px; } .journey-progress button { max-width: 100%; } }
+
+/* Guided discovery: the narrative owns the primary view; technical details remain inspectable. */
+body:has(.guided-shell) { min-width: 0; overflow: auto; }
+.guided-shell { height: auto; min-height: 100vh; grid-template-rows: 58px auto auto auto minmax(0, 1fr) 28px; }
+.guided-shell .workspace { overflow: visible; }
+.guided-shell:has(.guided-process) .suggestion-strip { display: none; }
+.guided-shell:has(.guided-process) .learning-journeys { margin: 8px 20px; padding: 10px 14px; }
+.guided-shell:has(.guided-process) .learning-journeys p { margin: 6px 0 0; }
+.guided-shell:has(.guided-process) .learning-journeys > details { display: none; }
+.guided-shell:has(.guided-process) .journey-progress { margin: 7px 0 0; }
+.guided-shell .code-view { min-height: 680px; height: 72vh; }
+.guided-shell .tests-view { height: auto; }
+.guided-shell .graph-view { min-height: 680px; height: 75vh; position: relative; }
+.guided-process { background: #0b111c; }
+.guided-actions { padding: 13px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.guided-actions h1 { margin: 4px 0 0; font-size: 22px; font-weight: 500; letter-spacing: -.3px; }
+.guided-eyebrow { display: block; color: var(--cyan); font: 500 10px IBM Plex Mono, monospace; letter-spacing: 1px; }
+.mapping-status { margin-left: auto; color: var(--green); font-size: 12px; }
+.mapping-status.empty, .mapping-status.stale { color: var(--orange); }
+.mapping-status.error { color: var(--red); }
+.guided-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+.guided-buttons button, .console-controls button, .console-phases button, .guided-result button, .back-to-guided { border: 1px solid #34465e; background: #142035; padding: 9px 12px; border-radius: 5px; color: #c5d6ed; font: 500 12px Inter, sans-serif; cursor: pointer; }
+.guided-buttons button:disabled, .console-controls button:disabled { opacity: .4; cursor: default; }
+.guided-map-layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; }
+.guided-map { min-width: 0; }
+.guided-map-heading { padding: 10px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; border-bottom: 1px solid #1c293b; }
+.guided-map-heading b { font-size: 13px; font-weight: 500; }
+.guided-map-heading span { margin-left: auto; font-size: 11px; color: #9aabc2; }
+.guided-canvas { height: 230px; background: #090f19; }
+.guided-flow-node { border: 1px solid #43628a !important; border-radius: 7px !important; background: #142237 !important; color: #e2ebf8 !important; text-align: left !important; padding: 12px !important; }
+.guided-node-label small { display: block; color: #a1b6d2; font-size: 11px; margin-bottom: 7px; }
+.guided-node-label b { font-size: 13px; font-weight: 500; overflow-wrap: anywhere; display: block; }
+.guided-node-label em { display: block; color: var(--green); font-size: 11px; margin-top: 7px; font-style: normal; }
+.guided-process .react-flow__edge-text { font-size: 12px; fill: #c5d6ed; }
+.guided-process .react-flow__edge-textbg { fill: #101a29; fill-opacity: .95; }
+.guided-map-note { padding: 10px 24px; color: #9aabc2; font-size: 11px; border-top: 1px solid #1c293b; }
+.guided-empty { min-height: 230px; padding: 18px 28px; display: flex; justify-content: center; flex-direction: column; align-items: flex-start; }
+.guided-empty h2 { font-size: 18px; font-weight: 500; margin: 0 0 10px; }
+.guided-empty p { max-width: 620px; color: #a7b7ce; font-size: 13px; line-height: 1.6; }
+.guided-empty ul { padding-left: 18px; margin: 8px 0; color: #8eacd2; font: 11px IBM Plex Mono, monospace; line-height: 1.7; overflow-wrap: anywhere; }
+.guided-inspector { padding: 16px 20px; background: #101926; border-left: 1px solid var(--line); min-width: 0; max-height: 310px; overflow: auto; }
+.guided-inspector h2 { margin: 14px 0 10px; font-size: 18px; font-weight: 500; }
+.guided-relation-choice { display: block; margin-top: 12px; color: #a7bbd8; font-size: 11px; }
+.guided-relation-choice select { display: block; margin-top: 6px; width: 100%; padding: 7px; border: 1px solid #34465e; border-radius: 4px; background: #142035; color: #d6e3f5; font-size: 12px; }
+.guided-inspector p { font-size: 13px; line-height: 1.6; color: #b7c7dc; overflow-wrap: anywhere; }
+.guided-inspector .evidence-kind { display: block; color: var(--cyan); font-size: 11px; margin-bottom: 14px; }
+.guided-inspector details { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.guided-inspector summary { font-size: 11px; color: var(--blue); cursor: pointer; }
+.guided-inspector code { font: 11px IBM Plex Mono, monospace; overflow-wrap: anywhere; }
+.guided-diagnostic { border-left: 2px solid var(--orange); padding-left: 12px; margin-top: 18px; }
+.guided-diagnostic b { color: var(--orange); font: 12px IBM Plex Mono, monospace; }
+.guided-diagnostic small { color: #a7b7ce; font-size: 11px; }
+.process-console { border-top: 1px solid #334965; background: #080e17; }
+.console-heading { padding: 10px 24px; display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.console-heading b { font: 500 13px IBM Plex Mono, monospace; }
+.console-heading span { margin-left: 16px; color: #a1b3cb; font-size: 11px; }
+.console-controls { display: flex; flex-wrap: wrap; gap: 7px; }
+.console-controls button { padding: 7px 12px; }
+.console-phases { padding: 8px 24px 0; display: flex; gap: 6px; overflow-x: auto; }
+.console-phases button { flex-shrink: 0; }
+.console-phases button { font-size: 11px; padding: 7px 9px; background: transparent; }
+.console-phases button[aria-pressed=true] { color: #d9e9ff; background: #1b3356; border-color: #5a8cd0; }
+.console-current { padding: 12px 24px; display: grid; grid-template-columns: 55px minmax(0, 1fr); gap: 18px; }
+.console-sequence { padding-top: 3px; color: var(--cyan); font: 12px IBM Plex Mono, monospace; }
+.console-current > p { grid-column: 1 / -1; color: #a7b7ce; font-size: 13px; }
+.console-current h2 { font-size: 17px; font-weight: 500; margin: 0 0 8px; }
+.console-current p { margin: 7px 0; color: #c2d1e5; font-size: 14px; line-height: 1.6; }
+.console-current details { margin: 7px 0; }
+.console-current summary { font-size: 12px; color: #a3bddd; cursor: pointer; }
+.console-current details p, .console-current li { color: #a9bad1; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.console-current small { display: block; color: #869ab5; font-size: 11px; margin-top: 8px; }
+.console-counts { display: flex; gap: 16px; flex-wrap: wrap; color: var(--cyan); font: 11px IBM Plex Mono, monospace; margin-top: 8px; }
+.console-error { padding: 0 24px 16px; color: var(--red); }
+.guided-result { margin: 0 24px 20px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.guided-result b { color: var(--orange); font-size: 13px; font-weight: 500; }
+.guided-result span { font-size: 12px; color: #9ab0cf; }
+.guided-result button { margin-left: auto; }
+.back-to-guided { position: absolute; z-index: 8; right: 15px; top: 12px; }
+@media (max-width: 1100px) { .guided-actions { padding: 18px; }.guided-buttons { flex-basis: 100%; }.guided-map-layout { grid-template-columns: minmax(0, 1fr) 280px; }.guided-shell { grid-template-rows: auto auto auto auto minmax(0, 1fr) auto; } }
+@media (max-width: 720px) { .guided-map-layout { grid-template-columns: 1fr; }.guided-inspector { max-height: none; border-left: 0; border-top: 1px solid var(--line); }.guided-map-heading span { margin-left: 0; }.console-current { grid-template-columns: 1fr; gap: 8px; }.console-heading span { display: block; margin: 7px 0 0; }.guided-result button { margin-left: 0; }.guided-buttons button { flex: 1 1 auto; }.guided-actions h1 { font-size: 20px; }.console-heading, .console-phases, .console-current { padding-left: 18px; padding-right: 18px; } }

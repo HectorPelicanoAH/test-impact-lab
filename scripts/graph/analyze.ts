@@ -5,6 +5,7 @@ import { applyEdits } from './files';
 import { buildArchive, compatibilityGraph } from './snapshot';
 import { canonical, delta, ordered, sourceText } from './core';
 import { calculateFederatedImpact } from '../../packages/impact-engine/src/federated';
+import { progressStep, type ProgressObserver } from './progress';
 
 function semanticEdges(graph: GraphSnapshotV2) {
   // Occurrence/range changes alone do not constitute a topology change.
@@ -14,9 +15,13 @@ function missingSubjects(graph: ImpactGraph, archive: DiscoveryArchive) {
   return archive.catalogue.filter(test => !graph.edges.some(edge => edge.from === test.nodeId && edge.type === 'exercises' && edge.policy.reverseImpact))
     .map(test => `Reviewed test subject is absent for ${test.id}; full available catalogue required.`);
 }
-export function analyzeOverlay(before: DiscoveryArchive, edits: OverlayEdit[]) {
-  const sources = applyEdits(before.sources, edits, before.config);
-  const after = buildArchive({ ...before, sources });
+export function analyzeOverlay(before: DiscoveryArchive, edits: OverlayEdit[], observe?: ProgressObserver) {
+  const sources = progressStep(observe, { phase: 'diff', title: 'Comparar el código', message: `Comparo ${edits.length} archivos con las fuentes base fijadas. El journey envía código, no una lista de tests.`, technique: 'Comparación de bytes y operaciones de alta, modificación o baja.', side: 'before', snapshotId: before.graph.id,
+    nodeIds: before.graph.nodes.map(node => node.id), edgeIds: before.graph.edges.map(edge => edge.id), paths: edits.map(edit => edit.path) }, () => applyEdits(before.sources, edits, before.config));
+  const after = buildArchive({ ...before, sources }, observe);
+  const changes = progressStep(observe, { phase: 'delta', title: 'Actualizar las relaciones', message: 'Comparo los dos grafos y conservo las relaciones retiradas en su versión anterior.', technique: 'Delta de snapshots anteriores y posteriores.', snapshotId: after.graph.id,
+    nodeIds: after.graph.nodes.map(node => node.id), edgeIds: after.graph.edges.map(edge => edge.id) }, () => delta(before.graph, after.graph), value => ({ counts: { added: value.edges.added.length, removed: value.edges.removed.length },
+    message: `${value.edges.added.length} relaciones añadidas y ${value.edges.removed.length} retiradas. Las evidencias anteriores siguen disponibles.` }));
   const beforeView = compatibilityGraph(before), afterView = compatibilityGraph(after);
   const graph: ImpactGraph = { schemaVersion: 1,
     nodes: ordered(new Map([...beforeView.nodes, ...afterView.nodes].map(node => [node.id, node])).values()),
@@ -46,6 +51,16 @@ export function analyzeOverlay(before: DiscoveryArchive, edits: OverlayEdit[]) {
   }
   const changedEntityIds = [...new Set([...oldMapping.result.changedEntities, ...newMapping.result.changedEntities,
     ...graph.nodes.filter(node => edits.some(edit => (edit.operation === 'add' || edit.operation === 'delete') && node.source?.path === edit.path)).map(node => node.id)])].sort();
-  const result = calculateImpact({ diff, changedEntityIds, graph, catalogue: before.catalogue, uncertaintyReasons: [...reasons].sort() });
-  return { after, graph, diff, result, delta: delta(before.graph, after.graph), federated: calculateFederatedImpact(before, after, edits) };
+  const result = progressStep(observe, { phase: 'policies', title: 'Recorrer el impacto', message: 'Propago el cambio con las políticas de dependencias y los límites de contratos.', technique: 'Recorrido determinista del grafo de compatibilidad.', snapshotId: after.graph.id,
+    nodeIds: after.graph.nodes.map(node => node.id), edgeIds: after.graph.edges.map(edge => edge.id) }, () => calculateImpact({ diff, changedEntityIds, graph, catalogue: before.catalogue, uncertaintyReasons: [...reasons].sort() }));
+  const widening: string[] = [];
+  if (result.warnings.some(reason => reason.startsWith('Source added or deleted;'))) widening.push('hay archivos añadidos o eliminados');
+  if (result.warnings.some(reason => reason.startsWith('Dependency topology changed;'))) widening.push('ha cambiado la topología de dependencias');
+  if (result.warnings.some(reason => reason.startsWith('No reviewed compatibility scope for '))) widening.push('el cambio está fuera del ámbito revisado del login');
+  progressStep(observe, { phase: 'uncertainty', title: 'Explicar la incertidumbre', message: result.selectionMode === 'conservative-full' ? `Amplío la selección local: ${widening.length ? widening.join('; ') : 'los diagnósticos impiden justificar un subconjunto seguro'}. Los motivos completos siguen disponibles.` : 'El cambio queda dentro del ámbito revisado y permite seleccionar por caminos causales.', technique: 'Reglas conservadoras y diagnósticos explícitos.', snapshotId: after.graph.id,
+    warnings: result.warnings, nodeIds: after.graph.nodes.map(node => node.id), edgeIds: after.graph.edges.map(edge => edge.id) }, () => undefined);
+  const federated = progressStep(observe, { phase: 'selection', title: 'Presentar la selección', message: 'Distingo tests locales y suites distribuidas. Los tests todavía no se han ejecutado.', technique: 'Políticas federadas, catálogo revisado y disponibilidad del runner.', snapshotId: after.graph.id,
+    nodeIds: after.graph.nodes.map(node => node.id), edgeIds: after.graph.edges.map(edge => edge.id) }, () => calculateFederatedImpact(before, after, edits), value => ({ counts: { selected: result.selectedTests.length, local: before.catalogue.length, suites: value.suites.filter(suite => suite.selected).length },
+    message: `${result.selectedTests.length} de ${before.catalogue.length} tests locales y ${value.suites.filter(suite => suite.selected).length} suites distribuidas seleccionados. Sin ejecutar todavía.` }));
+  return { after, graph, diff, result, delta: changes, federated };
 }

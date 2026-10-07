@@ -1,0 +1,88 @@
+{
+  "journey": "External HTTP contract",
+  "sourceReport": ".impact-runs/a9e77a3a-1905-4a13-b355-aef929a9b3eb/summary.json",
+  "id": "a9e77a3a-1905-4a13-b355-aef929a9b3eb",
+  "analysisId": "384565d557f74c06a4d50596068d47f6a29ea320d49de81f33cf34aecf4448dc",
+  "snapshotId": "29fdf27f84e7eeb8c43a4f04587f16245826736968edf068a5ba54ebd5334a19",
+  "status": "failed",
+  "startedAt": "2026-10-07T20:46:36.452Z",
+  "completedAt": "2026-10-07T20:48:36.619Z",
+  "durationMs": 120168.31996999995,
+  "local": {
+    "total": 39,
+    "passed": 39,
+    "failed": 0
+  },
+  "suites": [
+    {
+      "id": "inventory-contract",
+      "status": "failed",
+      "availability": "available",
+      "durationMs": 4500.524623000063
+    },
+    {
+      "id": "inventory-provider",
+      "status": "passed",
+      "availability": "available",
+      "durationMs": 1001.3646459999727
+    },
+    {
+      "id": "messaging-browser",
+      "status": "unavailable",
+      "availability": "broker-required"
+    },
+    {
+      "id": "messaging-runtime",
+      "status": "unavailable",
+      "availability": "broker-required"
+    },
+    {
+      "id": "messaging-transport",
+      "status": "passed",
+      "availability": "available",
+      "durationMs": 3583.9284390000394
+    },
+    {
+      "id": "notifications-consumer",
+      "status": "passed",
+      "availability": "available",
+      "durationMs": 3792.489829999977
+    },
+    {
+      "id": "order-created-contract",
+      "status": "passed",
+      "availability": "available",
+      "durationMs": 3469.13756199996
+    },
+    {
+      "id": "orders-browser",
+      "status": "passed",
+      "availability": "available",
+      "durationMs": 26007.072354999953
+    },
+    {
+      "id": "orders-controller",
+      "status": "passed",
+      "availability": "available",
+      "durationMs": 4350.445945000043
+    },
+    {
+      "id": "orders-integration",
+      "status": "passed",
+      "availability": "available",
+      "durationMs": 5486.118412000011
+    },
+    {
+      "id": "orders-store",
+      "status": "passed",
+      "availability": "available",
+      "durationMs": 5950.642909000046
+    },
+    {
+      "id": "preparation-consumer",
+      "status": "passed",
+      "availability": "available",
+      "durationMs": 4783.868050000048
+    }
+  ]
+}

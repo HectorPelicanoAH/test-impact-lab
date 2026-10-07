@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import type { DiscoveryArchive } from '../../packages/impact-engine/src/schema-v2';
 import { canonical, fileHashes, hash } from './core';
 import { buildArchive, loadWorkspace, validateArchive, type WorkspaceInput } from './snapshot';
+import { progressStep, type ProgressEvent, type ProgressObserver } from './progress';
 
 export class SnapshotStore {
   constructor(readonly directory: string) {}
@@ -33,23 +34,37 @@ export class SnapshotStore {
 export class WorkspaceSnapshots {
   current: DiscoveryArchive;
   lastError?: string;
+  progress: ProgressEvent[] = [];
   private fingerprint: string;
   constructor(readonly root: string, readonly store = new SnapshotStore(resolve(root, '.impact-snapshots')), private readonly loader: () => WorkspaceInput = () => loadWorkspace(root)) {
     const input = loader();
     this.fingerprint = this.key(input);
-    this.current = buildArchive(input);
+    this.current = buildArchive(input, event => { if (event.status !== 'running') this.progress.push(event); });
     store.publish(this.current);
   }
   private key(input: WorkspaceInput) { return hash({ sources: fileHashes(input.sources), config: fileHashes(input.configuration), execution: fileHashes(input.executionFiles),
     inventoryRevision: input.inventoryRevision ?? null, observations: input.observationDataset ?? null, mesh: input.meshDataset ?? null }); }
+  /** Explicit rebuilding bypasses the unchanged-input shortcut, with atomic publication. */
+  rebuild(observe?: ProgressObserver): DiscoveryArchive {
+    const events: ProgressEvent[] = [];
+    try {
+      const input = progressStep(observe, { phase: 'capture', title: 'Capturar las fuentes', message: 'Leo las fuentes y la configuración para una construcción completa.', technique: 'Lectura del workspace y fijación de la revisión Git externa.' }, () => this.loader());
+      const next = buildArchive(input, event => { if (event.status !== 'running') events.push(event); observe?.(event); });
+      this.store.publish(next);
+      this.current = next; this.fingerprint = this.key(input); this.progress = events; this.lastError = undefined;
+      return next;
+    } catch (error) { this.lastError = error instanceof Error ? error.message : 'Rebuild failed.'; throw error; }
+  }
   refresh(): DiscoveryArchive {
     try {
       const input = this.loader(), fingerprint = this.key(input);
       if (fingerprint !== this.fingerprint) {
-        const next = buildArchive(input); // all-or-nothing, old pointer is untouched on failure
+        const events: ProgressEvent[] = [];
+        const next = buildArchive(input, event => { if (event.status !== 'running') events.push(event); }); // all-or-nothing
         this.store.publish(next);
         this.current = next;
         this.fingerprint = fingerprint;
+        this.progress = events;
       }
       this.lastError = undefined;
       return this.current;
