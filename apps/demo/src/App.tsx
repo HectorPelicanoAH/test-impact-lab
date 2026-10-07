@@ -5,11 +5,12 @@ import type { TestKind } from '@test-impact/impact-engine';
 import { RepositoryTree } from './components/RepositoryTree';
 import { ImpactSummary } from './components/ImpactSummary';
 import { DiscoveryExplorer } from './components/DiscoveryExplorer';
+import { GuidedProcess } from './components/GuidedProcess';
 import { ExecutionPanel } from './components/ExecutionPanel';
 import { TestInspector, TestLegend } from './components/TestInspector';
 import { applySuggestion, suggestions } from './suggestions';
 import { journeyEdits, journeys, type JourneyId } from './journeys';
-import type { DemoAnalysis, DemoAnalysisRequest, DemoExecution, DemoExecutionRequest, DemoSnapshot, ExecutionMode } from './types';
+import type { DemoAnalysis, DemoAnalysisRequest, DemoExecution, DemoExecutionRequest, DemoSnapshot, ExecutionMode, DemoOperation, DemoMapping } from './types';
 
 type View = 'application' | 'code' | 'graph' | 'tests';
 const viewLabels: Record<View, string> = { application: 'APPLICATION', code: 'CODE', graph: 'IMPACT GRAPH', tests: 'TESTS' };
@@ -25,7 +26,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
 export function App() {
   const [snapshot, setSnapshot] = useState<DemoSnapshot>();
-  const [view, setView] = useState<View>('code');
+  const [view, setView] = useState<View>('graph');
   const [selectedPath, setSelectedPath] = useState('');
   const [editorMode, setEditorMode] = useState<'edit' | 'diff'>('edit');
   const [inspectedTestId, setInspectedTestId] = useState<string>();
@@ -36,20 +37,29 @@ export function App() {
   const [focusTest, setFocusTest] = useState<string>();
   const [focusEdge, setFocusEdge] = useState<string>();
   const [pending, setPending] = useState(false);
+  const [pendingKind, setPendingKind] = useState<DemoOperation['kind']>();
   const [executions, setExecutions] = useState<Partial<Record<ExecutionMode, DemoExecution>>>({});
   const [error, setError] = useState<string>();
-  const [journey, setJourney] = useState<JourneyId>('screen');
+  const [journey, setJourney] = useState<JourneyId>('consumer');
   const [appliedJourney, setAppliedJourney] = useState<JourneyId>();
   const inspectorRef = useRef<HTMLDivElement>(null);
   const workingRevision = useRef(0);
+  const [mapping, setMapping] = useState<DemoMapping>({ state: 'empty', revision: 0 });
+  const [mappingOperation, setMappingOperation] = useState<DemoOperation>();
+  const [analysisOperation, setAnalysisOperation] = useState<DemoOperation>();
+  const [technical, setTechnical] = useState(false);
 
   useEffect(() => {
-    request<DemoSnapshot>('/api/snapshot').then(data => {
+    request<DemoSnapshot>('/api/snapshot').then(async data => {
       setSnapshot(data);
       setSelectedPath(data.files.find(file => file.path.endsWith('LoginButton.tsx'))?.path ?? data.files[0]?.path ?? '');
       setInspectedTestId(data.catalogue[0]?.id);
+      const status = await request<DemoMapping>('/api/mapping', { headers: { 'X-Test-Impact-Session': data.sessionToken } });
+      setMapping(status);
+      if (status.operationId) setMappingOperation(await request<DemoOperation>(`/api/operations/${status.operationId}`, { headers: { 'X-Test-Impact-Session': data.sessionToken } }));
     }).catch(cause => setError(cause instanceof Error ? cause.message : 'Unable to load repository snapshot.'));
   }, []);
+  useEffect(() => { setAnalysisOperation(undefined); }, [edits, deleted]);
 
   const original = snapshot?.files.find(file => file.path === selectedPath)?.content ?? '';
   const content = deleted.has(selectedPath) ? '' : edits[selectedPath] ?? original;
@@ -61,13 +71,59 @@ export function App() {
   }, [snapshot, edits, deleted]);
   const activeGraph = analysis?.graph ?? snapshot?.graph;
   const activeExecution = executions.full ?? executions.selected;
+  const executionBusy = Object.values(executions).some(item => item?.status === 'queued' || item?.status === 'running');
   const inspectedTest = snapshot?.catalogue.find(test => test.id === inspectedTestId) ?? snapshot?.catalogue[0];
   const workflow = [
-    { label: 'CHANGE', detail: modified.size ? `${modified.size} file${modified.size === 1 ? '' : 's'} modified` : 'Choose or edit source', view: 'code' as View, complete: modified.size > 0 },
-    { label: 'CALCULATE', detail: analysis ? `${analysis.result.selectedTests.length} tests selected` : 'Map source impact', view: 'graph' as View, complete: Boolean(analysis) },
-    { label: 'INSPECT', detail: analysis ? `${(snapshot?.catalogue.length ?? 0) - analysis.result.selectedTests.length} safely avoided` : 'Review causal paths', view: 'tests' as View, complete: Boolean(analysis) },
-    { label: 'EXECUTE', detail: activeExecution ? activeExecution.status.toUpperCase() : 'Run selected or full suite', view: 'tests' as View, complete: activeExecution?.status === 'passed' || activeExecution?.status === 'failed' },
+    { label: 'CONSTRUIR MAPEO', detail: mapping.state === 'ready' ? 'Fuentes y evidencias listas' : 'Descubrir relaciones', view: 'graph' as View, complete: mapping.state === 'ready' },
+    { label: 'APLICAR CAMBIO', detail: modified.size ? `${modified.size} archivos modificados` : 'Elegir un journey', view: 'code' as View, complete: modified.size > 0 },
+    { label: 'CALCULAR IMPACTO', detail: analysis ? `${analysis.result.selectedTests.length} tests locales seleccionados` : 'Explicar la selección', view: 'graph' as View, complete: Boolean(analysis) },
+    { label: 'REVISAR Y EJECUTAR', detail: activeExecution ? activeExecution.status.toUpperCase() : 'Lanzar runners reales', view: 'tests' as View, complete: activeExecution?.status === 'passed' || activeExecution?.status === 'failed' },
   ];
+
+  async function followOperation(initial: DemoOperation, revision: number, update: (value: DemoOperation) => void) {
+    let current = initial;
+    while (revision === workingRevision.current) {
+      update(current);
+      if (!['queued', 'running'].includes(current.status)) {
+        if (current.status !== 'completed') throw new Error(current.error ?? 'La operación ha sido invalidada.');
+        return current;
+      }
+      await new Promise(resolve => setTimeout(resolve, 250));
+      current = await request<DemoOperation>(`/api/operations/${current.id}`, { headers: { 'X-Test-Impact-Session': snapshot!.sessionToken } });
+    }
+    return undefined;
+  }
+
+  async function buildMapping() {
+    if (!snapshot || executionBusy) return;
+    const revision = ++workingRevision.current;
+    setPending(true); setPendingKind('mapping'); setMappingOperation(undefined); setError(undefined); setAnalysis(undefined); setAnalysisOperation(undefined); setExecutions({}); setFocusEdge(undefined); setFocusTest(undefined); setTechnical(false); setView('graph');
+    setMapping(current => ({ ...current, state: 'building' }));
+    try {
+      const base = await request<DemoSnapshot>('/api/snapshot').catch(() => snapshot);
+      if (revision !== workingRevision.current) return;
+      const initial = await request<DemoOperation>('/api/mapping', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Test-Impact-Session': snapshot.sessionToken }, body: JSON.stringify({ snapshotId: base.id }) });
+      const completed = await followOperation(initial, revision, setMappingOperation);
+      if (!completed || revision !== workingRevision.current) return;
+      const next = await request<DemoSnapshot>('/api/snapshot');
+      const status = await request<DemoMapping>('/api/mapping', { headers: { 'X-Test-Impact-Session': snapshot.sessionToken } });
+      if (revision !== workingRevision.current) return;
+      setSnapshot(next); setMapping(status);
+    } catch (cause) { if (revision === workingRevision.current) { setMapping(current => ({ ...current, state: 'error' })); setError(cause instanceof Error ? cause.message : 'No se pudo construir el mapeo.'); } }
+    finally { setPending(false); }
+  }
+
+  async function clearMapping() {
+    if (!snapshot || executionBusy) return;
+    const revision = ++workingRevision.current;
+    setPending(true); setError(undefined);
+    try {
+      const status = await request<DemoMapping>('/api/mapping', { method: 'DELETE', headers: { 'X-Test-Impact-Session': snapshot.sessionToken } });
+      if (revision !== workingRevision.current) return;
+      setMapping(status); setMappingOperation(undefined); setAnalysisOperation(undefined); setAnalysis(undefined); setExecutions({}); setFocusEdge(undefined); setFocusTest(undefined); setTechnical(false); setView('graph');
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo borrar el mapeo.'); }
+    finally { setPending(false); }
+  }
 
   function updateFile(value: string) {
     if (!snapshot || !selectedPath || deleted.has(selectedPath)) return;
@@ -119,21 +175,26 @@ export function App() {
   }
 
   async function calculate() {
-    if (!snapshot) return;
+    if (!snapshot || mapping.state !== 'ready' || pending) return;
     const revision = workingRevision.current;
     setPending(true);
+    setPendingKind('analysis'); setAnalysisOperation(undefined);
     setError(undefined);
+    setAnalysis(undefined); setExecutions({}); setTechnical(false); setView('graph');
     try {
       const body: DemoAnalysisRequest = {
         snapshotId: snapshot.id,
         edits: [...Object.entries(edits).filter(([path]) => !deleted.has(path)).sort(([a], [b]) => a.localeCompare(b)).map(([path, editedContent]) => ({ path, content: editedContent,
           ...(snapshot.files.some(file => file.path === path) ? {} : { operation: 'add' as const }) })), ...[...deleted].sort().map(path => ({ path, operation: 'delete' as const }))],
       };
-      const result = await request<DemoAnalysis>('/api/analyses', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Test-Impact-Session': snapshot.sessionToken }, body: JSON.stringify(body) });
+      const initial = await request<DemoOperation>('/api/analysis-operations', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Test-Impact-Session': snapshot.sessionToken }, body: JSON.stringify(body) });
+      const completed = await followOperation(initial, revision, setAnalysisOperation);
+      if (!completed || revision !== workingRevision.current) return;
+      const result = await request<DemoAnalysis>(`/api/analyses/${completed.analysisId}`, { headers: { 'X-Test-Impact-Session': snapshot.sessionToken } });
       if (revision !== workingRevision.current) return;
       setAnalysis(result);
       setExecutions({});
-      setFocusTest(result.result.selectedTests[0]);
+      setFocusTest(undefined);
       setFocusEdge(undefined);
       setView('graph');
     } catch (cause) {
@@ -191,13 +252,17 @@ export function App() {
     setAppliedJourney(undefined);
     try {
       const next = await request<DemoSnapshot>('/api/snapshot');
+      const status = await request<DemoMapping>('/api/mapping', { headers: { 'X-Test-Impact-Session': next.sessionToken } });
       if (revision !== workingRevision.current) return;
       setSnapshot(next); setEdits({}); setDeleted(new Set()); setAnalysis(undefined); setFocusTest(undefined); setFocusEdge(undefined); setExecutions({});
+      setMapping(status); setAnalysisOperation(undefined);
+      setMappingOperation(status.operationId ? await request<DemoOperation>(`/api/operations/${status.operationId}`, { headers: { 'X-Test-Impact-Session': next.sessionToken } }) : undefined);
       setSelectedPath(next.files[0]?.path ?? ''); setError(undefined);
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to reload snapshot.'); }
   }
 
   function explain(id: string) {
+    setTechnical(false);
     setFocusTest(id);
     setFocusEdge(undefined);
     setView('graph');
@@ -237,11 +302,11 @@ export function App() {
 
   if (!snapshot) return <main className="loading-screen"><div className="logo-mark">TIL</div><p>{error ?? 'Loading immutable repository snapshot…'}</p></main>;
 
-  return <div className="app-shell">
+  return <div className="app-shell guided-shell">
     <header className="topbar">
       <div className="brand"><div className="logo-mark">TIL</div><div><b>TEST IMPACT LAB</b><span>deterministic regression explorer</span></div></div>
       <nav>{(Object.keys(viewLabels) as View[]).map(item => <button key={item} className={view === item ? 'active' : ''} onClick={() => setView(item)}>{viewLabels[item]}</button>)}</nav>
-      <div className="top-actions"><span className={modified.size ? 'dirty' : ''}>{modified.size} MODIFIED</span><button className="primary" onClick={calculate} disabled={pending}>{pending ? 'CALCULATING…' : 'CALCULATE REGRESSION'}</button></div>
+      <div className="top-actions"><span className={modified.size ? 'dirty' : ''}>{modified.size} MODIFIED</span><button className="primary" onClick={calculate} disabled={pending || mapping.state !== 'ready' || !modified.size}>{pending ? 'CALCULATING…' : 'CALCULATE REGRESSION'}</button></div>
     </header>
 
     {error && <div className="error-banner"><span>{error}</span><button onClick={() => setError(undefined)}>Dismiss</button></div>}
@@ -252,7 +317,7 @@ export function App() {
     </div>
 
     <section className="workflow-ribbon" aria-label="Regression workflow">
-      <div className="workflow-intro"><span>GUIDED FLOW</span><b>From source edit to measured regression</b></div>
+      <div className="workflow-intro"><span>RECORRIDO GUIADO</span><b>Descubrimiento → impacto → ejecución</b></div>
       <div className="workflow-steps">{workflow.map((step, index) => <button key={step.label} className={`${step.complete ? 'complete' : ''} ${view === step.view ? 'current' : ''}`} onClick={() => setView(step.view)}>
         <i>{index + 1}</i><span><b>{step.label}</b><small>{step.detail}</small></span>
       </button>)}</div>
@@ -260,8 +325,8 @@ export function App() {
     </section>
 
     <section className="learning-journeys panel" aria-label="Learning journeys">
-      <div className="journey-choice"><label htmlFor="learning-journey">LEARNING JOURNEY</label><select id="learning-journey" value={journey} onChange={event => setJourney(event.target.value as JourneyId)}>{journeys.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select><button onClick={applyJourney} disabled={pending}>APPLY JOURNEY</button><small>Starts from this snapshot and replaces the current overlay.</small></div>
-      <p>{journeys.find(item => item.id === (appliedJourney ?? journey))!.description}</p>
+      <div className="journey-choice"><label htmlFor="learning-journey">LEARNING JOURNEY</label><select id="learning-journey" value={journey} disabled={pending} onChange={event => { setJourney(event.target.value as JourneyId); setFocusEdge(undefined); setFocusTest(undefined); }}>{journeys.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select><button onClick={applyJourney} disabled={pending}>APPLY JOURNEY</button><small>Aplica código a una copia de trabajo desde el snapshot base.</small></div>
+      <p>{{ consumer: 'Añade un handler y su suscripción. Descubre el código, la cola y sus relaciones sin desplegar un servicio ni crear cobertura.', http: 'El cliente declara v2 y el proveedor sigue en v1. Inspecciona el binding retirado y el fallo contractual.', screen: 'Añade un componente y su import/JSX. Descubre cómo el compilador resuelve sus relaciones.', event: 'Cambia la versión del evento. Explica el contrato incompatible y las relaciones retiradas.', retry: 'Introduce un fallo y reduce reintentos. Observa configuración, impacto y resultados reales.', unresolved: 'Sustituye un destino literal por una expresión. Explica el diagnóstico y la selección conservadora.' }[appliedJourney ?? journey]}</p>
       {appliedJourney && <div className="journey-progress" aria-label="Journey evidence">
         <span>Applied: {journeys.find(item => item.id === appliedJourney)!.title}</span>
         {[...modified].map(path => <button key={path} onClick={() => showChange(path)}>{path} · SOURCE DIFF</button>)}
@@ -305,7 +370,8 @@ export function App() {
         <aside className="impact-panel panel"><div className="panel-title">REGRESSION IMPACT</div><ImpactSummary result={analysis?.result} federated={analysis?.federated} catalogue={snapshot.catalogue} graph={activeGraph!} onWhy={explain} /></aside>
       </section>}
 
-      {view === 'graph' && <section className="graph-view"><DiscoveryExplorer snapshot={snapshot} analysis={analysis} focusTest={focusTest} focusEdge={focusEdge} onFocusTest={setFocusTest} /></section>}
+      {view === 'graph' && (technical ? <section className="graph-view"><button className="back-to-guided" onClick={() => setTechnical(false)}>← Volver al recorrido guiado</button><DiscoveryExplorer snapshot={snapshot} analysis={analysis} focusTest={focusTest} focusEdge={focusEdge} onFocusTest={setFocusTest} /></section> : <GuidedProcess snapshot={snapshot} analysis={analysis} operation={pending && pendingKind === 'analysis' ? analysisOperation : analysisOperation ?? mappingOperation} mapping={mapping} journey={appliedJourney ?? journey} pending={pending} pendingKind={pendingKind} executionBusy={executionBusy} hasChanges={modified.size > 0} focusEdge={focusEdge} focusTest={focusTest}
+        onBuild={buildMapping} onClear={clearMapping} onCalculate={calculate} onTests={() => setView('tests')} onAdvanced={() => setTechnical(true)} />)}
 
       {view === 'tests' && <section className="tests-view"><div className="tests-heading"><div><span>TEST CATALOGUE</span><h1>Local and distributed regression suites.</h1></div>{analysis && <div><strong>{analysis.result.selectedTests.length + analysis.federated.suites.filter(item => item.selected).length}</strong><span>selected</span></div>}</div>
         <div className="discovery-summary"><h3>EXTERNAL INVENTORY TESTS · {snapshot.externalCatalogue.length || 'SOURCE INACCESSIBLE'}</h3><p>{snapshot.externalCatalogue.length ? 'Registered in the independent Git repository. G6 selects its reviewed suite and executes the pinned source when available.' : 'Contract-only inventory: external source/tests unavailable. No external pass or coverage is claimed.'}</p>

@@ -14,14 +14,15 @@ const relationTypes: EdgeKind[] = ['imports', 'calls', 'renders', 'routes', 'imp
 const evidenceKinds: SourceKind[] = ['all', 'static', 'reviewed-declaration', 'configuration', 'measured-coverage', 'observation'];
 const short = (id: string) => id.slice(0, 12);
 
-function SourcePreview({ source, onBack }: { source: LocatedSource; onBack: () => void }) {
+export function SourcePreview({ source, onBack, simple = false }: { source: LocatedSource; onBack: () => void; simple?: boolean }) {
   const highlighted = useRef<HTMLDivElement>(null);
   useEffect(() => { highlighted.current?.scrollIntoView({ block: 'center' }); }, [source]);
   const lines = source.content.split('\n');
-  return <section className="evidence-preview" aria-label="Versioned source"><div className="evidence-preview-head"><button onClick={onBack}>← BACK TO PATH</button><b>{source.path}</b></div>
-    <p>{source.kind} · snapshot {short(source.snapshotId)} · revision {source.revision}</p>
+  return <section className="evidence-preview" aria-label="Versioned source"><div className="evidence-preview-head"><button onClick={onBack}>{simple ? '← Volver a la relación' : '← BACK TO PATH'}</button><b>{source.path}</b></div>
+    {simple && <p>Fuente archivada y verificada · líneas {source.start.line}–{source.end.line}. La declaración resaltada demuestra esta relación.</p>}
+    {simple ? <details><summary>Identidad técnica de la evidencia</summary><p>Snapshot {short(source.snapshotId)} · revisión {source.revision}</p><code>{source.sourceHash}</code></details> : <><p>{source.kind} · snapshot {short(source.snapshotId)} · revision {source.revision}</p>
     {source.pointer && <p>Reviewed JSON pointer: <code>{source.pointer}</code>{source.relatedSource && <> · related source (no proven range): {source.relatedSource}</>}</p>}
-    <p>Verified SHA-256: <code>{source.sourceHash}</code>. Highlighted positions are 1-based UTF-16, end exclusive: {source.start.line}:{source.start.column} → {source.end.line}:{source.end.column}.</p>
+    <p>Verified SHA-256: <code>{source.sourceHash}</code>. Highlighted positions are 1-based UTF-16, end exclusive: {source.start.line}:{source.start.column} → {source.end.line}:{source.end.column}.</p></>}
     <div className="evidence-lines" role="region" aria-label={`Archived ${source.path} source`} tabIndex={0}>
       {lines.map((line, index) => {
         const number = index + 1;

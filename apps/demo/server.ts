@@ -3,7 +3,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { resolve } from 'node:path';
 import ts from 'typescript';
 import { executeTests } from './execution';
-import type { DemoAnalysis, DemoAnalysisRequest, DemoExecution, DemoExecutionRequest, DemoFile, DemoSnapshot } from './src/types';
+import type { DemoAnalysis, DemoAnalysisRequest, DemoExecution, DemoExecutionRequest, DemoFile, DemoSnapshot, DemoMapping, DemoOperation } from './src/types';
 import type { DiscoveryArchive } from '../../packages/impact-engine/src/schema-v2';
 import { WorkspaceSnapshots } from '../../scripts/graph/store';
 import { compatibilityGraph } from '../../scripts/graph/snapshot';
@@ -12,6 +12,7 @@ import { analyzeOverlay } from '../../scripts/graph/analyze';
 import { canonical, hash } from '../../scripts/graph/core';
 import { locateSource } from '../../scripts/graph/locator';
 import { readFederatedSuites } from '../../packages/impact-engine/src/federated';
+import type { ProgressEvent, ProgressObserver } from '../../scripts/graph/progress';
 
 const root = resolve(process.cwd());
 function demoSnapshot(archive: DiscoveryArchive, sessionToken: string): DemoSnapshot {
@@ -98,6 +99,34 @@ export function createDemoApi(executor: Executor = executeTests, workspace = new
   const sessionToken = randomBytes(32).toString('hex');
   const analyses = new Map<string, { analysis: DemoAnalysis; edits: DemoAnalysisRequest['edits']; after: DiscoveryArchive }>();
   const executions = new Map<string, DemoExecution>();
+  const startup: DemoOperation = { id: randomUUID(), kind: 'mapping', status: 'completed', snapshotId: workspace.current.graph.id,
+    events: workspace.progress.map(event => ({ ...event, snapshotId: workspace.current.graph.id })) };
+  const operations = new Map<string, DemoOperation>([[startup.id, startup]]);
+  let mapping: DemoMapping = { state: 'ready', revision: 0, snapshotId: workspace.current.graph.id, operationId: startup.id };
+  const executionBusy = () => [...executions.values()].some(item => item.status === 'queued' || item.status === 'running');
+  const record = (operation: DemoOperation): ProgressObserver => event => {
+    const last = operation.events.at(-1);
+    if (last?.phase === event.phase && last.status === 'running') operation.events[operation.events.length - 1] = event;
+    else operation.events.push(event);
+  };
+  function operation(kind: DemoOperation['kind']) {
+    for (const previous of operations.values()) if (previous.status === 'queued' || previous.status === 'running') previous.status = 'superseded';
+    const next: DemoOperation = { id: randomUUID(), kind, status: 'queued', events: [] };
+    operations.set(next.id, next);
+    if (operations.size > 32) operations.delete(operations.keys().next().value!);
+    return next;
+  }
+  function analyze(current: DiscoveryArchive, edits: DemoAnalysisRequest['edits'], observe?: ProgressObserver) {
+    const analysis = analyzeOverlay(current, edits, observe);
+    const snapshotId = current.graph.id;
+    const id = hash(`${snapshotId}:${canonical(edits)}`);
+    const result: DemoAnalysis = { id, snapshotId, result: analysis.result, diff: analysis.diff, graph: analysis.graph,
+      beforeGraphId: snapshotId, afterGraphId: analysis.after.graph.id, delta: analysis.delta, discovery: analysis.after.graph, federated: analysis.federated };
+    workspace.store.publish(analysis.after, false);
+    analyses.set(id, { analysis: result, edits, after: analysis.after });
+    if (analyses.size > 32) analyses.delete(analyses.keys().next().value!);
+    return result;
+  }
   return createServer(async (request, response) => {
     if (request.method === 'GET' && /^\/api\/snapshots\/[a-f0-9]{64}\/mesh$/.test(request.url ?? '')) {
       try { const archive = workspace.store.read(request.url!.split('/')[3]); return archive.meshDataset ? json(response, 200, archive.meshDataset) : json(response, 404, { error: 'No archived mesh evidence' }); }
@@ -120,6 +149,21 @@ export function createDemoApi(executor: Executor = executeTests, workspace = new
         } catch { return json(response, 404, { error: 'Snapshot or verified source unavailable.' }); }
       }
     }
+    const progressRoute = request.url === '/api/mapping' || request.url === '/api/analysis-operations'
+      || request.url?.startsWith('/api/operations/') || request.url?.startsWith('/api/analyses/');
+    if (progressRoute && !isAuthorized(request, sessionToken)) return json(response, 403, { error: 'Invalid local demo session.' });
+    // Progress and deletion remain available even when current extraction fails.
+    if (request.method === 'GET' && request.url?.startsWith('/api/operations/')) {
+      const found = operations.get(request.url.slice('/api/operations/'.length));
+      return found ? json(response, 200, found) : json(response, 404, { error: 'Operación no disponible.' });
+    }
+    if (request.method === 'DELETE' && request.url === '/api/mapping') {
+      if (executionBusy()) return json(response, 409, { error: 'Espera a que termine la ejecución antes de borrar el mapeo.' });
+      for (const item of operations.values()) if (item.status === 'queued' || item.status === 'running') item.status = 'superseded';
+      mapping = { state: 'empty', revision: mapping.revision + 1 };
+      analyses.clear();
+      return json(response, 200, mapping);
+    }
     // Immutable history is readable even while a new extraction is failing.
     if (request.method === 'GET' && request.url?.startsWith('/api/snapshots/')) {
       try { return json(response, 200, demoSnapshot(workspace.store.read(request.url.slice('/api/snapshots/'.length)), sessionToken)); }
@@ -127,31 +171,83 @@ export function createDemoApi(executor: Executor = executeTests, workspace = new
     }
     let current: DiscoveryArchive;
     try { current = workspace.refresh(); }
-    catch (error) { return json(response, 503, { error: `Snapshot rebuild failed; previous version retained: ${error instanceof Error ? error.message : error}` }); }
+    catch (error) {
+      if (request.method === 'POST' && request.url === '/api/mapping') current = workspace.current;
+      else {
+        if (request.method === 'GET' && request.url === '/api/mapping') return json(response, 200, { ...mapping, state: mapping.state === 'empty' ? 'empty' : 'error' });
+        return json(response, 503, { error: `Snapshot rebuild failed; previous version retained: ${error instanceof Error ? error.message : error}` });
+      }
+    }
     const snapshotId = current.graph.id;
     if (request.method === 'GET' && request.url === '/api/health') return json(response, 200, { status: 'ok', snapshotId });
     if (request.method === 'GET' && request.url === '/api/snapshot') return json(response, 200, demoSnapshot(current, sessionToken));
+    if (request.method === 'GET' && request.url === '/api/mapping') return json(response, 200,
+      { ...mapping, state: mapping.state === 'ready' && mapping.snapshotId !== snapshotId ? 'stale' : mapping.state });
+    if (request.method === 'POST' && request.url === '/api/mapping') {
+      try {
+        const body = await readBody(request) as { snapshotId?: string };
+        if (!body || Object.keys(body).length !== 1 || body.snapshotId !== snapshotId) throw new Error('La fuente base ha cambiado. Recarga el snapshot antes de construir.');
+        if (executionBusy()) return json(response, 409, { error: 'Espera a que termine la ejecución antes de reconstruir.' });
+        const next = operation('mapping'), revision = mapping.revision + 1;
+        mapping = { state: 'building', revision, operationId: next.id };
+        analyses.clear();
+        setImmediate(() => {
+          if (next.status === 'superseded' || mapping.revision !== revision) return;
+          next.status = 'running';
+          try {
+            const archive = workspace.rebuild(record(next));
+            next.snapshotId = archive.graph.id;
+            next.events = next.events.map(event => ({ ...event, snapshotId: archive.graph.id }));
+            next.status = 'completed';
+            mapping = { state: 'ready', revision, snapshotId: archive.graph.id, operationId: next.id };
+          } catch (error) {
+            next.status = 'failed'; next.error = error instanceof Error ? error.message : 'No se pudo construir el mapeo.';
+            mapping = { state: 'error', revision, operationId: next.id };
+          }
+        });
+        return json(response, 202, next);
+      } catch (error) { return json(response, 400, { error: error instanceof Error ? error.message : 'Solicitud de construcción inválida.' }); }
+    }
+    if (request.method === 'POST' && request.url === '/api/analysis-operations') {
+      try {
+        if (mapping.state !== 'ready' || mapping.snapshotId !== snapshotId) return json(response, 409, { error: 'Genera un mapeo válido antes de calcular el impacto.' });
+        const body = validateRequest(await readBody(request), current);
+        const edits = [...body.edits].sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
+        const next = operation('analysis'), revision = mapping.revision;
+        setImmediate(() => {
+          if (next.status === 'superseded' || mapping.revision !== revision) return;
+          next.status = 'running';
+          try {
+            const result = analyze(current, edits, record(next));
+            next.analysisId = result.id; next.snapshotId = result.afterGraphId;
+            next.events = next.events.map(event => ({ ...event, snapshotId: event.side === 'before' ? result.beforeGraphId : result.afterGraphId }));
+            next.status = 'completed';
+          } catch (error) { next.status = 'failed'; next.error = error instanceof Error ? error.message : 'No se pudo calcular el impacto.'; }
+        });
+        return json(response, 202, next);
+      } catch (error) { return json(response, 400, { error: error instanceof Error ? error.message : 'Solicitud de análisis inválida.' }); }
+    }
+    if (request.method === 'GET' && request.url?.startsWith('/api/analyses/')) {
+      const stored = analyses.get(request.url.slice('/api/analyses/'.length));
+      if (!stored || mapping.state !== 'ready' || stored.analysis.snapshotId !== snapshotId || mapping.snapshotId !== snapshotId) return json(response, 409, { error: 'Análisis invalidado. Construye y calcula de nuevo.' });
+      return json(response, 200, stored.analysis);
+    }
     const protectedRoute = (request.method === 'POST' && ['/api/analyses', '/api/executions'].includes(request.url ?? ''))
       || (request.method === 'GET' && request.url?.startsWith('/api/executions/'));
     if (protectedRoute && !isAuthorized(request, sessionToken)) return json(response, 403, { error: 'Invalid local demo session.' });
     if (request.method === 'POST' && request.url === '/api/analyses') {
       try {
+        if (mapping.state !== 'ready' || mapping.snapshotId !== snapshotId) return json(response, 409, { error: 'Genera un mapeo válido antes de calcular el impacto.' });
         const body = validateRequest(await readBody(request), current);
         const canonicalEdits = [...body.edits].sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
-        const analysis = analyzeOverlay(current, canonicalEdits);
-        const id = hash(`${snapshotId}:${canonical(canonicalEdits)}`);
-        const result: DemoAnalysis = { id, snapshotId, result: analysis.result, diff: analysis.diff, graph: analysis.graph,
-          beforeGraphId: current.graph.id, afterGraphId: analysis.after.graph.id, delta: analysis.delta, discovery: analysis.after.graph, federated: analysis.federated };
-        workspace.store.publish(analysis.after, false);
-        analyses.set(id, { analysis: result, edits: canonicalEdits, after: analysis.after });
-        if (analyses.size > 32) analyses.delete(analyses.keys().next().value!);
-        return json(response, 200, result);
+        return json(response, 200, analyze(current, canonicalEdits));
       } catch (error) {
         return json(response, 400, { error: error instanceof Error ? error.message : 'Unable to analyze edits.' });
       }
     }
     if (request.method === 'POST' && request.url === '/api/executions') {
       try {
+        if (mapping.state !== 'ready' || mapping.snapshotId !== snapshotId) throw new Error('Genera un mapeo válido antes de ejecutar tests.');
         const body = validateExecutionRequest(await readBody(request), snapshotId);
         const stored = analyses.get(body.analysisId);
         if (!stored) throw new Error('Analysis is unknown or expired. Calculate regression again.');

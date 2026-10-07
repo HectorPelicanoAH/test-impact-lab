@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { createDemoApi } from '../apps/demo/server';
 import { materializeInventory } from './inventory/materialize.mjs';
 import type { DemoAnalysis, DemoSnapshot } from '../apps/demo/src/types';
+import { calculateInBrowser } from './browser-analysis';
 
 const inventory = materializeInventory();
 process.env.INVENTORY_ROOT = inventory.root;
@@ -31,6 +32,7 @@ if (process.argv.includes('--serve')) {
     const baseline = await fetch(`http://127.0.0.1:${apiPort}/api/snapshot`).then(response => response.json()) as DemoSnapshot;
     await page.goto(url);
     await page.getByRole('button', { name: 'IMPACT GRAPH', exact: true }).click();
+    await page.getByRole('button', { name: 'Explorador técnico', exact: true }).click();
     await page.getByRole('button', { name: 'SYSTEM', exact: true }).click();
     await page.getByRole('button', { name: /test-impact-lab \/ login/ }).click();
     await page.getByRole('button', { name: /apps\/frontend\/src.*Inspect code/ }).click();
@@ -98,9 +100,8 @@ if (process.argv.includes('--serve')) {
     await page.getByRole('navigation').getByRole('button', { name: 'CODE', exact: true }).click();
     await page.getByRole('button', { name: 'CREATE GUIDED SCREEN' }).click();
     await page.getByRole('button', { name: /^GuidedScreen\.tsx(?: modified)?$/ }).waitFor();
-    const response = page.waitForResponse(reply => reply.url().endsWith('/api/analyses') && reply.request().method() === 'POST');
-    await page.getByRole('button', { name: 'CALCULATE REGRESSION', exact: true }).click();
-    const connected = await (await response).json() as DemoAnalysis;
+    const connected = await calculateInBrowser(page);
+    await page.getByRole('button', { name: 'Explorador técnico', exact: true }).click();
     if (!connected.delta.nodes.added.some(node => node.locations[0]?.path === 'apps/frontend/src/GuidedScreen.tsx')
       || !connected.delta.edges.added.some(edge => edge.type === 'renders')) throw new Error('Guided screen did not introduce demonstrated render/import facts.');
     await page.getByText('TOPOLOGY DELTA', { exact: true }).waitFor();
@@ -116,9 +117,8 @@ if (process.argv.includes('--serve')) {
     await page.getByRole('navigation').getByRole('button', { name: 'CODE', exact: true }).click();
     await page.getByRole('button', { name: /^LoginPage\.tsx(?: modified)?$/ }).click();
     await page.getByRole('button', { name: 'DELETE FILE' }).click();
-    const deletedResponse = page.waitForResponse(reply => reply.url().endsWith('/api/analyses') && reply.request().method() === 'POST');
-    await page.getByRole('button', { name: 'CALCULATE REGRESSION', exact: true }).click();
-    const deleted = await (await deletedResponse).json() as DemoAnalysis;
+    const deleted = await calculateInBrowser(page);
+    await page.getByRole('button', { name: 'Explorador técnico', exact: true }).click();
     if (!deleted.delta.nodes.removed.some(node => node.locations[0]?.path === 'apps/frontend/src/LoginPage.tsx')) throw new Error('Deleted source absent from before delta.');
     await page.getByText('Removed nodes and edges (before snapshot)').click();
     await page.getByRole('button', { name: /apps\/frontend\/src\/LoginPage\.tsx/ }).last().click();

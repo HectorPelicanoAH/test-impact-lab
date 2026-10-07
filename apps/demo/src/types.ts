@@ -1,6 +1,7 @@
 import type { FileDiff, ImpactGraph, ImpactResult, SnapshotRef, TestKind, TestMetadata } from '@test-impact/impact-engine';
 import type { GraphSnapshotV2, OverlayEdit, SnapshotDeltaV2 } from '../../../packages/impact-engine/src/schema-v2';
 import type { FederatedImpact, SuiteDecision } from '../../../packages/impact-engine/src/federated';
+import type { ProgressEvent } from '../../../scripts/graph/progress';
 export type { LocatedSource } from '../../../scripts/graph/locator';
 
 export interface DemoFile {
@@ -32,6 +33,22 @@ export interface DemoAnalysis {
   delta: SnapshotDeltaV2;
   discovery: GraphSnapshotV2;
   federated: FederatedImpact;
+}
+
+export interface DemoOperation {
+  id: string;
+  kind: 'mapping' | 'analysis';
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'superseded';
+  events: ProgressEvent[];
+  snapshotId?: string;
+  analysisId?: string;
+  error?: string;
+}
+export interface DemoMapping {
+  state: 'empty' | 'building' | 'ready' | 'stale' | 'error';
+  revision: number;
+  snapshotId?: string;
+  operationId?: string;
 }
 
 export interface DemoAnalysisRequest {

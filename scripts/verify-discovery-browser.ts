@@ -5,6 +5,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createDemoApi } from '../apps/demo/server';
 import type { DemoAnalysis, DemoSnapshot } from '../apps/demo/src/types';
+import { calculateInBrowser } from './browser-analysis';
 
 // Separate ephemeral servers: never reuse/restart the developer's running services.
 const api = createDemoApi();
@@ -28,13 +29,12 @@ if (process.argv.includes('--serve')) {
   try {
     const before = await fetch(`http://127.0.0.1:${apiPort}/api/snapshot`).then(response => response.json()) as DemoSnapshot;
     await page.goto(url);
+    await page.getByRole('navigation').getByRole('button', { name: 'CODE', exact: true }).click();
     await page.getByRole('button', { name: 'ADD FILE', exact: true }).click();
     await page.getByRole('button', { name: /^NewPage\.tsx(?: modified)?$/ }).waitFor();
-    let response = page.waitForResponse(response => response.url().endsWith('/api/analyses') && response.request().method() === 'POST');
-    await page.getByRole('button', { name: 'CALCULATE REGRESSION', exact: true }).click();
-    const addedResponse = await response;
-    const added = await addedResponse.json() as DemoAnalysis;
-    if (!addedResponse.ok() || !added.delta.nodes.added.some(node => node.locations[0]?.path === 'apps/frontend/src/NewPage.tsx')) throw new Error('UI source addition absent from graph.');
+    const added = await calculateInBrowser(page);
+    if (!added.delta.nodes.added.some(node => node.locations[0]?.path === 'apps/frontend/src/NewPage.tsx')) throw new Error('UI source addition absent from graph.');
+    await page.getByRole('button', { name: 'Explorador técnico', exact: true }).click();
     await page.getByRole('heading', { name: 'TOPOLOGY DELTA' }).waitFor();
     await page.screenshot({ path: resolve(reports, 'added.png'), fullPage: true });
     await page.getByRole('navigation').getByRole('button', { name: 'CODE', exact: true }).click();
@@ -47,16 +47,12 @@ if (process.argv.includes('--serve')) {
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A');
     await page.keyboard.insertText(connected);
     await page.getByRole('button', { name: 'LoginPage.tsx modified', exact: true }).waitFor();
-    response = page.waitForResponse(response => response.url().endsWith('/api/analyses') && response.request().method() === 'POST');
-    await page.getByRole('button', { name: 'CALCULATE REGRESSION', exact: true }).click();
-    const connectedAnalysis = await (await response).json() as DemoAnalysis;
+    const connectedAnalysis = await calculateInBrowser(page);
     if (!connectedAnalysis.delta.edges.added.some(edge => edge.type === 'renders')) throw new Error('UI import/JSX connection was not discovered.');
     await page.getByRole('navigation').getByRole('button', { name: 'CODE', exact: true }).click();
     await page.getByRole('button', { name: /^LoginPage\.tsx(?: modified)?$/ }).click();
     await page.getByRole('button', { name: 'DELETE FILE', exact: true }).click();
-    response = page.waitForResponse(response => response.url().endsWith('/api/analyses') && response.request().method() === 'POST');
-    await page.getByRole('button', { name: 'CALCULATE REGRESSION', exact: true }).click();
-    const deleted = await (await response).json() as DemoAnalysis;
+    const deleted = await calculateInBrowser(page);
     if (!deleted.diff.some(file => file.status === 'deleted' && file.path.endsWith('LoginPage.tsx'))) throw new Error('UI deletion did not reach analysis.');
     if (!deleted.delta.nodes.removed.some(node => node.locations[0]?.path.endsWith('LoginPage.tsx'))) throw new Error('UI deletion did not remove graph nodes.');
     const after = await fetch(`http://127.0.0.1:${apiPort}/api/snapshot`).then(response => response.json()) as DemoSnapshot;
