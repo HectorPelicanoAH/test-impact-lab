@@ -18,7 +18,9 @@ El recorrido es **construir → cambiar código → analizar impacto → ejecuta
 | **Grafos** | Canvas principal de v1, minimapa, zoom/pan e inspector lateral contextual. Construcción e impacto se explican aquí. Es la vista inicial, vacía. |
 | **Tests** | Selección local y suites distribuidas, ejecución seleccionada/completa y detalle de cada test: qué valida, fuente/assertions, motivo, resultado, duración y salida. |
 
-En Grafos hay una sola franja: **paso actual · tecnología · una frase · resultado · Ejecutar siguiente paso**. Ejemplo: «Resolver imports · TypeScript Compiler API · Resuelvo cada import a su módulo · +12 conexiones». Los números proceden de esa ejecución. El inspector se abre al seleccionar; la explicación extensa y el registro quedan plegados.
+En Grafos hay una sola franja: **paso actual · tecnología · explicación breve · estado/resultado · Ejecutar siguiente paso**. Todos los pasos llevan una explicación visible, sin tener que abrir el inspector: qué se está buscando, cómo lo hace la tecnología indicada y qué significa el resultado. El inspector se abre al seleccionar; la explicación extensa y el registro quedan plegados.
+
+La explicación acompaña al resaltado del grafo. Ejemplo: «Resolver imports · TypeScript Compiler API · El compilador resuelve cada import a su archivo de destino. Las flechas resaltadas muestran los módulos que dependen de otros · +12 conexiones». Los números proceden de esa ejecución. Si todavía no hay elementos o un paso no descubre conexiones, se explica el motivo en la misma franja.
 
 Se elimina de esta variante la pantalla Application, la consola extensa siempre abierta y los paneles de filtros/IDs/diagnósticos desplegados por defecto. Un diagnóstico relevante al paso se resume junto a su resultado; su detalle se abre a petición.
 
@@ -40,6 +42,16 @@ El inspector reutiliza el estilo de fuente de v1: editor de lectura, archivo y b
 ## 4. Ejecutar pasos reales
 
 **Ejecutar siguiente paso hace trabajo nuevo en el backend.** No revela porciones de un grafo ya calculado. La sesión mantiene las entradas fijadas y el contexto del extractor entre acciones. La interfaz marca En curso y añade los resultados al finalizar cada paso; entre pasos el motor queda esperando al presentador.
+
+**Explicación y espera de cada paso:**
+
+- Al iniciar, se muestra inmediatamente un loader junto al nombre del paso y su explicación: «Resolviendo imports… · TypeScript Compiler API · Buscando el archivo de destino de cada import». El estado de espera incluye tanto la respuesta del servidor como la ejecución de la fase.
+- Durante el proceso, el grafo ya descubierto y sus evidencias siguen visibles y consultables. El loader no tapa el canvas ni altera el zoom. El botón muestra **Ejecutando…** y no permite lanzar otra fase; las acciones que invalidan la operación quedan bloqueadas, salvo la cancelación explícita.
+- La espera muestra tiempo transcurrido. Solo se indican unidades procesadas si el backend las informa; en caso contrario, el loader es indeterminado, sin porcentajes ni tiempo restante inventados. No se añaden pausas para hacer visible el loader cuando el paso termina rápidamente.
+- Al terminar, el loader desaparece, se incorporan/resaltan los hechos y la explicación cambia al resultado real: «Se han resuelto 12 imports; las flechas nuevas muestran sus destinos». Queda visible hasta ejecutar o revisar otro paso. Entre fases se indica **Listo para el siguiente paso**, sin loader.
+- Si falla, se detiene el loader y se explica qué fase falló, qué pudo comprobarse y cómo reintentar o cancelar. Un fallo de comunicación no se presenta como fallo del extractor: se consulta el estado de la operación antes de repetir trabajo. Un paso cancelado nunca continúa aparentando ejecución.
+
+El estado tiene texto además de animación y se anuncia de forma accesible; se respeta la preferencia de movimiento reducido. Este mismo comportamiento se aplica a los pasos del análisis de impacto.
 
 Hoy `WorkspaceSnapshots` construye el grafo al arrancar, `buildArchive` ejecuta todos los extractores seguidos y los botones de la variante anterior revisan eventos terminados. Hay que separar la carga de fuentes para el editor de la construcción del grafo y convertir el pipeline en una ejecución reanudable. Ocultar el snapshot final con animaciones no cumple este SDD.
 
@@ -112,7 +124,7 @@ Contrato propuesto, protegido por la sesión local existente:
 | Abrir evidencia parcial | `GET /api/graph-sessions/:id/locators`: ID de evidencia/nodo ya descubierto, sobre bytes fijados de la sesión. |
 | Cancelar | `DELETE /api/graph-sessions/:id`: invalida la operación. Reiniciar crea otra sesión; no borra archivos ni snapshots históricos. |
 
-Cada resultado incluye secuencia, fase, estado, tecnología/versión efectiva, duración, frase, objetos de nodos/aristas/evidencias/diagnósticos y los IDs nuevos/actualizados/retirados de ese paso. Observaciones llevan sus propias referencias. Los parciales se identifican por **sesión + fase**; solo el final validado recibe identidad de snapshot y puede alimentar ejecución.
+Cada fase expone antes de ejecutarse su nombre, tecnología y explicación de la acción, para mostrarlos durante la espera. Cada resultado incluye secuencia, fase, estado, tecnología/versión efectiva, duración, explicación del resultado, objetos de nodos/aristas/evidencias/diagnósticos y los IDs nuevos/actualizados/retirados de ese paso. Las unidades procesadas son opcionales y solo se publican si el motor puede medirlas. Observaciones llevan sus propias referencias. Los parciales se identifican por **sesión + fase**; solo el final validado recibe identidad de snapshot y puede alimentar ejecución.
 
 Los locators parciales verifican hash/rango contra entradas congeladas, con el mismo criterio que `locator.ts`; no fuerzan publicar un snapshot incompleto. No basta devolver IDs del grafo final para dibujar el parcial. Las respuestas de fases, explicación e inspector proceden del mismo resultado backend.
 
@@ -142,5 +154,7 @@ Criterios verificables:
 8. Cancelación, errores, doble clic, cambio de fuentes/overlay y respuesta tardía conservan el último estado válido.
 9. En una pasada básica se indica Sin trazas; una captura importada conserva revisión/ventana y no se presenta como tráfico del overlay.
 10. Un ensayo de 15–20 minutos comprueba el aspecto v1, ambos journeys, evidencia y fallo contractual. Las pruebas previas de otra rama no aceptan esta variante.
+11. Cada paso de descubrimiento e impacto muestra una explicación visible de su acción, tecnología y resultado, coherente con los elementos resaltados; también cuando no incorpora hechos.
+12. Una fase con demora real muestra loader y texto En curso, mantiene el canvas consultable y bloquea avances duplicados. Se comprueban finalización, fallo y cancelación: el loader se detiene y se muestra el estado correcto. Las fases rápidas no reciben esperas artificiales ni las indeterminadas porcentajes ficticios.
 
 Orden de entrega: **A. pipeline real por fases y locators parciales → B. canvas v1 progresivo e inspector → C. impacto, detalle de suites y ensayo**. Esta rama contiene inicialmente el SDD; implementación, capturas y resultados de aceptación se añadirán con su propia validación.
