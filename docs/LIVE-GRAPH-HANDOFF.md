@@ -50,3 +50,9 @@ La política anterior ampliaba globalmente altas y contratos incompatibles. Ahor
 - **66 pruebas** pasan en ocho archivos, con regresiones de aislamiento y fallback; se repitieron 23 del análisis/journeys/federación tras el ajuste final. Typecheck/build pasan.
 - Chromium recorre ambos análisis de 14 fases y comprueba los contadores y el botón de ejecución, sin errores de navegador. Comando: `CI=true PLAYWRIGHT_BROWSERS_PATH=/private/tmp/test-impact-lab-browsers node --import tsx scripts/verify-live-graph-browser.ts --scoped-selection`.
 - Ejecución física `d1a2dede-ad3b-4af3-bdda-59609212262f`: **8,8 s**, ninguna entrada local y únicamente las cinco suites seleccionadas. El contrato falla, los dos tests de consumidor pasan y las dos suites del broker quedan unavailable. Informe ignorado: `.impact-runs/d1a2dede-ad3b-4af3-bdda-59609212262f/summary.json`.
+
+## Variantes separadas y quick changes
+
+`feat/live-graph-v1` (PR #5) conserva el contenido de `4b2e7d8`, anterior a la corrección del selector, mediante un revert sin reescribir historial. `feat/scoped-impact-v1-quick-changes` conserva la selección acotada de `8fb0839` y recupera los cuatro botones de v1, visibles en Código con sus descripciones originales. Las transformaciones de `suggestions.ts` coinciden con el tag v1.
+
+Validación de esta recuperación: typecheck/build y Chromium pasan; se comprueban cuatro botones visibles, descripciones, archivo/diff de cada transformación y reset, sin extracción al aplicar un quick change ni errores de navegador. Comando: `CI=true PLAYWRIGHT_BROWSERS_PATH=/private/tmp/test-impact-lab-browsers node --import tsx scripts/verify-live-graph-browser.ts --quick-changes`. [Captura de los cuatro botones](screenshots/live-graph-v1/04-quick-changes.png).

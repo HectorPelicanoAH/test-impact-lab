@@ -1,6 +1,6 @@
 # Preparar y presentar el grafo progresivo
 
-Rama: `feat/live-graph-v1`. Recorrido principal de 15–20 minutos. La validación y sus límites están en [LIVE-GRAPH-HANDOFF.md](LIVE-GRAPH-HANDOFF.md).
+Rama: `feat/scoped-impact-v1-quick-changes`. Recorrido principal de 15–20 minutos. La validación y sus límites están en [LIVE-GRAPH-HANDOFF.md](LIVE-GRAPH-HANDOFF.md).
 
 ## Preparación en una hora
 
@@ -34,3 +34,7 @@ Durante los pasos, el loader y el tiempo transcurrido representan trabajo real. 
 - **¿Las trazas prueban cobertura?** No. Correlacionan tráfico observado con revisión y ventana. Sin dataset se informa Sin trazas; un snapshot previo no se atribuye al overlay.
 - **¿RabbitMQ se consulta durante el descubrimiento?** No. Su topología se extrae de configuración. La ejecución con broker requiere `pnpm dev:events`; el recorrido básico usa Inventory y suites disponibles sin broker.
 - **¿Qué seleccionan New screen e Incompatible event?** La pantalla conectada selecciona el E2E E1 del Login; no hay tests propios registrados para el componente nuevo. El evento incompatible selecciona cinco suites de contrato/consumidores y ninguna del Login. Se recorren las relaciones anteriores cuando el binding se retira. Archivos aislados, eliminaciones, parseos fallidos o destinos dinámicos sin resolver conservan la selección completa. La UI muestra el motivo real.
+
+## Quick changes de v1
+
+En Código se muestran los cuatro botones originales, con sus descripciones: Change LoginButton, Change login normalization, Change User.authenticate() y Change POST /login contract. Cada uno abre su diff sobre el overlay y permite analizarlo por fases. La variante anterior se conserva en `feat/live-graph-v1` y PR #5; esta rama incorpora selección acotada.

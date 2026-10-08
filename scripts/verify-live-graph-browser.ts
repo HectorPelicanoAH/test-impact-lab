@@ -66,6 +66,33 @@ try {
     await expect(page.locator('.error-banner')).toHaveCount(0);
     console.log(await page.locator('.live-step b').first().innerText());
   }
+  if (process.argv.includes('--quick-changes')) {
+    await page.getByRole('navigation').getByRole('button', { name: 'Código', exact: true }).click();
+    const quick = page.getByLabel('Quick changes de v1');
+    await expect(quick.getByRole('button')).toHaveCount(4);
+    for (const [title, path, changed] of [
+      ['Change LoginButton', 'apps/frontend/src/components/LoginButton.tsx', 'Continue'],
+      ['Change login normalization', 'apps/frontend/src/auth/normalizeEmail.ts', 'value.trim()'],
+      ['Change User.authenticate()', 'apps/backend/src/auth/domain/User.ts', "if (this.locked) return 'invalid-credentials'"],
+      ['Change POST /login contract', 'packages/api-contract/src/login.ts', "'/session'"],
+    ] as const) {
+      const button = quick.getByRole('button', { name: title, exact: false });
+      await expect(button.locator('small')).not.toHaveText('');
+      await button.click();
+      await expect(page.locator('.editor-header')).toContainText(path);
+      await expect(page.locator('.editor-header')).toContainText('MODIFIED');
+      await expect(page.locator('.diff-editor .modified-in-monaco-diff-editor .view-lines')).toContainText(changed);
+      await expect.poll(async () => (await page.locator('.diff-editor .monaco-diff-editor').boundingBox())?.height ?? 0).toBeGreaterThan(200);
+    }
+    await page.screenshot({ path: resolve(reports, 'quick-changes-v1.png') });
+    await page.getByRole('button', { name: 'Restaurar código', exact: true }).click();
+    await expect(page.locator('.top-actions')).toContainText('0 MODIFIED');
+    await page.getByRole('navigation').getByRole('button', { name: 'Grafos', exact: true }).click();
+    await expect(page.locator('.react-flow__node')).toHaveCount(0);
+    expect(await page.evaluate(() => (window as typeof window & { browserErrors: string[] }).browserErrors)).toEqual([]);
+    expect(errors).toEqual([]);
+    console.log('Four v1 quick changes: visible descriptions, correct source/diff, reset, no extraction or browser errors.');
+  } else {
   await next(); await expect(page.locator('.react-flow__node')).toHaveCount(0);
   await next(); expect(await page.locator('.react-flow__node').count()).toBeGreaterThan(0);
   await next(); await expect(page.locator('.react-flow__edge')).not.toHaveCount(0);
@@ -177,6 +204,7 @@ try {
   expect(await page.evaluate(() => (window as typeof window & { browserErrors: string[] }).browserErrors)).toEqual([]);
   expect(errors).toEqual([]);
   console.log('Live graph browser: empty → partial evidence → new consumer → suite detail → retired HTTP source → real contract failure. No browser errors.');
+  }
   }
   }
 } finally {

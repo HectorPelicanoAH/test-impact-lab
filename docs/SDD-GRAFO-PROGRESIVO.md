@@ -1,6 +1,6 @@
 # SDD — Grafo progresivo con el diseño de v1
 
-Fecha de diseño: 2026-10-07. Implementación: 2026-10-08. Estado: implementado; validación técnica y límites en el documento de continuidad. Rama: `feat/live-graph-v1`. Punto de continuidad: [LIVE-GRAPH-HANDOFF.md](LIVE-GRAPH-HANDOFF.md).
+Fecha de diseño: 2026-10-07. Implementación: 2026-10-08. Estado: implementado; validación técnica y límites en el documento de continuidad. Variante original: `feat/live-graph-v1`. Variante con selección acotada y quick changes visibles: `feat/scoped-impact-v1-quick-changes`. Punto de continuidad: [LIVE-GRAPH-HANDOFF.md](LIVE-GRAPH-HANDOFF.md).
 
 Esta variante parte de `docs/dependency-graph-sdd` (`93089f1`, escenarios G1–G9) y recupera el lenguaje visual del tag `v1`. La variante `feat/guided-discovery-demo` y su PR #4 se conservan separados. Este documento define la variante implementada. El guion para prepararla en una hora y presentarla en 15–20 minutos está en [DEMO-GRAFO-PROGRESIVO.md](DEMO-GRAFO-PROGRESIVO.md).
 

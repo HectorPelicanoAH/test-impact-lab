@@ -322,10 +322,10 @@ export function App() {
     {view === 'code' && <div className="scenario-strip">
       <label htmlFor="learning-journey">Escenario</label><select id="learning-journey" value={journey} onChange={event => setJourney(event.target.value as JourneyId)} disabled={pending || executionBusy}>{journeys.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
       <button onClick={applyJourney} disabled={pending || executionBusy}>Aplicar cambio</button>
-      <details><summary>Cambios rápidos del login</summary>{suggestions.map(item => <button key={item.id} onClick={() => chooseSuggestion(item.id)} disabled={pending || executionBusy}>{item.title}</button>)}</details>
       <button onClick={() => { workingRevision.current++; setEdits({}); setDeleted(new Set()); setAnalysis(undefined); setExecutions({}); }} disabled={pending || executionBusy}>Restaurar código</button>
       <button onClick={reloadSnapshot} disabled={pending || executionBusy}>Recargar fuentes</button>
     </div>}
+    {view === 'code' && <div className="suggestion-strip" aria-label="Quick changes de v1"><div><span>QUICK CHANGES</span>{suggestions.map(item => <button key={item.id} onClick={() => chooseSuggestion(item.id)} disabled={pending || executionBusy}><b>{item.title}</b><small>{item.description}</small></button>)}</div></div>}
     <main className="workspace">
       {view === 'code' && <section className="code-view">
         <div className="source-management"><label htmlFor="new-source-path">NEW SOURCE · OVERLAY ONLY</label><input id="new-source-path" value={newPath} onChange={event => setNewPath(event.target.value)} /><button onClick={createSource} disabled={pending || executionBusy}>ADD FILE</button><button onClick={deleteSource} disabled={!selectedPath || pending || executionBusy}>DELETE FILE</button>
