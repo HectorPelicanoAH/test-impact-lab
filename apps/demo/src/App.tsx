@@ -2,7 +2,7 @@ import { deferMonacoLayout } from './monaco-layout';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import { SnapshotDiffEditor as DiffEditor } from './components/SnapshotDiffEditor';
-import type { TestKind } from '@test-impact/impact-engine';
+import type { TestKind, TestMetadata } from '@test-impact/impact-engine';
 import { RepositoryTree } from './components/RepositoryTree';
 import { LiveGraph } from './components/LiveGraph';
 import { ExecutionPanel } from './components/ExecutionPanel';
@@ -38,12 +38,14 @@ export function App() {
   const [focusTest, setFocusTest] = useState<string>();
   const [focusEdge, setFocusEdge] = useState<string>();
   const [pending, setPending] = useState(false);
+  const [automatic, setAutomatic] = useState(false);
+  const automaticLock = useRef(false);
   const [executions, setExecutions] = useState<Partial<Record<ExecutionMode, DemoExecution>>>({});
   const [executionStarting, setExecutionStarting] = useState(false);
   const [error, setError] = useState<string>();
   const [journey, setJourney] = useState<JourneyId>('screen');
   const [appliedJourney, setAppliedJourney] = useState<JourneyId>();
-  const inspectorRef = useRef<HTMLDivElement>(null);
+  const inspectorRef = useRef<HTMLElement>(null);
   const workingRevision = useRef(0);
 
   useEffect(() => {
@@ -147,6 +149,7 @@ export function App() {
     if (next.status === 'completed' && next.kind === 'discovery') setBaseSession(next);
     if (next.analysis) setAnalysis(next.analysis);
     if (next.status === 'error' || next.status === 'stale') setError(next.error ?? 'Las fuentes han cambiado. Recarga y reconstruye.');
+    return next;
   }
   async function advance(state?: DemoGraphSession) {
     if (!snapshot || pending || executionBusy) return;
@@ -184,9 +187,64 @@ export function App() {
     } catch (cause) { if (revision === workingRevision.current) setError(cause instanceof Error ? cause.message : 'No se pudo iniciar el impacto.'); }
     finally { if (revision === workingRevision.current) setPending(false); }
   }
+  async function runAll() {
+    if (!snapshot || pending || automaticLock.current || executionBusy) return;
+    automaticLock.current = true; setAutomatic(true); setPending(true); setError(undefined); setView('graph');
+    const revision = workingRevision.current;
+    let current = graphSession;
+    const create = (kind: 'discovery' | 'impact', base?: DemoGraphSession) => request<DemoGraphSession>('/api/graph-sessions', {
+      method: 'POST', headers, body: JSON.stringify({ kind, inputId: snapshot.id, ...(base ? { baseSessionId: base.id, edits: [
+        ...Object.entries(edits).filter(([path]) => !deleted.has(path)).map(([path, content]) => ({ path, content,
+          ...(snapshot.files.some(file => file.path === path) ? {} : { operation: 'add' }) })),
+        ...[...deleted].map(path => ({ path, operation: 'delete' })),
+      ] } : {}) }),
+    });
+    async function complete(state: DemoGraphSession): Promise<DemoGraphSession | undefined> {
+      let next = await request<DemoGraphSession>('/api/graph-sessions/' + state.id, { headers });
+      if (revision !== workingRevision.current) return;
+      if (next.status === 'running') next = await poll(next, revision) ?? next;
+      while (revision === workingRevision.current && (next.status === 'waiting' || next.status === 'error')) {
+        const response = await request<DemoGraphSession>('/api/graph-sessions/' + next.id + '/next', {
+          method: 'POST', headers, body: JSON.stringify({ sequence: next.sequence, key: crypto.randomUUID() }),
+        });
+        if (revision !== workingRevision.current) return;
+        setGraphSession(response);
+        const finished = await poll(response, revision);
+        if (!finished || revision !== workingRevision.current) return;
+        next = finished;
+        if (next.status !== 'waiting') break;
+      }
+      return revision === workingRevision.current ? next : undefined;
+    }
+    try {
+      let base = baseSession;
+      if (!base || base.status !== 'completed') {
+        current = current?.kind === 'discovery' && ['waiting', 'running', 'error'].includes(current.status) ? current : await create('discovery');
+        if (revision !== workingRevision.current) return;
+        setGraphSession(current);
+        base = await complete(current);
+        if (!base || base.status !== 'completed') return;
+      }
+      if (modified.size && revision === workingRevision.current) {
+        setAnalysis(undefined); setExecutions({}); setFocusTest(undefined);
+        current = current?.kind === 'impact' && ['waiting', 'running', 'error'].includes(current.status) ? current : await create('impact', base);
+        if (revision !== workingRevision.current) return;
+        setGraphSession(current);
+        const finished = await complete(current);
+        if (finished?.status === 'completed' && finished.analysis && revision === workingRevision.current) {
+          setInspectedTestId(finished.analysis.result.selectedTests[0] ?? finished.analysis.federated.suites.find(suite => suite.selected)?.id);
+          setView('tests');
+        }
+      }
+    } catch (cause) {
+      if (revision === workingRevision.current) setError(cause instanceof Error ? cause.message : 'No se pudo completar el proceso. Consulta el estado antes de reintentar.');
+    } finally {
+      if (revision === workingRevision.current) { automaticLock.current = false; setAutomatic(false); setPending(false); }
+    }
+  }
   async function cancelGraph() {
     const current = graphSession;
-    workingRevision.current++; setPending(false); setAnalysis(undefined);
+    workingRevision.current++; automaticLock.current = false; setAutomatic(false); setPending(false); setAnalysis(undefined);
     if (current) {
       try { setGraphSession(await request<DemoGraphSession>('/api/graph-sessions/' + current.id, { method: 'DELETE', headers })); }
       catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo cancelar.'); return false; }
@@ -211,7 +269,7 @@ export function App() {
     const revision = workingRevision.current; setPending(true);
     try { await poll(await request<DemoGraphSession>('/api/graph-sessions/' + graphSession.id, { headers }), revision); }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo consultar el estado.'); }
-    finally { if (revision === workingRevision.current) setPending(false); }
+    finally { if (revision === workingRevision.current && !automaticLock.current) setPending(false); }
   }
 
   function createSource() {
@@ -307,6 +365,18 @@ export function App() {
     } finally { setExecutionStarting(false); }
   }
 
+  const tableHead = <div className="test-table-head"><span>STATUS</span><span>ID / TEST</span><span>TYPE</span><span>EVIDENCE</span></div>;
+  function testRows(tests: TestMetadata[]) {
+    return tests.map(test => {
+          const selected = analysis?.result.selectedTests.includes(test.id);
+          const excluded = analysis?.result.excludedTests.find(item => item.testId === test.id);
+          const runResult = activeExecution?.results.find(result => result.testId === test.id);
+          const status = runResult?.status;
+          const label = status ? status.toUpperCase() : selected ? 'SELECTED' : analysis ? 'AVOIDED' : 'READY';
+          return <div className={`test-row ${selected ? 'selected' : analysis ? 'excluded' : ''} ${status ? `executed-${status}` : ''} ${inspectedTest?.id === test.id ? 'inspected' : ''}`} key={test.id}><span><i />{label}</span><span><button className="test-name-button" onClick={() => inspectTest(test.id)}><b>{test.id}</b>{test.name.replace(/^\[[^\]]+\]\s*/, '')}</button></span><span>{kindLabels[test.kind]}</span><span>{selected ? <><button onClick={() => inspectTest(test.id)}>VIEW CODE</button> <button onClick={() => explain(test.id)}>WHY?</button></> : <>{excluded?.explanation ?? 'Awaiting analysis'} <button onClick={() => inspectTest(test.id)}>VIEW CODE</button></>}</span></div>;
+         });
+  }
+
   if (!snapshot) return <main className="loading-screen"><div className="logo-mark">TIL</div><p>{error ?? 'Loading immutable repository snapshot…'}</p></main>;
 
   return <div className="app-shell">
@@ -349,27 +419,28 @@ export function App() {
       </section>}
       <section className="graph-view progressive-view" hidden={view !== 'graph'}><LiveGraph session={graphSession} token={snapshot.sessionToken} pending={pending} executionBusy={executionBusy} elapsed={elapsed} focusTest={focusTest}
         onNext={() => { void advance(); }} onReset={() => { void resetGraph(); }} onCancel={() => { void cancelGraph(); }} onReview={sequence => { void review(sequence); }} onTest={inspectTest}
-        onReconcile={() => { void reconcile(); }} /></section>
+        onReconcile={() => { void reconcile(); }} onRunAll={() => { void runAll(); }} automatic={automatic}
+        quickDisabled={!!analysis || !modified.size && baseSession?.status === 'completed'} quickLabel={modified.size ? 'Analizar impacto completo' : 'Generar grafo completo'} /></section>
 
-      {view === 'tests' && <section className="tests-view"><div className="tests-heading"><div><span>TEST CATALOGUE</span><h1>Tests locales y suites distribuidas.</h1></div>{analysis && <div><strong>{analysis.result.selectedTests.length + analysis.federated.suites.filter(item => item.selected).length}</strong><span>{analysis.result.selectedTests.length} tests · {analysis.federated.suites.filter(item => item.selected).length} suites seleccionadas</span></div>}</div>
-
-        <details><summary>Tipos de tests e IDs</summary><TestLegend /></details>
-        <div className="panel"><div className="panel-title">SUITES DISTRIBUIDAS</div>{suiteCatalogue.map(suite =>
-          <div className="selected-row" key={suite.id}><div><b>{suite.id}</b><span>{'selected' in suite ? suite.selected ? 'Seleccionada' : 'Excluida' : 'Sin analizar'} · {suite.availability}</span></div>
-          <button onClick={() => inspectTest(suite.id)}>Ver test y resultado</button>{'path' in suite && suite.path.length > 0 && <button onClick={() => explain(suite.id)}>Ver camino</button>}</div>)}</div>
+      {view === 'tests' && <section className="tests-view">
+        <section className="selected-tests" aria-label="Selected tests"><div className="tests-heading"><div><span>CALCULATED REGRESSION</span><h1>Selected tests</h1></div>{analysis && <div><strong>{analysis.result.selectedTests.length + analysis.federated.suites.filter(item => item.selected).length}</strong><span>{analysis.result.selectedTests.length} tests · {analysis.federated.suites.filter(item => item.selected).length} suites seleccionadas</span></div>}</div>
+          {!analysis ? <p className="selection-empty" role="status">Waiting for code change to calculate regression.</p> : !analysis.result.selectedTests.length && !analysis.federated.suites.some(suite => suite.selected) ? <p className="selection-empty" role="status">No tests selected for this change.</p> : <div className="test-table">{tableHead}{testRows(snapshot.catalogue.filter(test => analysis.result.selectedTests.includes(test.id)))}
+            {analysis.federated.suites.filter(suite => suite.selected).map(suite => {
+              const result = activeExecution?.suiteResults?.find(item => item.id === suite.id);
+              return <div className={`test-row selected ${result ? `executed-${result.status}` : ''}`} key={suite.id}><span><i />{result?.status.toUpperCase() ?? 'SELECTED'}</span><span><button className="test-name-button" onClick={() => inspectTest(suite.id)}><b>{suite.id}</b>{suite.file}</button></span><span>DISTRIBUTED SUITE</span><span><button onClick={() => inspectTest(suite.id)}>VIEW CODE</button> <button onClick={() => explain(suite.id)}>WHY?</button></span></div>;
+            })}</div>}
+        </section>
         <ExecutionPanel selectedCount={(analysis?.result.selectedTests.length ?? 0) + (analysis?.federated.suites.filter(item => item.selected).length ?? 0)}
           totalCount={snapshot.catalogue.length + suiteCatalogue.length} executions={executions}
           busy={executionBusy} disabled={!analysis} onRun={runExecution} onInspect={inspectTest} />
-        {inspectedTest && <div ref={inspectorRef}><TestInspector test={inspectedTest} snapshot={snapshot} analysis={analysis} execution={activeExecution} onShowChange={showChange} /></div>}
-        {inspectedSuite && <div ref={inspectorRef}><SuiteInspector suite={inspectedSuite} sessionId={graphSession?.id} token={snapshot.sessionToken} execution={activeExecution} onGraph={() => explain(inspectedSuite.id)} /></div>}
-        <div className="test-table"><div className="test-table-head"><span>STATUS</span><span>ID / TEST</span><span>TYPE</span><span>EVIDENCE</span></div>{snapshot.catalogue.map(test => {
-          const selected = analysis?.result.selectedTests.includes(test.id);
-          const excluded = analysis?.result.excludedTests.find(item => item.testId === test.id);
-          const runResult = activeExecution?.results.find(result => result.testId === test.id);
-          const status = runResult?.status;
-          const label = status ? status.toUpperCase() : selected ? 'SELECTED' : analysis ? 'AVOIDED' : 'READY';
-          return <div className={`test-row ${selected ? 'selected' : analysis ? 'excluded' : ''} ${status ? `executed-${status}` : ''} ${inspectedTest?.id === test.id ? 'inspected' : ''}`} key={test.id}><span><i />{label}</span><span><button className="test-name-button" onClick={() => inspectTest(test.id)}><b>{test.id}</b>{test.name.replace(/^\[[^\]]+\]\s*/, '')}</button></span><span>{kindLabels[test.kind]}</span><span>{selected ? <><button onClick={() => inspectTest(test.id)}>VIEW CODE</button> <button onClick={() => explain(test.id)}>WHY?</button></> : <>{excluded?.explanation ?? 'Awaiting analysis'} <button onClick={() => inspectTest(test.id)}>VIEW CODE</button></>}</span></div>;
-        })}</div></section>}
+        <section ref={inspectorRef} aria-label="Test code viewer"><div className="panel-title">TEST CODE</div>
+          {inspectedTest && <TestInspector test={inspectedTest} snapshot={snapshot} analysis={analysis} execution={activeExecution} onShowChange={showChange} />}
+          {inspectedSuite && <SuiteInspector suite={inspectedSuite} sessionId={graphSession?.id} token={snapshot.sessionToken} execution={activeExecution} onGraph={() => explain(inspectedSuite.id)} />}
+        </section>
+        <section className="panel" aria-label="Distributed suites"><div className="panel-title">SUITES DISTRIBUIDAS</div>{suiteCatalogue.map(suite =>
+          <div className="selected-row" key={suite.id}><div><b>{suite.id}</b><span>{'selected' in suite ? suite.selected ? 'Seleccionada' : 'Excluida' : 'Sin analizar'} · {suite.availability}</span></div>
+          <button onClick={() => inspectTest(suite.id)}>Ver test y resultado</button>{'path' in suite && suite.path.length > 0 && <button onClick={() => explain(suite.id)}>Ver camino</button>}</div>)}</section>
+        <section className="all-tests" aria-label="All tests"><div className="panel-title">ALL TESTS</div><details><summary>Tipos de tests e IDs</summary><TestLegend /></details><div className="test-table">{tableHead}{testRows(snapshot.catalogue)}</div></section></section>}
     </main>
 
     <footer><span><i /> Fuentes fijadas · Sin IA en runtime</span><span>{graphSession ? processLabels[graphSession.status] : 'Grafo vacío'}</span><span>{graphSession?.step ? 'Paso ' + graphSession.step.sequence + '/' + graphSession.total : '0 nodos · 0 conexiones'}</span></footer>

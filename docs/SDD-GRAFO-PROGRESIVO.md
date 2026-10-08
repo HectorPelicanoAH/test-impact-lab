@@ -159,3 +159,9 @@ Criterios verificables:
 12. Una fase con demora real muestra loader y texto En curso, mantiene el canvas consultable y bloquea avances duplicados. Se comprueban finalización, fallo y cancelación: el loader se detiene y se muestra el estado correcto. Las fases rápidas no reciben esperas artificiales ni las indeterminadas porcentajes ficticios.
 
 Entrega: **pipeline por fases y locators parciales → canvas progresivo e inspector → impacto y ejecución física**. Los resultados reproducibles están en [LIVE-GRAPH-HANDOFF.md](LIVE-GRAPH-HANDOFF.md). El ensayo humano de 15–20 minutos sigue el guion; no se atribuye esa duración a una validación automática.
+
+## Extensión: ejecución rápida y selección primero
+
+La variante `feat/scoped-impact-v1-quick-changes` ofrece completar el descubrimiento o impacto con un botón, recorriendo secuencialmente las mismas fases del backend y conservando los resultados de cada una. Puede continuar una sesión parcial. Cancelar detiene los avances posteriores; no ejecuta automáticamente los tests físicos. Si se pide impacto sin base, completa primero el descubrimiento.
+
+Tests presenta Selected tests → Physical execution → visor de código → suites distribuidas → catálogo completo. La lista inicial reutiliza las filas del catálogo, omite entradas excluidas e incluye suites seleccionadas para no ocultar la regresión de eventos. Sin análisis vigente muestra Waiting for code change to calculate regression.

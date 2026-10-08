@@ -38,3 +38,9 @@ Durante los pasos, el loader y el tiempo transcurrido representan trabajo real. 
 ## Quick changes de v1
 
 En Código se muestran los cuatro botones originales, con sus descripciones: Change LoginButton, Change login normalization, Change User.authenticate() y Change POST /login contract. Cada uno abre su diff sobre el overlay y permite analizarlo por fases. La variante anterior se conserva en `feat/live-graph-v1` y PR #5; esta rama incorpora selección acotada.
+
+## Ejecución rápida y orden de Tests
+
+En Grafos, Generar grafo completo termina las fases pendientes del descubrimiento. Con un overlay, Analizar impacto completo termina el análisis; si todavía falta el grafo base, lo construye primero. Se usan las mismas fases reales y se conserva progreso, loader y Cancelar. Ejecutar siguiente paso sigue disponible para el recorrido explicativo.
+
+Al finalizar el impacto rápido se abre Tests: Selected tests (solo entradas seleccionadas, incluidas suites seleccionadas), Physical execution, visor de código, catálogo de suites distribuidas y All tests. Sin análisis vigente aparece “Waiting for code change to calculate regression.”; una selección calculada vacía se identifica como tal. La ejecución rápida calcula la selección; el runner físico se lanza desde Physical execution.

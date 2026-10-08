@@ -56,3 +56,11 @@ La política anterior ampliaba globalmente altas y contratos incompatibles. Ahor
 `feat/live-graph-v1` (PR #5) conserva el contenido de `4b2e7d8`, anterior a la corrección del selector, mediante un revert sin reescribir historial. `feat/scoped-impact-v1-quick-changes` conserva la selección acotada de `8fb0839` y recupera los cuatro botones de v1, visibles en Código con sus descripciones originales. Las transformaciones de `suggestions.ts` coinciden con el tag v1.
 
 Validación de esta recuperación: typecheck/build y Chromium pasan; se comprueban cuatro botones visibles, descripciones, archivo/diff de cada transformación y reset, sin extracción al aplicar un quick change ni errores de navegador. Comando: `CI=true PLAYWRIGHT_BROWSERS_PATH=/private/tmp/test-impact-lab-browsers node --import tsx scripts/verify-live-graph-browser.ts --quick-changes`. [Captura de los cuatro botones](screenshots/live-graph-v1/04-quick-changes.png).
+
+## Ejecución rápida y Tests reorganizado
+
+Se añade Generar grafo completo / Analizar impacto completo en Grafos. Completa secuencialmente las fases reales, puede continuar un descubrimiento parcial, conserva loader/progreso/cancelación y abre Tests tras completar el impacto. Si falta el base, lo construye antes del impacto. El avance manual se conserva.
+
+Tests muestra Selected tests (solo seleccionados, incluidas suites), Physical execution, visor de código, catálogo de suites distribuidas y All tests. Sin análisis vigente muestra Waiting for code change to calculate regression.; un resultado válido sin selección usa No tests selected for this change.
+
+Validación: typecheck/build, prueba del resumen físico y Chromium con `--fast-flow` pasan. El navegador comprueba cancelación sin más avances, continuación de una fase parcial, las secuencias exactas 0–9/0–13, selección de pantalla/evento, orden de los cinco bloques, fuentes y eliminación de la selección al restaurar código. No hay errores de navegador. [Captura real de la selección primero](screenshots/live-graph-v1/05-selected-first.png). Esta pasada no repite el runner físico: su implementación no cambia.

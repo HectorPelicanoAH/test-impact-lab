@@ -66,7 +66,66 @@ try {
     await expect(page.locator('.error-banner')).toHaveCount(0);
     console.log(await page.locator('.live-step b').first().innerText());
   }
-  if (process.argv.includes('--quick-changes')) {
+  if (process.argv.includes('--fast-flow')) {
+    const phases: { id: string; sequence: number }[] = [];
+    page.on('request', request => {
+      const match = request.url().match(/graph-sessions\/([^/]+)\/next$/);
+      if (match && request.method() === 'POST') phases.push({ id: match[1]!, sequence: request.postDataJSON().sequence });
+    });
+    await page.getByRole('navigation').getByRole('button', { name: 'Tests', exact: true }).click();
+    await expect(page.getByLabel('Selected tests')).toContainText('Waiting for code change to calculate regression.');
+    await expect(page.getByLabel('Selected tests').locator('.test-row')).toHaveCount(0);
+    expect(await page.locator('.tests-view > section').evaluateAll(elements => elements.map(element => element.getAttribute('aria-label') ?? element.className))).toEqual([
+      'Selected tests', 'execution-panel', 'Test code viewer', 'Distributed suites', 'All tests',
+    ]);
+    await page.getByRole('navigation').getByRole('button', { name: 'Grafos', exact: true }).click();
+    let release: () => void = () => {};
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    await page.route('**/api/graph-sessions/*/next', async route => {
+      const response = await route.fetch(); await gate; await route.fulfill({ response });
+    }, { times: 1 });
+    await page.getByRole('button', { name: 'Generar grafo completo', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Ejecutando todo…', exact: true })).toBeDisabled();
+    await expect.poll(() => phases.length).toBe(1);
+    await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
+    release();
+    await expect(page.locator('.process-loader')).toHaveCount(0);
+    await expect(page.locator('.live-step')).toContainText('Proceso cancelado');
+    expect(phases).toHaveLength(1);
+    await page.getByRole('button', { name: 'Reiniciar grafo', exact: true }).click();
+    await next(); // A partly discovered graph can be completed automatically.
+    const discovery = phases.at(-1)!.id;
+    await page.getByRole('button', { name: 'Generar grafo completo', exact: true }).click();
+    await expect(page.locator('.live-step')).toHaveAttribute('data-sequence', '10', { timeout: 180000 });
+    await expect(page.getByRole('button', { name: 'Generar grafo completo', exact: true })).toBeDisabled();
+    expect(phases.filter(item => item.id === discovery).map(item => item.sequence)).toEqual(Array.from({ length: 10 }, (_, index) => index));
+    for (const [scenario, count, expected] of [['screen', 1, '1 tests · 0 suites seleccionadas'], ['event', 5, '0 tests · 5 suites seleccionadas']] as const) {
+      await page.getByRole('navigation').getByRole('button', { name: 'Código', exact: true }).click();
+      await page.getByLabel('Escenario').selectOption(scenario);
+      await page.getByRole('button', { name: 'Aplicar cambio', exact: true }).click();
+      await page.getByRole('navigation').getByRole('button', { name: 'Grafos', exact: true }).click();
+      const start = phases.length;
+      await page.getByRole('button', { name: 'Analizar impacto completo', exact: true }).click();
+      await expect(page.getByLabel('Selected tests')).toBeVisible({ timeout: 180000 });
+      await expect(page.locator('.tests-heading')).toContainText(expected);
+      await expect(page.getByLabel('Selected tests').locator('.test-row')).toHaveCount(count);
+      await expect(page.getByLabel('Selected tests').locator('.test-row.excluded')).toHaveCount(0);
+      await expect(page.getByLabel('All tests').locator('.test-row')).toHaveCount(39);
+      expect(phases.slice(start).map(item => item.sequence)).toEqual(Array.from({ length: 14 }, (_, index) => index));
+      await page.getByLabel('Selected tests').getByRole('button', { name: 'VIEW CODE', exact: true }).first().click();
+      await expect(page.getByLabel('Test code viewer').locator('.test-source-editor .monaco-editor')).toBeVisible();
+      await page.getByLabel('Selected tests').scrollIntoViewIfNeeded();
+      await page.screenshot({ path: resolve(reports, `fast-${scenario}-selected.png`) });
+    }
+    await page.getByRole('navigation').getByRole('button', { name: 'Código', exact: true }).click();
+    await page.getByRole('button', { name: 'Restaurar código', exact: true }).click();
+    await page.getByRole('navigation').getByRole('button', { name: 'Tests', exact: true }).click();
+    await expect(page.getByLabel('Selected tests')).toContainText('Waiting for code change to calculate regression.');
+    await expect(page.getByLabel('Selected tests').locator('.test-row')).toHaveCount(0);
+    expect(await page.evaluate(() => (window as typeof window & { browserErrors: string[] }).browserErrors)).toEqual([]);
+    expect(errors).toEqual([]);
+    console.log('Fast flow: cancellation, partial discovery, 10/14 real phases, selected-first ordering, screen/event rows, source viewer and invalidation passed. No browser errors.');
+  } else   if (process.argv.includes('--quick-changes')) {
     await page.getByRole('navigation').getByRole('button', { name: 'Código', exact: true }).click();
     const quick = page.getByLabel('Quick changes de v1');
     await expect(quick.getByRole('button')).toHaveCount(4);

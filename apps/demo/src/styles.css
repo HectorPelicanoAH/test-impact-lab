@@ -415,3 +415,6 @@ button:disabled { opacity:.45; cursor:default; }
 .process-loader { display:inline-block; width:17px; height:17px; border:2px solid #31516a; border-top-color:var(--cyan); border-radius:50%; animation:process-spin .8s linear infinite; }
 @keyframes process-spin { to { transform:rotate(360deg); } }
 @media (prefers-reduced-motion:reduce) { .process-loader { animation:none; border-style:dotted; } .react-flow__edge-path { animation:none !important; } }
+
+.selection-empty { padding:18px; border:1px dashed var(--line); border-radius:5px; color:var(--muted); }
+.selected-tests { margin-bottom:24px; }

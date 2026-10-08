@@ -11,11 +11,12 @@ const kinds: Record<NodeV2['kind'], string> = { file: 'Archivos', symbol: 'Símb
 const relations: Record<string, string> = { imports: 'importa', calls: 'llama', renders: 'renderiza', routes: 'enruta', implements: 'implementa', 'invokes-endpoint': 'invoca endpoint', publishes: 'publica', subscribes: 'se suscribe', processes: 'procesa', exercises: 'valida sujeto', contains: 'contiene', realizes: 'registra / realiza', injects: 'inyecta', exposes: 'expone' };
 interface Props {
   session?: DemoGraphSession; token: string; pending: boolean; executionBusy: boolean; elapsed: number;
+  automatic: boolean; quickDisabled: boolean; quickLabel: string; onRunAll: () => void;
   focusTest?: string; onNext: () => void; onReset: () => void; onCancel: () => void;
   onReview: (sequence?: number) => void; onTest: (id: string) => void; onReconcile: () => void;
 }
 
-export function LiveGraph({ session, token, pending, executionBusy, elapsed, focusTest, onNext, onReset, onCancel, onReview, onTest, onReconcile }: Props) {
+export function LiveGraph({ session, token, pending, executionBusy, elapsed, focusTest, onNext, onReset, onCancel, onReview, onTest, onReconcile, automatic, quickDisabled, quickLabel, onRunAll }: Props) {
   const [selection, setSelection] = useState<{ kind: 'node' | 'edge'; id: string }>();
   const [source, setSource] = useState<LocatedSource>();
   const [sourceError, setSourceError] = useState<string>();
@@ -129,7 +130,7 @@ export function LiveGraph({ session, token, pending, executionBusy, elapsed, foc
         <p>{phase?.explanation ?? 'Empieza con un grafo vacío. Cada paso descubre hechos nuevos y conserva el código que los justifica.'}</p>
         <small>{busy ? `En curso · ${Math.floor(elapsed / 1000)} s` : session?.status === 'error' ? session.error : session?.status === 'cancelled' ? 'Proceso cancelado. Reinicia el grafo para otra ejecución.' : session?.status === 'stale' ? 'Fuentes desactualizadas. Recarga y reconstruye el grafo.' : step?.result ?? '0 nodos · 0 conexiones'}</small>
       </div>
-      <div className="live-step-actions"><button className="primary" disabled={busy || executionBusy || !!session && ['completed', 'cancelled', 'stale'].includes(session.status)} onClick={onNext}>{busy ? 'Ejecutando…' : session?.status === 'error' ? 'Reintentar fase' : 'Ejecutar siguiente paso'}</button>
+      <div className="live-step-actions"><button className="primary" disabled={busy || executionBusy || quickDisabled} onClick={onRunAll}>{automatic ? 'Ejecutando todo…' : quickLabel}</button><button className="primary" disabled={busy || executionBusy || !!session && ['completed', 'cancelled', 'stale'].includes(session.status)} onClick={onNext}>{busy ? 'Ejecutando…' : session?.status === 'error' ? 'Reintentar fase' : 'Ejecutar siguiente paso'}</button>
         <button onClick={onReset} disabled={busy || executionBusy}>Reiniciar grafo</button>{busy && <><button onClick={onReconcile}>Consultar estado</button><button onClick={onCancel} disabled={executionBusy}>Cancelar</button></>}
         {session?.steps.length ? <label className="step-review">Revisar paso<select aria-label="Revisar paso" value={step?.sequence ?? session.sequence} disabled={busy} onChange={event => onReview(Number(event.target.value))}>{session.steps.map(item => <option key={item.sequence} value={item.sequence}>{item.sequence}. {item.title}</option>)}</select></label> : null}
       </div>
