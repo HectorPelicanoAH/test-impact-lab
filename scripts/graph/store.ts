@@ -42,6 +42,7 @@ export class WorkspaceSnapshots {
   }
   private key(input: WorkspaceInput) { return hash({ sources: fileHashes(input.sources), config: fileHashes(input.configuration), execution: fileHashes(input.executionFiles),
     inventoryRevision: input.inventoryRevision ?? null, observations: input.observationDataset ?? null, mesh: input.meshDataset ?? null }); }
+  capture(): WorkspaceInput { return this.loader(); }
   refresh(): DiscoveryArchive {
     try {
       const input = this.loader(), fingerprint = this.key(input);

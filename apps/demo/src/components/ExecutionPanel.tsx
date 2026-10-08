@@ -24,7 +24,7 @@ function RunCard({ execution, onInspect }: { execution: DemoExecution; onInspect
       {result.output && <details><summary>OUTPUT</summary><pre>{result.output}</pre></details>}
     </div>)}</div>
     {!!execution.suiteResults?.length && <div className="run-results"><div className="panel-title">DISTRIBUTED SUITES</div>{execution.suiteResults.map(suite =>
-      <div className={suite.status} key={suite.id}><i /><b>{suite.id}</b><span>{suite.file}</span><small>{suite.status.toUpperCase()} · {duration(suite.durationMs)}</small>
+      <div className={suite.status} key={suite.id}><i /><b>{suite.id}</b><button className="run-inspect" onClick={() => onInspect(suite.id)}>{suite.file} · VER TEST ↗</button><small>{suite.status.toUpperCase()} · {duration(suite.durationMs)}</small>
         {suite.output && <details><summary>OUTPUT</summary><pre>{suite.output}</pre></details>}
       </div>)}</div>}
   </article>;

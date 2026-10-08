@@ -1,3 +1,4 @@
+import { deferMonacoLayout } from '../monaco-layout';
 import Editor from '@monaco-editor/react';
 import type { TestKind, TestMetadata } from '@test-impact/impact-engine';
 import type { DemoAnalysis, DemoExecution, DemoSnapshot } from '../types';
@@ -20,7 +21,7 @@ export function TestLegend() {
 
 export function TestInspector({ test, snapshot, analysis, execution, onShowChange }: {
   test: TestMetadata;
-  snapshot: DemoSnapshot;
+  snapshot: Pick<DemoSnapshot, 'testFiles' | 'testLocations'>;
   analysis?: DemoAnalysis;
   execution?: DemoExecution;
   onShowChange: (path?: string) => void;
@@ -46,11 +47,11 @@ export function TestInspector({ test, snapshot, analysis, execution, onShowChang
     {result?.output && <details className="test-failure" open={result.status === 'failed'}><summary>RUNNER OUTPUT</summary><pre>{result.output}</pre></details>}
     <div className="test-source-path">{test.file} · lines {location?.startLine ?? '?'}–{location?.endLine ?? '?'}</div>
     <div className="test-source-editor">{source ? <Editor key={test.id} path={test.file} language="typescript" theme="vs-dark" value={source.content}
-      onMount={(editor, monaco) => {
+      onMount={(editor, monaco) => { deferMonacoLayout(editor);
         if (!location) return;
         editor.revealLineInCenter(location.startLine);
         editor.createDecorationsCollection([{ range: new monaco.Range(location.startLine, 1, location.endLine, 1), options: { isWholeLine: true, className: 'test-source-highlight' } }]);
       }}
-      options={{ readOnly: true, domReadOnly: true, minimap: { enabled: false }, fontSize: 12, lineHeight: 21, automaticLayout: true, scrollBeyondLastLine: false, padding: { top: 10 } }} /> : <p>Source unavailable in this snapshot.</p>}</div>
+      options={{ readOnly: true, domReadOnly: true, minimap: { enabled: false }, fontSize: 12, lineHeight: 21, automaticLayout: false, scrollBeyondLastLine: false, padding: { top: 10 } }} /> : <p>Source unavailable in this snapshot.</p>}</div>
   </section>;
 }
