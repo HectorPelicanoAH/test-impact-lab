@@ -79,37 +79,6 @@ try {
     for (let i = 0; i < 7; i++) await next();
     await expect(page.getByRole('button', { name: 'Ejecutar siguiente paso', exact: true })).toBeDisabled();
   }
-  if (process.argv.includes('--scoped-selection')) {
-    for (const [scenario, counts, total] of [['screen', '1 tests · 0 suites seleccionadas', 1], ['event', '0 tests · 5 suites seleccionadas', 5]] as const) {
-      await page.getByRole('navigation').getByRole('button', { name: 'Código', exact: true }).click();
-      await page.getByLabel('Escenario').selectOption(scenario);
-      await page.getByRole('button', { name: 'Aplicar cambio', exact: true }).click();
-      await page.getByRole('button', { name: 'Analizar impacto', exact: true }).click();
-      for (let i = 0; i < 14; i++) await next();
-      await page.getByRole('navigation').getByRole('button', { name: 'Tests', exact: true }).click();
-      await expect(page.locator('.tests-heading')).toContainText(counts);
-      await expect(page.getByRole('button', { name: `RUN SELECTED TESTS + SUITES · ${total}`, exact: true })).toBeEnabled();
-      await page.screenshot({ path: resolve(reports, `scoped-${scenario}.png`) });
-    }
-    const response = page.waitForResponse(response => response.url().endsWith('/api/executions') && response.request().method() === 'POST');
-    await page.getByRole('button', { name: /RUN SELECTED TESTS/ }).click();
-    const started = await response; expect(started.status()).toBe(202);
-    const id = (await started.json()).id as string;
-    await expect(page.locator('.run-card header strong')).toHaveText(/FAILED|INCOMPLETE|PASSED/, { timeout: 300000 });
-    const execution = await page.evaluate(async id => {
-      const editor = await fetch('/api/editor-input').then(response => response.json());
-      return fetch('/api/executions/' + id, { headers: { 'X-Test-Impact-Session': editor.sessionToken } }).then(response => response.json());
-    }, id);
-    expect(execution.results).toEqual([]);
-    expect(execution.suiteResults.map((item: { id: string }) => item.id)).toEqual([
-      'messaging-browser', 'messaging-runtime', 'notifications-consumer', 'order-created-contract', 'preparation-consumer',
-    ]);
-    expect(execution.suiteResults.find((item: { id: string }) => item.id === 'order-created-contract').status).toBe('failed');
-    expect(execution.suiteResults.find((item: { id: string }) => item.id === 'messaging-runtime').status).toBe('unavailable');
-    expect(await page.evaluate(() => (window as typeof window & { browserErrors: string[] }).browserErrors)).toEqual([]);
-    expect(errors).toEqual([]);
-    console.log(`Scoped selection browser passed: screen 1 local / 0 suites, event 0 local / 5 suites. Real event run ${id}: ${execution.durationMs} ms. No browser errors.`);
-  } else {
   await page.getByRole('navigation').getByRole('button', { name: 'Código', exact: true }).click();
   await page.getByLabel('Escenario').selectOption('consumer'); await page.getByRole('button', { name: 'Aplicar cambio', exact: true }).click();
   await expect(page.locator('.diff-editor .view-lines').filter({ hasText: 'runConsumerService' })).not.toHaveCount(0);
@@ -177,7 +146,6 @@ try {
   expect(await page.evaluate(() => (window as typeof window & { browserErrors: string[] }).browserErrors)).toEqual([]);
   expect(errors).toEqual([]);
   console.log('Live graph browser: empty → partial evidence → new consumer → suite detail → retired HTTP source → real contract failure. No browser errors.');
-  }
   }
 } finally {
   await browser?.close(); await vite?.close(); api.closeAllConnections();

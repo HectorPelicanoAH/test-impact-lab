@@ -91,7 +91,7 @@ Tras construir el base, aplicar un journey abre el diff en Código. **Analizar i
 
 Hasta acabar la extracción posterior, los hechos antiguos no comprobados llevan **Pendiente de revalidar**: la ausencia temporal de un nodo/arista no prueba una baja. Una conexión entre nodos existentes puede cambiar sin añadir nodos. Las observaciones añaden una marca de tráfico observado; no inventan relaciones de código.
 
-La actualización existente reconstruye el índice completo: el avance por fases no promete indexación incremental. Las altas conectadas por dependencias verificadas y las incompatibilidades de eventos con bindings previos comprobados se acotan al grafo. Un archivo aislado, una baja sin alcance verificable o una referencia incierta conserva la selección completa y muestra el motivo real y no se fabrica un camino causal por test. **Seleccionado** y **Ejecutado** son estados diferentes.
+La actualización existente reconstruye el índice completo: el avance por fases no promete indexación incremental. Si una alta/baja, topología o referencia incierta obliga a seleccionar el catálogo local completo, se muestra el motivo real y no se fabrica un camino causal por test. **Seleccionado** y **Ejecutado** son estados diferentes.
 
 ## 6. Escenarios y detalle de ejecución
 

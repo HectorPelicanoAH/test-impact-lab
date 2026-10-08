@@ -40,13 +40,3 @@ CI=true PLAYWRIGHT_BROWSERS_PATH=/private/tmp/test-impact-lab-browsers pnpm test
 El recorrido básico valida Inventory y los escenarios consumidor/HTTP. La incompatibilidad HTTP debe producir un fallo contractual real. RabbitMQ, OpenTelemetry y mesh conservan sus perfiles existentes, pero no se han levantado para esta aceptación: sin broker las suites que lo requieren aparecen no disponibles y sin dataset se indica Sin trazas.
 
 El guion está preparado para 15–20 minutos; esa duración requiere el ensayo humano. Las capturas propuestas permanecen en `docs/mockups/live-graph-v1`; las capturas del verificador documentan una ejecución anterior, no resultados en vivo del navegador que abra el presentador.
-
-## Corrección de selección acotada (2026-10-08)
-
-La política anterior ampliaba globalmente altas y contratos incompatibles. Ahora una incorporación con dependencia entrante resuelta puede propagarse a sus dependientes, y una incompatibilidad de evento con binding anterior comprobado conserva ese alcance. Los archivos aislados, eliminaciones y destinos dinámicos siguen requiriendo fallback completo. HTTP conserva su política anterior. No se seleccionan tests por nombre de escenario.
-
-- New screen: **E1**, 0 suites distribuidas. Es el journey existente del Login; no se inventa coverage del componente nuevo.
-- Incompatible event: **0 tests locales y 5 suites**: order-created-contract, notifications-consumer, preparation-consumer, messaging-runtime y messaging-browser. Los enlaces retirados conservan su evidencia previa.
-- **66 pruebas** pasan en ocho archivos, con regresiones de aislamiento y fallback; se repitieron 23 del análisis/journeys/federación tras el ajuste final. Typecheck/build pasan.
-- Chromium recorre ambos análisis de 14 fases y comprueba los contadores y el botón de ejecución, sin errores de navegador. Comando: `CI=true PLAYWRIGHT_BROWSERS_PATH=/private/tmp/test-impact-lab-browsers node --import tsx scripts/verify-live-graph-browser.ts --scoped-selection`.
-- Ejecución física `d1a2dede-ad3b-4af3-bdda-59609212262f`: **8,8 s**, ninguna entrada local y únicamente las cinco suites seleccionadas. El contrato falla, los dos tests de consumidor pasan y las dos suites del broker quedan unavailable. Informe ignorado: `.impact-runs/d1a2dede-ad3b-4af3-bdda-59609212262f/summary.json`.

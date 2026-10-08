@@ -1,4 +1,3 @@
-import { boundedContractDiagnostic, connectedAddition } from './change-scope';
 import type { DiscoveryArchive, EdgeV2, GraphSnapshotV2, NodeV2, OverlayEdit } from './schema-v2';
 
 export interface FederatedSuite {
@@ -81,10 +80,10 @@ export function calculateFederatedImpact(before: DiscoveryArchive, after: Discov
   for (const changed of changedPaths) {
     const proven = [...nodes.values()].some(node => sourcePaths(node).includes(changed))
       || [...before.graph.evidence, ...after.graph.evidence].some(item => 'path' in item.locator && item.locator.path === changed && item.resolution === 'resolved');
-    if (!proven || edits.some(edit => edit.path === changed && edit.operation === 'add' && !connectedAddition(before, after, changed))) warnings.push(`No resolved graph node or evidence for ${changed}.`);
+    if (!proven) warnings.push(`No resolved graph node or evidence for ${changed}.`);
   }
   for (const item of after.graph.diagnostics) if (!beforeDiagnostics.has(diagnosticKey(after, item))
-    && ['dynamic-reference', 'parse-failed', 'source-inaccessible', 'missing-contract', 'unsupported-extractor'].includes(item.code) && !boundedContractDiagnostic(before, edits, item)) warnings.push(item.message);
+    && ['dynamic-reference', 'parse-failed', 'source-inaccessible', 'missing-contract'].includes(item.code)) warnings.push(item.message);
   const adjacency = new Map<string, { target: string; edge: EdgeV2; direction: 'forward' | 'reverse' }[]>();
   const policies = new Map([...before.graph.policies, ...after.graph.policies].map(policy => [policy.id, policy]));
   const add = (from: string, target: string, edge: EdgeV2, direction: 'forward' | 'reverse') =>
@@ -104,7 +103,7 @@ export function calculateFederatedImpact(before: DiscoveryArchive, after: Discov
     }
   }
   const reachedSuite = suites.some(suite => [...nodes.values()].some(node => paths.has(node.id) && sourcePaths(node).some(path => suite.subjects.includes(path))));
-  const legacyScoped = [...nodes.values()].some(node => node.legacyId && paths.has(node.id));
+  const legacyScoped = [...nodes.values()].some(node => node.legacyId && sourcePaths(node).some(path => changedPaths.has(path)));
   if (edits.length && !reachedSuite && !legacyScoped) warnings.push('Changed source has no reviewed test subject; full available catalogue required.');
   const mode = warnings.length ? 'conservative-full' : 'graph';
   const decisions = suites.map(suite => {

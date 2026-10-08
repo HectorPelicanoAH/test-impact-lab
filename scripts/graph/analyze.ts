@@ -1,4 +1,3 @@
-import { boundedContractDiagnostic, connectedAddition } from '../../packages/impact-engine/src/change-scope';
 import { analyzeSourceEdits, calculateImpact } from '../../packages/impact-engine/src/index';
 import type { FileDiff, ImpactGraph } from '../../packages/impact-engine/src/schema';
 import type { DiscoveryArchive, GraphSnapshotV2, OverlayEdit } from '../../packages/impact-engine/src/schema-v2';
@@ -37,33 +36,21 @@ export function analyzePrepared(before: DiscoveryArchive, after: DiscoveryArchiv
     if (edit.operation === 'delete') diff.push({ path: edit.path, status: 'deleted', hunks: [{ oldStart: 1, oldLines: before.sources[edit.path]!.split('\n').length, newStart: 0, newLines: 0 }] });
   }
   diff.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
-  const federated = calculateFederatedImpact(before, after, edits);
-  const bounded = federated.mode === 'graph';
-  const reasons = new Set([...oldMapping.result.warnings, ...newMapping.result.warnings].filter(reason => !bounded || !reason.startsWith('No graph entity covers changed lines')));
-  if (!bounded && canonical(semanticEdges(before.graph)) !== canonical(semanticEdges(after.graph))) reasons.add('Dependency topology changed; G2 selects the full available catalogue using both snapshots.');
-  if (edits.some(edit => edit.operation === 'delete' || edit.operation === 'add' && !connectedAddition(before, after, edit.path))) reasons.add('Source added or deleted; full available catalogue selected. External unknown tests are not covered.');
+  const reasons = new Set([...oldMapping.result.warnings, ...newMapping.result.warnings]);
+  if (canonical(semanticEdges(before.graph)) !== canonical(semanticEdges(after.graph))) reasons.add('Dependency topology changed; G2 selects the full available catalogue using both snapshots.');
+  if (edits.some(edit => edit.operation === 'add' || edit.operation === 'delete')) reasons.add('Source added or deleted; full available catalogue selected. External unknown tests are not covered.');
   const diagnosisKey = (archive: DiscoveryArchive, item: GraphSnapshotV2['diagnostics'][number]) => canonical([item.code, item.message,
     item.locator && 'path' in item.locator ? item.locator.path : null, sourceText(item.locator, archive.sources)]);
   const oldDiagnostics = new Set(before.graph.diagnostics.map(item => diagnosisKey(before, item)));
   for (const item of after.graph.diagnostics) {
-    const newDiagnostic = !oldDiagnostics.has(diagnosisKey(after, item));
-    const editedParseFailure = item.code === 'parse-failed' && edits.some(edit => item.locator && 'path' in item.locator && edit.path === item.locator.path);
-    if ((newDiagnostic || editedParseFailure) && !boundedContractDiagnostic(before, edits, item)) reasons.add(item.message);
+    if (!oldDiagnostics.has(diagnosisKey(after, item)) || (item.code === 'parse-failed' && edits.some(edit => item.locator && 'path' in item.locator && edit.path === item.locator.path))) reasons.add(item.message);
   }
-  // Unbounded changes retain the full fallback outside reviewed compatibility scope.
+  // Existing uncertainty can only stay within the reviewed login compatibility envelope.
   for (const edit of edits) {
-    if (!bounded && !before.legacyGraph.nodes.some(node => node.kind !== 'test' && node.source?.path === edit.path)) reasons.add(`No reviewed compatibility scope for ${edit.path}; full available catalogue required.`);
+    if (!before.legacyGraph.nodes.some(node => node.kind !== 'test' && node.source?.path === edit.path)) reasons.add(`No reviewed compatibility scope for ${edit.path}; full available catalogue required.`);
   }
-  const mappedIds = [...oldMapping.result.changedEntities, ...newMapping.result.changedEntities];
-  const mappedPaths = new Set([...beforeView.nodes, ...afterView.nodes].filter(node => mappedIds.includes(node.id)).flatMap(node => node.source ? [node.source.path] : []));
-  // Import lines may fall outside reviewed declaration ranges. Resolve those
-  // changes to the file's verified declarations, then traverse their actual edges.
-  const fallbackPaths = new Set(diff.filter(item => item.status === 'modified' && !mappedPaths.has(item.path)).map(item => item.path));
-  const changedEntityIds = [...new Set([...mappedIds,
-    ...graph.nodes.filter(node => node.kind !== 'test' && node.source && fallbackPaths.has(node.source.path)).map(node => node.id),
+  const changedEntityIds = [...new Set([...oldMapping.result.changedEntities, ...newMapping.result.changedEntities,
     ...graph.nodes.filter(node => edits.some(edit => (edit.operation === 'add' || edit.operation === 'delete') && node.source?.path === edit.path)).map(node => node.id)])].sort();
-  // Distributed subjects without a local projection produce no local seeds;
-  // the complete diff remains in the analysis and drives federated selection.
-  const result = calculateImpact({ diff: bounded && !changedEntityIds.length ? [] : diff, changedEntityIds, graph, catalogue: before.catalogue, uncertaintyReasons: [...reasons].sort() });
+  const result = calculateImpact({ diff, changedEntityIds, graph, catalogue: before.catalogue, uncertaintyReasons: [...reasons].sort() });
   return { after, graph, diff, result, delta: delta(before.graph, after.graph) };
 }

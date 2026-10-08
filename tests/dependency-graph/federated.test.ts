@@ -33,10 +33,7 @@ test('publisher behavior and event schema changes reach both consumers', () => {
   const json = JSON.parse(baseline.sources[schema]!) as { version: number };
   json.version = 2;
   const changedSchema = edited(schema, `${JSON.stringify(json, null, 2)}\n`);
-  expect(changedSchema.mode).toBe('graph');
-  expect(selected(changedSchema)).not.toContain('orders-store');
-  expect(selected(changedSchema)).not.toContain('inventory-contract');
-  expect(selected(changedSchema)).toEqual(expect.arrayContaining(['order-created-contract', 'notifications-consumer', 'preparation-consumer']));
+  expect(selected(changedSchema)).toEqual(expect.arrayContaining(['order-created-contract', 'orders-store', 'notifications-consumer', 'preparation-consumer']));
 });
 
 test('inventory contract includes provider checks but marks inaccessible source honestly', () => {
