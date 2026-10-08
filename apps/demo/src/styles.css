@@ -373,13 +373,23 @@ button:disabled { opacity:.45; cursor:default; }
 .live-graph-layout { flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr); gap:12px; }
 .live-graph-layout.with-inspector { grid-template-columns:minmax(0,1fr) 390px; }
 .live-canvas { display:flex; flex-direction:column; min-height:0; }
-.live-canvas .graph-toolbar { flex:0 0 46px; gap:8px; }
+.live-canvas .graph-toolbar { position:static; flex:0 0 auto; gap:8px; flex-wrap:wrap; padding:10px 12px; align-items:center; pointer-events:auto; border-bottom:1px solid var(--line); }
 .live-canvas .graph-toolbar label { display:flex; align-items:center; gap:5px; color:var(--muted); font-size:10px; }
 .live-flow { flex:1; min-height:0; position:relative; }
 .empty-graph { position:absolute; top:40%; left:50%; transform:translate(-50%,-50%); text-align:center; pointer-events:none; color:var(--muted); }
 .empty-graph h2 { color:#c9d6e9; font-size:21px; }
 .empty-graph p { font-size:12px; }
 .live-node { opacity:1 !important; }
+.live-node .flow-label { height:46px; display:flex; flex-direction:column; gap:3px; text-align:left; }
+.live-node .flow-label small, .live-node .flow-label span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.live-node .flow-label span { color:#cad8ec; font-size:12px; }
+.live-node .flow-label em { min-height:11px; line-height:11px; }
+.live-canvas, .live-flow { min-width:0; }
+.live-canvas .graph-toolbar select { max-width:125px; padding:5px; font-size:10px; }
+.live-canvas .react-flow__minimap { width:145px; height:95px; }
+.live-canvas .graph-legend { position:static; flex-shrink:0; border-radius:0; padding:8px; display:flex; justify-content:center; flex-wrap:wrap; }
+.live-observations { margin:12px; font-size:11px; color:var(--muted); }
+.live-observations pre { max-height:200px; overflow:auto; font-size:10px; }
 .live-node.fresh, .live-node.updated { border-color:var(--orange) !important; box-shadow:0 0 12px #ffad6633 !important; }
 .live-node.retired, .live-node.unverified { border-style:dashed !important; opacity:.6 !important; }
 .live-node.retired { border-color:var(--red) !important; }

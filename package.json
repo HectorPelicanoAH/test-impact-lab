@@ -51,6 +51,7 @@
     "mesh:inspect": "node --import tsx scripts/mesh/inspect.ts",
     "test:mesh": "node --import tsx scripts/verify-mesh.ts",
     "test:journeys": "node --import tsx scripts/verify-journeys.ts",
+    "test:live-graph-browser": "node --import tsx scripts/verify-live-graph-browser.ts",
     "graph:audit": "node --import tsx scripts/audit-graph.ts"
   },
   "devDependencies": {

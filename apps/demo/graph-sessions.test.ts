@@ -6,6 +6,34 @@ import { buildArchive, createDiscoveryPipeline, loadWorkspace } from '../../scri
 import { locateSource } from '../../scripts/graph/locator';
 import { journeyEdits } from './src/journeys';
 import { analyzeOverlay } from '../../scripts/graph/analyze';
+import { GraphSessions } from './graph-sessions';
+
+test('cancel before dispatch prevents extraction; stale inputs and an invalidated base cannot advance', async () => {
+  const live = loadWorkspace(process.cwd(), '');
+  const sessions = new GraphSessions(() => structuredClone(live), () => {}, () => {});
+  const { id } = sessions.capture();
+  const advance = async (state: DemoGraphSession) => {
+    sessions.next(state.id, state.sequence, `${state.id}:${state.sequence}`);
+    await new Promise(resolve => setImmediate(resolve));
+    return sessions.view(state.id);
+  };
+  const pending = sessions.start({ kind: 'discovery', inputId: id });
+  sessions.next(pending.id, 0, 'cancel-before-dispatch');
+  sessions.cancel(pending.id);
+  await new Promise(resolve => setImmediate(resolve));
+  expect(sessions.view(pending.id)).toMatchObject({ status: 'cancelled', sequence: 0 });
+  expect(sessions.view(pending.id).graph.nodes).toHaveLength(0);
+  let base = sessions.start({ kind: 'discovery', inputId: id });
+  while (base.status !== 'completed') base = await advance(base);
+  const impact = sessions.start({ kind: 'impact', inputId: id, baseSessionId: base.id, edits: [] });
+  sessions.cancel(base.id);
+  expect(() => sessions.next(impact.id, 0, 'invalid-base')).toThrow('grafo base');
+  expect(sessions.view(impact.id).status).toBe('stale');
+  const stale = sessions.start({ kind: 'discovery', inputId: id });
+  live.sources['apps/frontend/src/LoginPage.tsx'] += '\n// Changed after capture\n';
+  expect(() => sessions.next(stale.id, 0, 'new-input')).toThrow('fuentes base');
+  expect(sessions.view(stale.id).status).toBe('stale');
+});
 
 test('discovery genuinely pauses before imports and behavior, with navigable partial sources', () => {
   const input = loadWorkspace(process.cwd(), ''), pipeline = createDiscoveryPipeline(input);
@@ -45,6 +73,7 @@ afterAll(async () => { server.closeAllConnections(); await new Promise<void>((re
 test('step API is idempotent, proves partial evidence and matches full impact for a new consumer', async () => {
   const input = await fetch(`${url}/api/editor-input`).then(r => r.json()) as DemoEditorInput;
   expect(input).not.toHaveProperty('graph'); expect(input).not.toHaveProperty('discovery');
+  expect(input.suites.find(suite => suite.id === 'inventory-contract')?.source).toContain('expect');
   const headers = { 'Content-Type': 'application/json', 'X-Test-Impact-Session': input.sessionToken };
   const create = async (body: unknown) => fetch(`${url}/api/graph-sessions`, { method: 'POST', headers, body: JSON.stringify(body) }).then(r => r.json()) as Promise<DemoGraphSession>;
   let base = await create({ kind: 'discovery', inputId: input.id }); expect(base.graph.nodes).toHaveLength(0);
@@ -72,6 +101,21 @@ test('step API is idempotent, proves partial evidence and matches full impact fo
   expect(impact.analysis?.federated).toEqual(batch.federated);
   expect(impact.analysis?.discovery).toEqual(batch.after.graph);
   expect(impact.analysis?.discovery.nodes.some(item => item.label === 'audit')).toBe(true);
+  const previous = await fetch(`${url}/api/graph-sessions/${impact.id}?sequence=9`, { headers }).then(r => r.json()) as DemoGraphSession;
+  expect(previous.step?.id).toBe('messaging'); expect(previous.analysis).toBeUndefined();
+  expect(previous.step?.newNodeIds.length).toBeGreaterThan(0);
+  expect(previous.step?.updatedEdgeIds.length).toBeGreaterThan(0);
+  const local = await fetch(`${url}/api/graph-sessions/${impact.id}?sequence=13`, { headers }).then(r => r.json()) as DemoGraphSession;
+  expect(local.localImpact).toEqual(impact.analysis!.result); expect(local.analysis).toBeUndefined();
+  // The same immutable baseline produces genuine removals, retained through selection.
+  let http = await create({ kind: 'impact', inputId: input.id, baseSessionId: base.id,
+    edits: journeyEdits('http', Object.fromEntries(input.files.map(file => [file.path, file.content]))) });
+  while (http.status !== 'completed') http = await advance(http);
+  const retired = http.analysis!.delta.edges.removed.find(item => item.type === 'invokes-endpoint')!;
+  expect(retired).toBeDefined(); expect(http.step?.removedEdgeIds).toContain(retired.id);
+  expect(http.beforeGraph?.edges.map(item => item.id)).toContain(retired.id);
+  const original = await fetch(`${url}/api/graph-sessions/${http.id}/locators?sequence=14&side=before&evidence=${retired.evidenceIds[0]}`, { headers }).then(r => r.json());
+  expect(original.content).toContain('GET');
   const cancelled = await fetch(`${url}/api/graph-sessions/${impact.id}`, { method: 'DELETE', headers }).then(r => r.json()) as DemoGraphSession;
   expect(cancelled.status).toBe('cancelled'); expect(cancelled.analysis).toBeUndefined();
   const rejected = await fetch(`${url}/api/graph-sessions/${impact.id}/next`, { method: 'POST', headers, body: JSON.stringify({ sequence: impact.sequence, key: 'after-cancel' }) });

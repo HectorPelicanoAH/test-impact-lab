@@ -1,0 +1,72 @@
+diff --git a/dist/esm/index.js b/dist/esm/index.js
+index 422889fc98ea26cf4c4b45d6d7b84479550f4728..a132dc4f13d0abe51a01ac94a7cd6884c567a72d 100644
+--- a/dist/esm/index.js
++++ b/dist/esm/index.js
+@@ -2150,8 +2150,11 @@ function useResizeObserver() {
+         if (typeof ResizeObserver === 'undefined') {
+             return null;
+         }
+-        return new ResizeObserver((entries) => {
+-            const updates = new Map();
++        // Keep measurement writes out of ResizeObserver delivery. Coalesce node
++        // reads in the next frame, skipping disconnected cards after teardown.
++        const updates = new Map();
++        let frame = 0;
++        const observer = new ResizeObserver((entries) => {
+             entries.forEach((entry) => {
+                 const id = entry.target.getAttribute('data-id');
+                 updates.set(id, {
+@@ -2160,8 +2163,16 @@ function useResizeObserver() {
+                     force: true,
+                 });
+             });
+-            updateNodeInternals(updates);
++            if (!frame) {
++                frame = requestAnimationFrame(() => {
++                    frame = 0;
++                    const batch = new Map([...updates].filter(([, update]) => update.nodeElement.isConnected));
++                    updates.clear();
++                    if (batch.size) updateNodeInternals(batch);
++                });
++            }
+         });
++        return observer;
+     });
+     useEffect(() => {
+         return () => {
+diff --git a/dist/esm/index.mjs b/dist/esm/index.mjs
+index 422889fc98ea26cf4c4b45d6d7b84479550f4728..a132dc4f13d0abe51a01ac94a7cd6884c567a72d 100644
+--- a/dist/esm/index.mjs
++++ b/dist/esm/index.mjs
+@@ -2150,8 +2150,11 @@ function useResizeObserver() {
+         if (typeof ResizeObserver === 'undefined') {
+             return null;
+         }
+-        return new ResizeObserver((entries) => {
+-            const updates = new Map();
++        // Keep measurement writes out of ResizeObserver delivery. Coalesce node
++        // reads in the next frame, skipping disconnected cards after teardown.
++        const updates = new Map();
++        let frame = 0;
++        const observer = new ResizeObserver((entries) => {
+             entries.forEach((entry) => {
+                 const id = entry.target.getAttribute('data-id');
+                 updates.set(id, {
+@@ -2160,8 +2163,16 @@ function useResizeObserver() {
+                     force: true,
+                 });
+             });
+-            updateNodeInternals(updates);
++            if (!frame) {
++                frame = requestAnimationFrame(() => {
++                    frame = 0;
++                    const batch = new Map([...updates].filter(([, update]) => update.nodeElement.isConnected));
++                    updates.clear();
++                    if (batch.size) updateNodeInternals(batch);
++                });
++            }
+         });
++        return observer;
+     });
+     useEffect(() => {
+         return () => {

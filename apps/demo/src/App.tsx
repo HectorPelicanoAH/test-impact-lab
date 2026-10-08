@@ -14,6 +14,7 @@ import type { DemoAnalysis, DemoEditorInput, DemoGraphSession, DemoExecution, De
 
 type View = 'code' | 'graph' | 'tests';
 const viewLabels: Record<View, string> = { code: 'Código', graph: 'Grafos', tests: 'Tests' };
+const processLabels: Record<DemoGraphSession['status'], string> = { waiting: 'Listo para el siguiente paso', running: 'En curso', completed: 'Proceso completado', error: 'Fase fallida', cancelled: 'Cancelado', stale: 'Fuentes desactualizadas' };
 const kindLabels: Record<TestKind, string> = { e2e: 'E2E', component: 'COMPONENT', 'frontend-unit': 'FRONTEND UNIT', contract: 'CONTRACT', integration: 'INTEGRATION', 'backend-unit': 'BACKEND UNIT' };
 const languageFor = (path: string) => path.endsWith('.css') ? 'css' : path.endsWith('.json') ? 'json' : 'typescript';
 
@@ -38,6 +39,7 @@ export function App() {
   const [focusEdge, setFocusEdge] = useState<string>();
   const [pending, setPending] = useState(false);
   const [executions, setExecutions] = useState<Partial<Record<ExecutionMode, DemoExecution>>>({});
+  const [executionStarting, setExecutionStarting] = useState(false);
   const [error, setError] = useState<string>();
   const [journey, setJourney] = useState<JourneyId>('screen');
   const [appliedJourney, setAppliedJourney] = useState<JourneyId>();
@@ -61,7 +63,8 @@ export function App() {
     return [...existing, ...Object.keys(edits).filter(path => !snapshot.files.some(file => file.path === path)).map(path => ({ path, content: edits[path]!, language: 'typescript' as const }))];
   }, [snapshot, edits, deleted]);
   const activeExecution = executions.full ?? executions.selected;
-  const inspectedSuite = analysis?.federated.suites.find(suite => suite.id === inspectedTestId);
+  const suiteCatalogue = analysis?.federated.suites ?? snapshot?.suites ?? [];
+  const inspectedSuite = suiteCatalogue.find(suite => suite.id === inspectedTestId);
   const inspectedTest = inspectedSuite ? undefined : snapshot?.catalogue.find(test => test.id === inspectedTestId) ?? snapshot?.catalogue[0];
 
   function updateFile(value: string) {
@@ -117,7 +120,7 @@ export function App() {
   const [graphSession, setGraphSession] = useState<DemoGraphSession>();
   const [baseSession, setBaseSession] = useState<DemoGraphSession>();
   const [elapsed, setElapsed] = useState(0);
-  const executionBusy = Object.values(executions).some(item => item?.status === 'running' || item?.status === 'queued');
+  const executionBusy = executionStarting || Object.values(executions).some(item => item?.status === 'running' || item?.status === 'queued');
   const headers = { 'Content-Type': 'application/json', 'X-Test-Impact-Session': snapshot?.sessionToken ?? '' };
   useEffect(() => {
     if (!pending && graphSession?.status !== 'running') { setElapsed(0); return; }
@@ -284,9 +287,10 @@ export function App() {
   }
 
   async function runExecution(mode: ExecutionMode) {
-    if (!snapshot || !analysis) return;
+    if (!snapshot || !analysis || executionBusy) return;
     const revision = workingRevision.current;
     setError(undefined);
+    setExecutionStarting(true);
     try {
       const body: DemoExecutionRequest = { snapshotId: analysis.snapshotId, analysisId: analysis.id, mode };
       let execution = await request<DemoExecution>('/api/executions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Test-Impact-Session': snapshot.sessionToken }, body: JSON.stringify(body) });
@@ -300,7 +304,7 @@ export function App() {
       }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to execute tests.');
-    }
+    } finally { setExecutionStarting(false); }
   }
 
   if (!snapshot) return <main className="loading-screen"><div className="logo-mark">TIL</div><p>{error ?? 'Loading immutable repository snapshot…'}</p></main>;
@@ -340,24 +344,24 @@ export function App() {
               }}
               options={{ readOnly: true, renderSideBySide: true, originalEditable: false, minimap: { enabled: false }, fontSize: 13, lineHeight: 21, automaticLayout: false, scrollBeyondLastLine: false }} /></div></div>
             : <Editor onMount={editor => deferMonacoLayout(editor)} path={selectedPath} language={languageFor(selectedPath)} theme="vs-dark" value={content} onChange={value => updateFile(value ?? '')}
-              options={{ readOnly: !selectedPath || deleted.has(selectedPath), minimap: { enabled: false }, fontSize: 13, lineHeight: 21, fontLigatures: true, padding: { top: 14 }, scrollBeyondLastLine: false, automaticLayout: false, tabSize: 2 }} />}
+              options={{ readOnly: pending || executionBusy || !selectedPath || deleted.has(selectedPath), minimap: { enabled: false }, fontSize: 13, lineHeight: 21, fontLigatures: true, padding: { top: 14 }, scrollBeyondLastLine: false, automaticLayout: false, tabSize: 2 }} />}
         </div>
       </section>}
       <section className="graph-view progressive-view" hidden={view !== 'graph'}><LiveGraph session={graphSession} token={snapshot.sessionToken} pending={pending} executionBusy={executionBusy} elapsed={elapsed} focusTest={focusTest}
         onNext={() => { void advance(); }} onReset={() => { void resetGraph(); }} onCancel={() => { void cancelGraph(); }} onReview={sequence => { void review(sequence); }} onTest={inspectTest}
         onReconcile={() => { void reconcile(); }} /></section>
 
-      {view === 'tests' && <section className="tests-view"><div className="tests-heading"><div><span>TEST CATALOGUE</span><h1>Local and distributed regression suites.</h1></div>{analysis && <div><strong>{analysis.result.selectedTests.length + analysis.federated.suites.filter(item => item.selected).length}</strong><span>selected</span></div>}</div>
+      {view === 'tests' && <section className="tests-view"><div className="tests-heading"><div><span>TEST CATALOGUE</span><h1>Tests locales y suites distribuidas.</h1></div>{analysis && <div><strong>{analysis.result.selectedTests.length + analysis.federated.suites.filter(item => item.selected).length}</strong><span>{analysis.result.selectedTests.length} tests · {analysis.federated.suites.filter(item => item.selected).length} suites seleccionadas</span></div>}</div>
 
         <details><summary>Tipos de tests e IDs</summary><TestLegend /></details>
-        {analysis && <div className="panel"><div className="panel-title">SUITES DISTRIBUIDAS</div>{analysis.federated.suites.map(suite =>
-          <div className="selected-row" key={suite.id}><div><b>{suite.id}</b><span>{suite.selected ? 'Seleccionada' : 'Excluida'} · {suite.availability}</span><small>{suite.reason}</small></div>
-          <button onClick={() => inspectTest(suite.id)}>Ver test y resultado</button>{suite.path.length > 0 && <button onClick={() => explain(suite.id)}>Ver camino</button>}</div>)}</div>}
+        <div className="panel"><div className="panel-title">SUITES DISTRIBUIDAS</div>{suiteCatalogue.map(suite =>
+          <div className="selected-row" key={suite.id}><div><b>{suite.id}</b><span>{'selected' in suite ? suite.selected ? 'Seleccionada' : 'Excluida' : 'Sin analizar'} · {suite.availability}</span></div>
+          <button onClick={() => inspectTest(suite.id)}>Ver test y resultado</button>{'path' in suite && suite.path.length > 0 && <button onClick={() => explain(suite.id)}>Ver camino</button>}</div>)}</div>
         <ExecutionPanel selectedCount={(analysis?.result.selectedTests.length ?? 0) + (analysis?.federated.suites.filter(item => item.selected).length ?? 0)}
-          totalCount={snapshot.catalogue.length + (analysis?.federated.suites.length ?? 0)} executions={executions}
-          busy={Object.values(executions).some(execution => execution?.status === 'queued' || execution?.status === 'running')} disabled={!analysis} onRun={runExecution} onInspect={inspectTest} />
+          totalCount={snapshot.catalogue.length + suiteCatalogue.length} executions={executions}
+          busy={executionBusy} disabled={!analysis} onRun={runExecution} onInspect={inspectTest} />
         {inspectedTest && <div ref={inspectorRef}><TestInspector test={inspectedTest} snapshot={snapshot} analysis={analysis} execution={activeExecution} onShowChange={showChange} /></div>}
-        {inspectedSuite && graphSession && <div ref={inspectorRef}><SuiteInspector suite={inspectedSuite} sessionId={graphSession.id} token={snapshot.sessionToken} execution={activeExecution} onGraph={() => explain(inspectedSuite.id)} /></div>}
+        {inspectedSuite && <div ref={inspectorRef}><SuiteInspector suite={inspectedSuite} sessionId={graphSession?.id} token={snapshot.sessionToken} execution={activeExecution} onGraph={() => explain(inspectedSuite.id)} /></div>}
         <div className="test-table"><div className="test-table-head"><span>STATUS</span><span>ID / TEST</span><span>TYPE</span><span>EVIDENCE</span></div>{snapshot.catalogue.map(test => {
           const selected = analysis?.result.selectedTests.includes(test.id);
           const excluded = analysis?.result.excludedTests.find(item => item.testId === test.id);
@@ -368,6 +372,6 @@ export function App() {
         })}</div></section>}
     </main>
 
-    <footer><span><i /> Fuentes fijadas · Sin IA en runtime</span><span>{graphSession?.status ?? 'Grafo vacío'}</span><span>{graphSession?.step ? 'Paso ' + graphSession.step.sequence + '/' + graphSession.total : '0 nodos · 0 conexiones'}</span></footer>
+    <footer><span><i /> Fuentes fijadas · Sin IA en runtime</span><span>{graphSession ? processLabels[graphSession.status] : 'Grafo vacío'}</span><span>{graphSession?.step ? 'Paso ' + graphSession.step.sequence + '/' + graphSession.total : '0 nodos · 0 conexiones'}</span></footer>
   </div>;
 }

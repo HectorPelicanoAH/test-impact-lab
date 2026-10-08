@@ -1,8 +1,8 @@
 # SDD — Grafo progresivo con el diseño de v1
 
-Fecha: 2026-10-07. Estado: implementación en curso; aceptación de demo pendiente. Rama: `feat/live-graph-v1`. Punto de continuidad: [LIVE-GRAPH-HANDOFF.md](LIVE-GRAPH-HANDOFF.md).
+Fecha de diseño: 2026-10-07. Implementación: 2026-10-08. Estado: implementado; validación técnica y límites en el documento de continuidad. Rama: `feat/live-graph-v1`. Punto de continuidad: [LIVE-GRAPH-HANDOFF.md](LIVE-GRAPH-HANDOFF.md).
 
-Esta variante parte de `docs/dependency-graph-sdd` (`93089f1`, escenarios G1–G9) y recupera el lenguaje visual del tag `v1`. La variante `feat/guided-discovery-demo` y su PR #4 se conservan separados. Este documento define el cambio; la experiencia descrita todavía no está implementada.
+Esta variante parte de `docs/dependency-graph-sdd` (`93089f1`, escenarios G1–G9) y recupera el lenguaje visual del tag `v1`. La variante `feat/guided-discovery-demo` y su PR #4 se conservan separados. Este documento define la variante implementada. El guion para prepararla en una hora y presentarla en 15–20 minutos está en [DEMO-GRAFO-PROGRESIVO.md](DEMO-GRAFO-PROGRESIVO.md).
 
 ## 1. Resultado buscado
 
@@ -31,6 +31,7 @@ La referencia es `v1:apps/demo/src/components/ImpactGraph.tsx` y sus estilos: fo
 - El canvas representa hechos **v2**. Recuperar la estética de v1 no sustituye el descubrimiento por su grafo revisado del login.
 - Se acumulan todos los hechos descubiertos; no se limita el canvas a 20 nodos ni a unos pocos enlaces del journey. Archivos y relaciones estructurales pueden ocultarse con un filtro explícito que indica su cantidad.
 - Las capas conocidas del login mantienen su orden. HTTP, proveedor externo, contratos de eventos, canales, colas, consumidores y tests tienen categorías explícitas. La ubicación es presentación; no crea dependencias ni servicios por nombres de carpetas.
+- **Encuadrar** ofrece Login, HTTP, Eventos y Todo; **Buscar nodo** centra cualquier elemento visible y abre su inspector. **Ver novedades** centra las incorporaciones del paso. Estas acciones solo cambian el viewport.
 - Cada nodo conserva ID y posición entre pasos. Las incorporaciones ocupan espacios libres de su capa. Seleccionar o avanzar conserva zoom/pan y la instancia de React Flow; **Encajar** ajusta la vista cuando el usuario lo solicita.
 - Un contorno y la etiqueta **Nuevo en este paso** resaltan nodos/conexiones recién descubiertos. También se destaca una conexión nueva entre dos nodos que ya existían. Los hechos que cambian o reciben nueva evidencia se resaltan como **Actualizado en este paso**, conservando su identidad y posición. El siguiente paso retira ese foco y conserva los hechos anteriores.
 - En impacto se recuperan los estados de v1: fuente cambiada, código afectado, recorrido contractual y test seleccionado. Las bajas se muestran discontinuas como **Retirado**, con su evidencia anterior. El foco del paso se distingue del estado de impacto.
@@ -53,7 +54,7 @@ El inspector reutiliza el estilo de fuente de v1: editor de lectura, archivo y b
 
 El estado tiene texto además de animación y se anuncia de forma accesible; se respeta la preferencia de movimiento reducido. Este mismo comportamiento se aplica a los pasos del análisis de impacto.
 
-Hoy `WorkspaceSnapshots` construye el grafo al arrancar, `buildArchive` ejecuta todos los extractores seguidos y los botones de la variante anterior revisan eventos terminados. Hay que separar la carga de fuentes para el editor de la construcción del grafo y convertir el pipeline en una ejecución reanudable. Ocultar el snapshot final con animaciones no cumple este SDD.
+En esta variante, `/api/editor-input` carga las fuentes y los catálogos sin extraer el grafo visible. `GraphSessions` ejecuta una fase por petición y conserva el contexto del extractor. `buildArchive` consume ese mismo pipeline hasta completarlo para los entrypoints batch; los snapshots de compatibilidad no rellenan la sesión visible.
 
 El inicio carga fuentes/configuración y catálogo para editar, sin ejecutar el descubrimiento de esta sesión. Los snapshots históricos o cachés existentes no rellenan el canvas ni saltan sus fases. La construcción visible se solicita expresamente. **Revisar paso anterior** consulta un resultado guardado y lleva esa etiqueta; **Reiniciar grafo** crea otra ejecución real, vacía, conserva los cambios de código e invalida el impacto anterior.
 
@@ -70,7 +71,7 @@ El inicio carga fuentes/configuración y catálogo para editar, sin ejecutar el 
 | 9. Incorporar observaciones, si existen | OpenTelemetry/OTLP y correlación propia; mesh opcional | Resalta hechos correlacionados con spans o comunicación medida. Conserva su revisión y ventana. |
 | 10. Validar y publicar | Validadores propios y snapshot con SHA-256 | Comprueba fuentes/evidencias y publica el grafo completo. Habilita el análisis de impacto. |
 
-Los pasos 2–4 requieren descomponer `extractTypescript`, conservando el mismo programa/checker. Las relaciones estructurales necesarias se incorporan con sus nodos. Los adaptadores posteriores mantienen sus requisitos y orden actuales. Un paso sin incorporaciones explica su resultado: no fabrica nodos para animar el canvas.
+Los pasos 2–4 descomponen `extractTypescript`, conservando el mismo programa/checker. Las relaciones estructurales necesarias se incorporan con sus nodos. Los adaptadores posteriores mantienen sus requisitos y orden actuales. Un paso sin incorporaciones explica su resultado: no fabrica nodos para animar el canvas.
 
 **Tecnologías nombradas con precisión.** El extractor de producción es **TypeScript Compiler API**; CodeGraphContext se evaluó y descartó como fuente autoritativa en [ADR-G1-INDEXER.md](ADR-G1-INDEXER.md). **React Flow** dibuja y **Monaco** muestra fuentes/diffs. Son funciones distintas de la extracción.
 
@@ -111,11 +112,11 @@ Se reutilizan **Vitest**, **Playwright** y **Node `--test`** para Inventory, sob
 
 ## 7. Implementación y contrato mínimo
 
-Reutilizar `scripts/graph/{snapshot,extract,inventory-http,messaging,analyze,locator}.ts`, el motor de `packages/impact-engine`, `apps/demo/execution.ts` y los componentes de v1. Convertir las funciones monolíticas en fases reanudables; los entrypoints CLI conservan su ejecución completa consumiendo todas las fases del mismo pipeline.
+Se reutilizan `scripts/graph/{snapshot,extract,inventory-http,messaging,analyze,locator}.ts`, el motor de `packages/impact-engine`, `apps/demo/execution.ts` y el lenguaje visual de v1. Las fases son reanudables; los entrypoints CLI conservan su ejecución completa consumiendo todas las fases del mismo pipeline.
 
-Contrato propuesto, protegido por la sesión local existente:
+Contrato implementado, protegido por la sesión local existente:
 
-| Acción | API propuesta |
+| Acción | API |
 | --- | --- |
 | Abrir editor | `GET /api/editor-input`: fuentes, catálogo e identidad de entradas; no grafo calculado. |
 | Iniciar construcción/impacto | `POST /api/graph-sessions`: tipo, identidad de entradas y, para impacto, snapshot base + overlay. |
@@ -157,4 +158,4 @@ Criterios verificables:
 11. Cada paso de descubrimiento e impacto muestra una explicación visible de su acción, tecnología y resultado, coherente con los elementos resaltados; también cuando no incorpora hechos.
 12. Una fase con demora real muestra loader y texto En curso, mantiene el canvas consultable y bloquea avances duplicados. Se comprueban finalización, fallo y cancelación: el loader se detiene y se muestra el estado correcto. Las fases rápidas no reciben esperas artificiales ni las indeterminadas porcentajes ficticios.
 
-Orden de entrega: **A. pipeline real por fases y locators parciales → B. canvas v1 progresivo e inspector → C. impacto, detalle de suites y ensayo**. Esta rama contiene inicialmente el SDD; implementación, capturas y resultados de aceptación se añadirán con su propia validación.
+Entrega: **pipeline por fases y locators parciales → canvas progresivo e inspector → impacto y ejecución física**. Los resultados reproducibles están en [LIVE-GRAPH-HANDOFF.md](LIVE-GRAPH-HANDOFF.md). El ensayo humano de 15–20 minutos sigue el guion; no se atribuye esa duración a una validación automática.

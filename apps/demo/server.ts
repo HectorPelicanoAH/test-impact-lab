@@ -34,7 +34,10 @@ const testLocations = Object.fromEntries(catalogue.map(test => {
     endLine: source.getLineAndCharacterOfPosition(statement.getEnd()).line + 1,
   }];
 }));
-return { id, sessionToken, files, testFiles, testLocations, catalogue, externalCatalogue: externalTests(archive.sources), editableRoots: archive.config.roots };
+const suites = readFederatedSuites(archive).map(suite => ({ ...suite, source: archive.executionFiles[suite.file] ?? null,
+  availability: suite.file.startsWith('external/inventory/') && archive.executionFiles[suite.file] === undefined ? 'source-inaccessible' as const
+    : suite.runner.startsWith('broker-') ? 'broker-required' as const : 'available' as const }));
+return { id, sessionToken, files, testFiles, testLocations, catalogue, suites, externalCatalogue: externalTests(archive.sources), editableRoots: archive.config.roots };
 }
 function demoSnapshot(archive: DiscoveryArchive, sessionToken: string): DemoSnapshot {
   return { ...editorInput(archive, archive.graph.id, sessionToken), sourceHash: archive.graph.inputs.sourcesHash, graphHash: archive.graph.id,

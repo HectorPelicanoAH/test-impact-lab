@@ -1,41 +1,42 @@
-# Continuidad del desarrollo del grafo progresivo
+# Estado del grafo progresivo
 
-2026-10-08. Rama `feat/live-graph-v1`. Pausa solicitada por el usuario antes de agotar su cuota (última consulta: 11% restante). **Todavía no está listo para presentar como demo validada.** No hay PR nueva para esta variante.
+2026-10-08. Rama `feat/live-graph-v1`. Guion: [DEMO-GRAFO-PROGRESIVO.md](DEMO-GRAFO-PROGRESIVO.md). Diseño y criterios: [SDD-GRAFO-PROGRESIVO.md](SDD-GRAFO-PROGRESIVO.md).
 
 ## Implementado
 
-- Pipeline real reanudable de diez fases; CLI y sesiones usan los mismos extractores. TypeScript indexa y resuelve imports/comportamiento en pasos distintos. Inventarios HTTP, mensajería, evidencia revisada y observaciones tienen sus propias fases explicadas.
-- Captura de fuentes sin construir el grafo al abrir la web. Sesiones protegidas por token, idempotencia, revisión de fuentes, rollback por fase, consulta histórica y cancelación.
-- Impacto con catorce fases: diff, reconstrucción, delta, propagación y selección local/distribuida. El resultado final se registra para el runner existente.
-- Tres vistas: Código, Grafos y Tests. Canvas inicialmente vacío; novedades resaltadas, explicación/tecnología por fase, loader con tiempo real, minimapa/zoom, inspector de nodos/flechas y fuente de sus evidencias parciales.
-- Detalle de tests locales y de suites distribuidas, con fuente, assertions y resultados. Mockups originales conservados en `docs/mockups/live-graph-v1`.
-- Helper de layout diferido para Monaco. Tipado pasa, pero no ha resuelto todos los avisos ResizeObserver del navegador.
+- Diez fases reales de descubrimiento y catorce de impacto. La web carga fuentes sin calcular su grafo visible; cada Siguiente ejecuta una fase. CLI y sesiones consumen los mismos extractores.
+- Tres vistas: Código, Grafos y Tests. Canvas vacío al comenzar, explicación y tecnología por fase, loader/tiempo real, novedades, cambios y bajas con evidencia original.
+- Lenguaje visual de v1: tarjetas y capas, minimapa y zoom. Encuadrar Login/HTTP/Eventos/Todo, Buscar nodo y Ver novedades permiten navegar sin recortar hechos. Posiciones y viewport se conservan entre pasos.
+- Inspector de nodos y enlaces con código/configuración fijados a la sesión. Evidencia parcial e histórica disponible antes de publicar el snapshot final.
+- Catálogo y fuentes de tests/suites consultables antes del análisis. Motivos de selección, assertions, runner, duración, salida y resultado. Los totales distinguen tests locales y suites distribuidas; unavailable no cuenta como passed.
+- Sesiones con entradas congeladas, token, secuencia, idempotencia, rollback por fase, invalidación y cancelación. El runner usa una copia aislada de las fuentes y el overlay analizados.
+- Layout diferido de Monaco y parche acotado de React Flow 12.12.0: las mediciones de nodos se agrupan en el siguiente frame. El parche está versionado y se incluye en las entradas del runner; no se suprimen errores de navegador.
 
-## Validación realizada
+## Validación técnica
 
-- `CI=true pnpm typecheck`: pasa, también tras los últimos cambios de layout/Monaco.
-- `CI=true pnpm build`: pasó antes de los últimos ajustes visuales; hay que repetir al cerrarlos.
-- 26 pruebas pasan: `apps/demo/graph-sessions.test.ts`, `apps/demo/server.test.ts`, `tests/dependency-graph/discovery.test.ts`, `tests/dependency-graph/analysis.test.ts`. Verifican pausa real, rollback, equivalencia con batch, locators parciales e idempotencia/impacto/cancelación por API.
-- Verificador nuevo `scripts/verify-live-graph-browser.ts` recorre extracción, código/impacto de consumidor, novedades de mensajería y detalle de suite. Última ejecución llega al escenario HTTP pero falla esperando `.live-edge.retired` tras finalizar selección. **No pasa la aceptación completa.** También recoge errores `ResizeObserver loop completed with undelivered notifications`.
-- Capturas reales ignoradas por Git: `.impact-runs/live-graph-browser/01-empty.png` a `05-suite-inspector.png`. La ejecución terminó y cerró sus servidores temporales. Las imágenes de mockups son propuestas, no prueba de aceptación.
-- No se ha validado todavía una ejecución física de tests desde esta nueva UI.
+- `CI=true pnpm typecheck`: pasa.
+- `CI=true pnpm build`: pasa después del parche. Vite avisa del tamaño del bundle de Monaco; no bloquea la compilación.
+- **59 pruebas** pasan en nueve archivos: sesiones, API, resumen de ejecución, descubrimiento, análisis, HTTP, mensajería, observaciones y journeys. Cubren equivalencia con batch, pasos e idempotencia, stale/cancelación, evidencia parcial/histórica, bajas HTTP y contadores de suites fallidas/no disponibles.
+- Recorrido desktop con Chromium a 1680×1050: **pasa sin errores de navegador**. Ejecuta descubrimiento, consumidor nuevo, impacto HTTP, fuente de enlace retirado, suite y runner físico; comprueba también reinicio y ausencia de errores de navegador.
 
-## Siguiente trabajo, en orden
+La ejecución física `cc385fb2-3022-48e1-bbfd-4d3b6ad09902` tardó **103,1 s**: **39 tests locales passed; 9 suites passed, 1 failed y 2 unavailable**. `inventory-contract` falla por la incompatibilidad v2/v1 introducida; `inventory-provider` pasa. El informe local está en `.impact-runs/cc385fb2-3022-48e1-bbfd-4d3b6ad09902/summary.json` (ignorado por Git).
 
-1. Corregir encuadre/capas del canvas. `LiveGraph.tsx` usa capas v1 de `layoutLayers` por ruta y roots para el código adicional, pero el encuadre global sigue mostrando demasiados elementos diminutos. Conservar posiciones y evidencia completa; hacer legible la navegación para demo. Revisar capturas desktop a 1680×1050.
-2. Resolver ResizeObserver. `monaco-layout.ts` difiere layout y todos los editores lo usan, pero persiste el aviso: localizar su origen en ReactFlow/Monaco/contenedores, sin ocultar los errores globalmente.
-3. Investigar la pérdida de estado retirado entre delta y selección en impacto HTTP. `LiveGraph.state()` usa IDs del paso actual; revisar acumulación del delta final en `GraphSessions.view()` y representación de aristas originales. Confirmar también que el escenario realmente retira el enlace esperado y ampliar la prueba correspondiente.
-4. Completar aceptación de stale/cancelación/respuestas tardías y evidencia histórica; revisar detalle de suites antes de calcular impacto (hoy aparecen en la selección de impacto).
-5. Ejecutar un runner real desde la nueva sesión y verificar fuente/assertions/salida en Tests. Después repetir build y verificador limpio sin editar mientras corre; ensayar recorrido de 15–20 minutos.
-6. Actualizar el SDD con aceptación real. No marcar terminado ni prometer demo lista hasta cerrar los puntos anteriores.
+Capturas reales del recorrido: [Código, Grafos y Tests](screenshots/live-graph-v1/README.md). Se comprobó también que el diff tiene altura útil y que las flechas persisten entre fases.
 
-## Comandos
+## Reproducir
 
 ```sh
+pnpm dev
 CI=true pnpm typecheck
-CI=true pnpm exec vitest run apps/demo/graph-sessions.test.ts apps/demo/server.test.ts tests/dependency-graph/discovery.test.ts tests/dependency-graph/analysis.test.ts --maxWorkers=1 --testTimeout=60000 --hookTimeout=60000
-CI=true PLAYWRIGHT_BROWSERS_PATH=/private/tmp/test-impact-lab-browsers node --import tsx scripts/verify-live-graph-browser.ts
 CI=true pnpm build
+CI=true pnpm exec vitest run apps/demo/graph-sessions.test.ts apps/demo/src/components/ExecutionPanel.test.tsx apps/demo/server.test.ts tests/dependency-graph/discovery.test.ts tests/dependency-graph/analysis.test.ts tests/dependency-graph/http-inventory.test.ts tests/dependency-graph/messaging.test.ts tests/dependency-graph/observations.test.ts tests/dependency-graph/journeys.test.ts --maxWorkers=1 --testTimeout=60000 --hookTimeout=60000
+CI=true PLAYWRIGHT_BROWSERS_PATH=/private/tmp/test-impact-lab-browsers pnpm test:live-graph-browser
 ```
 
-Las pruebas que abren localhost y Chromium necesitan permisos fuera del sandbox en este equipo. El verificador crea servidores efímeros, no reutiliza ni detiene los servicios del usuario. Para abrir manualmente: `pnpm dev:demo-api` y `pnpm dev:demo` en terminales separadas.
+`pnpm dev` prepara una revisión independiente de Inventory y muestra las URLs. El verificador prepara su propia fixture, API y Vite efímeros; no reutiliza ni detiene servicios del usuario. Abrir localhost/Chromium necesita permisos fuera del sandbox de este equipo. La ruta de Chromium corresponde al entorno local; en otro equipo instalarlo con Playwright.
+
+## Límites y ensayo
+
+El recorrido básico valida Inventory y los escenarios consumidor/HTTP. La incompatibilidad HTTP debe producir un fallo contractual real. RabbitMQ, OpenTelemetry y mesh conservan sus perfiles existentes, pero no se han levantado para esta aceptación: sin broker las suites que lo requieren aparecen no disponibles y sin dataset se indica Sin trazas.
+
+El guion está preparado para 15–20 minutos; esa duración requiere el ensayo humano. Las capturas propuestas permanecen en `docs/mockups/live-graph-v1`; las capturas del verificador documentan una ejecución anterior, no resultados en vivo del navegador que abra el presentador.

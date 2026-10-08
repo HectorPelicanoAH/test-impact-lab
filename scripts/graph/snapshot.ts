@@ -13,7 +13,7 @@ import { indexTypescript, location, parseSource } from './extract';
 import { externalTests, extractExternalRepository, extractInventoryHttp, inventoryPrefix } from './inventory-http';
 import { extractMessaging } from './messaging';
 
-export const executionEntries = ['apps', 'packages', 'tests', 'scripts', 'impact', 'examples/external-inventory', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.json', 'vitest.config.ts', 'playwright.config.ts'];
+export const executionEntries = ['apps', 'packages', 'tests', 'scripts', 'impact', 'patches', 'examples/external-inventory', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.json', 'vitest.config.ts', 'playwright.config.ts'];
 export const ignoreExecution = (path: string) => path.split('/').some(segment => ['node_modules', 'dist', 'dist-server', '__pycache__'].includes(segment) || segment.startsWith('.'));
 export interface WorkspaceInput {
   sources: SourceFiles; configuration: SourceFiles; config: DiscoveryConfig; executionFiles: SourceFiles;

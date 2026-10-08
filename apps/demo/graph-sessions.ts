@@ -18,7 +18,7 @@ const impactPhases: DiscoveryPhase[] = [
 ];
 interface Session {
   id: string; kind: DemoGraphSession['kind']; input: WorkspaceInput; inputId: string; status: DemoGraphSession['status'];
-  pipeline: ReturnType<typeof createDiscoveryPipeline>; phases: DiscoveryPhase[]; history: { archive: DiscoveryArchive; step: GraphStepResult }[];
+  pipeline: ReturnType<typeof createDiscoveryPipeline>; phases: DiscoveryPhase[]; history: { archive: DiscoveryArchive; step: GraphStepResult; localImpact?: DemoAnalysis['result'] }[];
   before?: Session; edits: OverlayEdit[]; local?: ReturnType<typeof analyzePrepared>; analysis?: DemoAnalysis; error?: string;
   requests: Map<string, number>;
 }
@@ -31,7 +31,7 @@ export class GraphSessions {
     private publish: (archive: DiscoveryArchive) => void,
     private completed: (analysis: DemoAnalysis, edits: OverlayEdit[], after: DiscoveryArchive) => void) {}
   capture() {
-    const input = this.load(), id = inputIdentity(input);
+    const input = structuredClone(this.load()), id = inputIdentity(input);
     this.inputs.set(id, input);
     while (this.inputs.size > 4) this.inputs.delete(this.inputs.keys().next().value!);
     return { input, id };
@@ -41,7 +41,7 @@ export class GraphSessions {
     if (!input || inputIdentity(this.load()) !== body.inputId) throw new Error('Las fuentes han cambiado. Recarga el editor.');
     const before = body.baseSessionId ? this.get(body.baseSessionId) : undefined;
     if (body.kind === 'impact' && (!before || before.kind !== 'discovery' || before.status !== 'completed' || before.inputId !== body.inputId)) throw new Error('Construye un grafo base válido antes de analizar el impacto.');
-    const edits = body.edits ?? [];
+    const edits = structuredClone(body.edits ?? []);
     if (body.kind === 'impact') applyEdits(input.sources, edits, input.config);
     const session: Session = { id: randomUUID(), kind: body.kind, input, inputId: body.inputId, status: 'waiting', pipeline: createDiscoveryPipeline(input),
       phases: body.kind === 'impact' ? impactPhases : discoveryPhases, history: [], edits, before, requests: new Map() };
@@ -62,6 +62,7 @@ export class GraphSessions {
     return { id, inputId: session.inputId, kind: session.kind, status: session.status, sequence: session.history.length, total: session.phases.length,
       nextPhase: session.phases[session.history.length], step: record?.step, steps: session.history.map(item => item.step),
       graph: record?.archive.graph ?? session.pipeline.partial(`partial:${id}:0`).graph,
+      changedPaths: session.kind === 'impact' && record ? session.edits.map(edit => edit.path) : [], localImpact: record?.localImpact,
       layoutLayers: Object.fromEntries(session.input.legacyGraph.nodes.filter(node => node.source).map(node => [node.source!.path, node.layer])),
       beforeGraph: session.before?.pipeline.archive?.graph, snapshotId: session.pipeline.archive?.graph.id,
       analysis: record?.step.sequence === session.history.length ? session.analysis : undefined, error: session.error };
@@ -76,6 +77,7 @@ export class GraphSessions {
     if (session.status !== 'waiting' && session.status !== 'error') throw new Error('La sesión no admite ejecutar otra fase.');
     if (expected !== session.history.length) throw new Error('La secuencia ha cambiado. Consulta el estado.');
     if (!key || key.length > 100) throw new Error('Clave de idempotencia inválida.');
+    if (session.before && session.before.status !== 'completed') { session.status = 'stale'; throw new Error('El grafo base se ha invalidado. Reconstrúyelo antes de continuar.'); }
     if (inputIdentity(this.load()) !== session.inputId) { session.status = 'stale'; throw new Error('Las fuentes base han cambiado. Reconstruye el grafo.'); }
     session.requests.set(key, expected); session.status = 'running'; session.error = undefined;
     setImmediate(() => {
@@ -98,6 +100,10 @@ export class GraphSessions {
         const comparison = baseline ? delta(baseline, archive.graph) : changes;
         const finalComparison = phase.id === 'delta' || phase.id === 'impact' || phase.id === 'selection';
         const difference = finalComparison && session.before ? delta(session.before.pipeline.archive!.graph, archive.graph) : comparison;
+        const changedProofs = (diff: ReturnType<typeof delta>) => new Set([...diff.evidence.added.map(item => item.id),
+          ...diff.evidence.changed.filter(item => canonical(item.before.locator) !== canonical(item.after.locator)).map(item => item.id)]);
+        const comparisonProofs = changedProofs(difference), phaseProofs = changedProofs(changes);
+        const refreshedEdges = archive.graph.edges.filter(edge => edge.evidenceIds.some(id => comparisonProofs.has(id) && phaseProofs.has(id)));
         const newNodes = session.before ? difference.nodes.added.filter(item => changes.nodes.added.some(change => change.id === item.id)) : changes.nodes.added;
         const newEdges = session.before ? difference.edges.added.filter(item => changes.edges.added.some(change => change.id === item.id)) : changes.edges.added;
         let result = `${archive.graph.nodes.length} nodos y ${archive.graph.edges.length} conexiones comprobados. +${newNodes.length} nodos · +${newEdges.length} conexiones en este paso.`;
@@ -112,6 +118,7 @@ export class GraphSessions {
           updatedNodeIds: [...new Set([...difference.nodes.changed.filter(item => changes.nodes.added.some(change => change.id === item.id) || changes.nodes.changed.some(change => change.id === item.id)).map(item => item.id),
             ...(phase.id === 'observations' ? archive.graph.observations.flatMap(item => item.correlation.nodeIds) : [])])],
           updatedEdgeIds: [...new Set([...difference.edges.changed.filter(item => changes.edges.added.some(change => change.id === item.id) || changes.edges.changed.some(change => change.id === item.id)).map(item => item.id),
+            ...refreshedEdges.filter(item => !newEdges.some(edge => edge.id === item.id)).map(item => item.id),
             ...(phase.id === 'observations' ? archive.graph.observations.flatMap(item => item.correlation.edgeIds) : [])])],
           removedNodeIds: session.before ? difference.nodes.removed.map(item => item.id) : [], removedEdgeIds: session.before ? difference.edges.removed.map(item => item.id) : [],
           confirmedNodeIds: baseline?.nodes.map(item => item.id) ?? [], confirmedEdgeIds: baseline?.edges.map(item => item.id) ?? [] };
@@ -119,7 +126,7 @@ export class GraphSessions {
           if (session.kind === 'discovery') this.publish(session.pipeline.archive!);
           else this.completed(session.analysis!, session.edits, session.pipeline.archive!);
         }
-        session.history.push({ archive: structuredClone(archive), step });
+        session.history.push({ archive: structuredClone(archive), step, ...(session.local ? { localImpact: session.local.result } : {}) });
         session.status = session.history.length === session.phases.length ? 'completed' : 'waiting';
       } catch (error) { session.status = 'error'; session.error = error instanceof Error ? error.message : 'La fase ha fallado.'; }
     });
