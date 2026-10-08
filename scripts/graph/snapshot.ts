@@ -9,11 +9,11 @@ import type { GraphEdge, GraphNode, ImpactGraph, TestMetadata } from '../../pack
 import type { DiscoveryArchive, DiscoveryConfig, GraphSnapshotV2, MeshDataset, SourceFiles } from '../../packages/impact-engine/src/schema-v2';
 import { GraphBuilder, canonical, fileHashes, hash, nodeId, ordered, validateSnapshot } from './core';
 import { authorizedPath, inventory, readTree, safePath } from './files';
-import { extractTypescript, location, parseSource } from './extract';
+import { indexTypescript, location, parseSource } from './extract';
 import { externalTests, extractExternalRepository, extractInventoryHttp, inventoryPrefix } from './inventory-http';
 import { extractMessaging } from './messaging';
 
-export const executionEntries = ['apps', 'packages', 'tests', 'scripts', 'impact', 'examples/external-inventory', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.json', 'vitest.config.ts', 'playwright.config.ts'];
+export const executionEntries = ['apps', 'packages', 'tests', 'scripts', 'impact', 'patches', 'examples/external-inventory', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.json', 'vitest.config.ts', 'playwright.config.ts'];
 export const ignoreExecution = (path: string) => path.split('/').some(segment => ['node_modules', 'dist', 'dist-server', '__pycache__'].includes(segment) || segment.startsWith('.'));
 export interface WorkspaceInput {
   sources: SourceFiles; configuration: SourceFiles; config: DiscoveryConfig; executionFiles: SourceFiles;
@@ -128,7 +128,22 @@ function migrate(builder: GraphBuilder, input: WorkspaceInput) {
   }
 }
 
-export function buildArchive(input: WorkspaceInput): DiscoveryArchive {
+export interface DiscoveryPhase { id: string; title: string; technology: string; explanation: string }
+export const discoveryPhases: DiscoveryPhase[] = [
+  { id: 'sources', title: 'Fijar las fuentes', technology: 'Node.js · Git · SHA-256', explanation: 'Fijamos archivos, configuración y revisiones. Leer una fuente todavía no demuestra una conexión.' },
+  { id: 'symbols', title: 'Descubrir archivos y símbolos', technology: `TypeScript Compiler API ${ts.version} · AST`, explanation: 'El compilador identifica archivos y declaraciones: funciones, clases e interfaces. Cada nodo conserva su fuente.' },
+  { id: 'imports', title: 'Resolver imports', technology: 'TypeScript · resolveModuleName', explanation: 'Resolvemos cada import a su módulo concreto. Las flechas resaltadas muestran consumidor → dependencia.' },
+  { id: 'behavior', title: 'Resolver comportamiento', technology: 'TypeScript · TypeChecker', explanation: 'Resolvemos llamadas, JSX e interfaces a declaraciones concretas. Un destino ambiguo queda diagnosticado.' },
+  { id: 'reviewed', title: 'Vincular arquitectura y tests', technology: 'Adaptador propio · AST + JSON revisado', explanation: 'Revalidamos las piezas del login y los sujetos declarados de sus tests. Esto expresa intención, no cobertura medida.' },
+  { id: 'external', title: 'Incorporar proveedor externo', technology: 'Git · adaptador TypeScript', explanation: 'Leemos código y tests de la revisión fijada de Inventory. Sin fuente, informamos contract-only.' },
+  { id: 'http', title: 'Conectar HTTP', technology: 'Adaptador HTTP propio · AST + contratos JSON', explanation: 'Comprobamos cliente, método, endpoint y versión del contrato. Una coincidencia incompleta no crea un binding.' },
+  { id: 'messaging', title: 'Conectar eventos y consumidores', technology: 'Adaptador AMQP propio · AST + topología JSON', explanation: 'Relacionamos publicador, canal, colas y handlers desde código y registros explícitos. No consultamos el broker.' },
+  { id: 'observations', title: 'Incorporar observaciones', technology: 'OpenTelemetry / OTLP · correlación versionada', explanation: 'Correlacionamos capturas disponibles con su revisión y ventana. La ausencia de tráfico no elimina dependencias estáticas.' },
+  { id: 'validation', title: 'Validar y publicar', technology: 'Validadores propios · SHA-256', explanation: 'Verificamos referencias, evidencias y bytes archivados. Solo un grafo completo y válido habilita el impacto.' },
+];
+
+/** Paused between phases: no extractor runs until next() is explicitly called. */
+export function createDiscoveryPipeline(input: WorkspaceInput) {
   const executionFiles = { ...input.executionFiles };
   for (const path of Object.keys(executionFiles)) if (authorizedPath(path, input.config) && input.sources[path] === undefined) delete executionFiles[path];
   Object.assign(executionFiles, input.sources);
@@ -139,11 +154,10 @@ export function buildArchive(input: WorkspaceInput): DiscoveryArchive {
   configuration['extractor-manifest.json'] = JSON.stringify(extractors);
   const localSources = Object.fromEntries(Object.entries(input.sources).filter(([path]) => !path.startsWith(inventoryPrefix)));
   const builder = new GraphBuilder(input.sources, input.config, configuration, `content:${hash(fileHashes(localSources))}`);
-  extractTypescript(builder);
-  migrate(builder, input);
-  if (input.inventoryRevision) extractExternalRepository(builder, input.sources, configuration, input.inventoryRevision);
-  extractInventoryHttp(builder, input.sources, input.config, input.inventoryRevision);
-  extractMessaging(builder);
+  let compiler: ReturnType<typeof indexTypescript> | undefined;
+  let observations: GraphSnapshotV2['observations'] = [], mesh: GraphSnapshotV2['mesh'];
+  let observationsReady = false, completed = 0, published: DiscoveryArchive | undefined;
+  function assemble(): DiscoveryArchive {
   const externalSources = Object.fromEntries(Object.entries(input.sources).filter(([path]) => path.startsWith(inventoryPrefix)));
   const externalCatalogue = externalTests(input.sources);
   const localContract = input.sources['packages/api-contract/src/inventory-contract.json'];
@@ -157,18 +171,61 @@ export function buildArchive(input: WorkspaceInput): DiscoveryArchive {
     inputs: { sourcesHash: hash(fileHashes(input.sources)), contractsHash: hash(fileHashes(Object.fromEntries(Object.entries(input.sources).filter(([path]) => path.startsWith('packages/api-contract/'))))),
       configurationHash: builder.configurationHash, catalogueHash: hash({ local: input.catalogue, external: externalCatalogue }), extractorsHash: hash(extractors),
       policiesHash: hash(ordered(builder.policies.values())), observationsHash: null },
-    nodes: ordered(builder.nodes.values()), edges: ordered(builder.edges.values()), evidence: ordered(builder.evidence.values()), diagnostics: ordered(builder.diagnostics.values()), policies: ordered(builder.policies.values()), observations: [],
+    nodes: ordered(builder.nodes.values()), edges: ordered(builder.edges.values()), evidence: ordered(builder.evidence.values()), diagnostics: ordered(builder.diagnostics.values()), policies: ordered(builder.policies.values()), observations,
+    ...(mesh ? { mesh } : {}),
   };
-  if (input.observationDataset) { body.observations = correlate(input.observationDataset, body); body.inputs.observationsHash = hash(input.observationDataset); }
-  if (input.meshDataset) body.mesh = correlateMesh(input.meshDataset, body);
-  body.inputs.observationsHash = observationsHash(input.observationDataset, input.meshDataset);
+  body.inputs.observationsHash = observationsReady ? observationsHash(input.observationDataset, input.meshDataset) : null;
   const graph: GraphSnapshotV2 = { ...body, id: hash(body) };
   const archive = { graph, sources: input.sources, configuration, executionFiles, config: input.config, catalogue: input.catalogue, externalCatalogue, legacyGraph: input.legacyGraph,
     ...(input.meshDataset ? { meshDataset: input.meshDataset } : {}),
     ...(input.observationDataset ? { observationDataset: input.observationDataset } : {}),
     ...(input.inventoryRevision ? { inventoryRevision: input.inventoryRevision } : {}) };
-  validateArchive(archive);
   return archive;
+  }
+  const actions = [
+    () => { /* Immutable inputs captured by the caller, no extraction. */ },
+    () => { compiler = indexTypescript(builder); },
+    () => { if (!compiler) throw new Error('Index declarations first.'); compiler.resolveImports(); },
+    () => { if (!compiler) throw new Error('Index declarations first.'); compiler.resolveBehavior(); },
+    () => migrate(builder, input),
+    () => { if (input.inventoryRevision) extractExternalRepository(builder, input.sources, configuration, input.inventoryRevision); },
+    () => extractInventoryHttp(builder, input.sources, input.config, input.inventoryRevision),
+    () => extractMessaging(builder),
+    () => {
+      const view = assemble().graph;
+      if (input.observationDataset) observations = correlate(input.observationDataset, view);
+      if (input.meshDataset) mesh = correlateMesh(input.meshDataset, view);
+      observationsReady = true;
+    },
+    () => { const archive = assemble(); validateArchive(archive); published = archive; },
+  ];
+  return {
+    get completed() { return completed; },
+    get archive() { return published; },
+    get nextPhase() { return discoveryPhases[completed]; },
+    partial(reference: string): DiscoveryArchive {
+      const archive = assemble();
+      return { ...archive, graph: { ...archive.graph, id: reference } };
+    },
+    next() {
+      const action = actions[completed];
+      if (!action) throw new Error('All discovery phases are complete.');
+      // Restore both facts and execution context on failure, never just the canvas.
+      const checkpoint = structuredClone({ nodes: builder.nodes, edges: builder.edges, evidence: builder.evidence, diagnostics: builder.diagnostics, policies: builder.policies });
+      const oldCompiler = compiler, oldObservations = observations, oldMesh = mesh, oldReady = observationsReady;
+      try { action(); completed++; }
+      catch (error) {
+        Object.assign(builder, checkpoint); compiler = oldCompiler; observations = oldObservations; mesh = oldMesh; observationsReady = oldReady;
+        throw error;
+      }
+    },
+  };
+}
+
+export function buildArchive(input: WorkspaceInput): DiscoveryArchive {
+  const pipeline = createDiscoveryPipeline(input);
+  while (pipeline.nextPhase) pipeline.next();
+  return pipeline.archive!;
 }
 
 export function validateArchive(archive: DiscoveryArchive) {

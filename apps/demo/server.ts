@@ -3,10 +3,12 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { resolve } from 'node:path';
 import ts from 'typescript';
 import { executeTests } from './execution';
-import type { DemoAnalysis, DemoAnalysisRequest, DemoExecution, DemoExecutionRequest, DemoFile, DemoSnapshot } from './src/types';
+import type { DemoAnalysis, DemoAnalysisRequest, DemoExecution, DemoExecutionRequest, DemoFile, DemoSnapshot, DemoEditorInput } from './src/types';
 import type { DiscoveryArchive } from '../../packages/impact-engine/src/schema-v2';
-import { WorkspaceSnapshots } from '../../scripts/graph/store';
-import { compatibilityGraph } from '../../scripts/graph/snapshot';
+import { SnapshotStore, WorkspaceSnapshots } from '../../scripts/graph/store';
+import { compatibilityGraph, loadWorkspace, type WorkspaceInput } from '../../scripts/graph/snapshot';
+import { externalTests } from '../../scripts/graph/inventory-http';
+import { GraphSessions } from './graph-sessions';
 import { authorizedPath, applyEdits } from '../../scripts/graph/files';
 import { analyzeOverlay } from '../../scripts/graph/analyze';
 import { canonical, hash } from '../../scripts/graph/core';
@@ -14,7 +16,7 @@ import { locateSource } from '../../scripts/graph/locator';
 import { readFederatedSuites } from '../../packages/impact-engine/src/federated';
 
 const root = resolve(process.cwd());
-function demoSnapshot(archive: DiscoveryArchive, sessionToken: string): DemoSnapshot {
+function editorInput(archive: WorkspaceInput, id: string, sessionToken: string): DemoEditorInput {
 const { catalogue } = archive;
 const files: DemoFile[] = Object.keys(archive.sources).sort().filter(path => authorizedPath(path, archive.config)).map(path => ({
   path, content: archive.sources[path]!, language: path.endsWith('.css') ? 'css' : path.endsWith('.json') ? 'json' : 'typescript',
@@ -32,9 +34,14 @@ const testLocations = Object.fromEntries(catalogue.map(test => {
     endLine: source.getLineAndCharacterOfPosition(statement.getEnd()).line + 1,
   }];
 }));
-return { id: archive.graph.id, sourceHash: archive.graph.inputs.sourcesHash, graphHash: archive.graph.id,
-  catalogueHash: archive.graph.inputs.catalogueHash, sessionToken, files, testFiles, testLocations,
-  graph: compatibilityGraph(archive), catalogue, externalCatalogue: archive.externalCatalogue ?? [], discovery: archive.graph, editableRoots: archive.config.roots };
+const suites = readFederatedSuites(archive).map(suite => ({ ...suite, source: archive.executionFiles[suite.file] ?? null,
+  availability: suite.file.startsWith('external/inventory/') && archive.executionFiles[suite.file] === undefined ? 'source-inaccessible' as const
+    : suite.runner.startsWith('broker-') ? 'broker-required' as const : 'available' as const }));
+return { id, sessionToken, files, testFiles, testLocations, catalogue, suites, externalCatalogue: externalTests(archive.sources), editableRoots: archive.config.roots };
+}
+function demoSnapshot(archive: DiscoveryArchive, sessionToken: string): DemoSnapshot {
+  return { ...editorInput(archive, archive.graph.id, sessionToken), sourceHash: archive.graph.inputs.sourcesHash, graphHash: archive.graph.id,
+    catalogueHash: archive.graph.inputs.catalogueHash, graph: compatibilityGraph(archive), discovery: archive.graph };
 }
 
 function json(response: ServerResponse, status: number, body: unknown) {
@@ -94,13 +101,58 @@ function isAuthorized(request: IncomingMessage, sessionToken: string): boolean {
 
 type Executor = typeof executeTests;
 
-export function createDemoApi(executor: Executor = executeTests, workspace = new WorkspaceSnapshots(root)) {
+export function createDemoApi(executor: Executor = executeTests, workspace?: WorkspaceSnapshots) {
   const sessionToken = randomBytes(32).toString('hex');
   const analyses = new Map<string, { analysis: DemoAnalysis; edits: DemoAnalysisRequest['edits']; after: DiscoveryArchive }>();
   const executions = new Map<string, DemoExecution>();
+  const store = workspace?.store ?? new SnapshotStore(resolve(root, '.impact-snapshots'));
+  const busy = () => [...executions.values()].some(item => item.status === 'queued' || item.status === 'running');
+  const sessions = new GraphSessions(() => workspace ? workspace.capture() : loadWorkspace(root), archive => store.publish(archive),
+    (analysis, edits, after) => { store.publish(after, false); analyses.set(analysis.id, { analysis, edits, after }); });
   return createServer(async (request, response) => {
+    if (request.method === 'GET' && request.url === '/api/editor-input') {
+      try { const { input, id } = sessions.capture(); return json(response, 200, editorInput(input, id, sessionToken)); }
+      catch (error) { return json(response, 503, { error: error instanceof Error ? error.message : 'No se pudieron leer las fuentes.' }); }
+    }
+    if (request.url?.startsWith('/api/graph-sessions')) {
+      if (!isAuthorized(request, sessionToken)) return json(response, 403, { error: 'Invalid local demo session.' });
+      try {
+        const url = new URL(request.url, 'http://127.0.0.1');
+        if (request.method !== 'GET' && busy()) return json(response, 409, { error: 'Espera a que termine el runner antes de cambiar el grafo.' });
+        if (request.method === 'POST' && url.pathname === '/api/graph-sessions') {
+          const body = await readBody(request) as Parameters<GraphSessions['start']>[0];
+          if (!body || !['discovery', 'impact'].includes(body.kind) || typeof body.inputId !== 'string'
+            || Object.keys(body).some(key => !['kind', 'inputId', 'baseSessionId', 'edits'].includes(key))
+            || (body.edits !== undefined && !Array.isArray(body.edits))) throw new Error('Solicitud de sesión inválida.');
+          return json(response, 201, sessions.start(body));
+        }
+        const match = /^\/api\/graph-sessions\/([a-f0-9-]+)(?:\/(next|locators))?$/.exec(url.pathname);
+        const suiteMatch = /^\/api\/graph-sessions\/([a-f0-9-]+)\/suites\/([a-zA-Z0-9_-]+)$/.exec(url.pathname);
+        if (request.method === 'GET' && suiteMatch) return json(response, 200, sessions.suite(suiteMatch[1]!, suiteMatch[2]!));
+        if (!match) return json(response, 404, { error: 'Ruta no disponible.' });
+        const id = match[1]!;
+        if (request.method === 'POST' && match[2] === 'next') {
+          const body = await readBody(request) as { sequence: number; key: string };
+          if (!body || !Number.isInteger(body.sequence) || typeof body.key !== 'string' || Object.keys(body).some(key => !['sequence', 'key'].includes(key))) throw new Error('Paso inválido.');
+          return json(response, 202, sessions.next(id, body.sequence, body.key));
+        }
+        if (request.method === 'DELETE' && !match[2]) {
+          const previous = sessions.view(id); if (previous.analysis) analyses.delete(previous.analysis.id);
+          return json(response, 200, sessions.cancel(id));
+        }
+        if (request.method === 'GET' && match[2] === 'locators') {
+          const evidenceId = url.searchParams.get('evidence'), nodeId = url.searchParams.get('node');
+          const index = Number(url.searchParams.get('index') ?? '0'), sequence = Number(url.searchParams.get('sequence'));
+          if (!Number.isSafeInteger(sequence) || sequence < 1 || !!evidenceId === !!nodeId || !Number.isSafeInteger(index) || index < 0) throw new Error('Locator inválido.');
+          const located = sessions.locate(id, sequence, evidenceId ? { evidenceId } : { nodeId: nodeId!, index }, url.searchParams.get('side') === 'before');
+          return located ? json(response, 200, located) : json(response, 404, { error: 'No hay una fuente verificable para este hecho.' });
+        }
+        if (request.method === 'GET' && !match[2]) return json(response, 200, sessions.view(id, url.searchParams.has('sequence') ? Number(url.searchParams.get('sequence')) : undefined));
+        return json(response, 404, { error: 'Ruta no disponible.' });
+      } catch (error) { return json(response, 400, { error: error instanceof Error ? error.message : 'Operación inválida.' }); }
+    }
     if (request.method === 'GET' && /^\/api\/snapshots\/[a-f0-9]{64}\/mesh$/.test(request.url ?? '')) {
-      try { const archive = workspace.store.read(request.url!.split('/')[3]); return archive.meshDataset ? json(response, 200, archive.meshDataset) : json(response, 404, { error: 'No archived mesh evidence' }); }
+      try { const archive = store.read(request.url!.split('/')[3]); return archive.meshDataset ? json(response, 200, archive.meshDataset) : json(response, 404, { error: 'No archived mesh evidence' }); }
       catch { return json(response, 404, { error: 'Archived mesh evidence unavailable' }); }
     }
     // Resolve a verified locator by identity, never by a browser-supplied path/line.
@@ -114,7 +166,7 @@ export function createDemoApi(executor: Executor = executeTests, workspace = new
           const node = entries.length === 2 && url.searchParams.has('node') && url.searchParams.has('index') ? url.searchParams.get('node') : undefined;
           const index = url.searchParams.get('index') ?? '';
           if (!evidence && !(node && /^(0|[1-9]\d*)$/.test(index))) return json(response, 400, { error: 'Select exactly one evidence ID or one node ID and location index.' });
-          const archive = workspace.store.read(match[1]);
+          const archive = store.read(match[1]);
           const located = locateSource(archive, evidence ? { evidenceId: evidence } : { nodeId: node!, index: Number(index) });
           return located ? json(response, 200, located) : json(response, 404, { error: 'No verified source/range in this snapshot; navigation unavailable.' });
         } catch { return json(response, 404, { error: 'Snapshot or verified source unavailable.' }); }
@@ -122,10 +174,11 @@ export function createDemoApi(executor: Executor = executeTests, workspace = new
     }
     // Immutable history is readable even while a new extraction is failing.
     if (request.method === 'GET' && request.url?.startsWith('/api/snapshots/')) {
-      try { return json(response, 200, demoSnapshot(workspace.store.read(request.url.slice('/api/snapshots/'.length)), sessionToken)); }
+      try { return json(response, 200, demoSnapshot(store.read(request.url.slice('/api/snapshots/'.length)), sessionToken)); }
       catch { return json(response, 404, { error: 'Snapshot not available.' }); }
     }
     let current: DiscoveryArchive;
+    workspace ??= new WorkspaceSnapshots(root, store);
     try { current = workspace.refresh(); }
     catch (error) { return json(response, 503, { error: `Snapshot rebuild failed; previous version retained: ${error instanceof Error ? error.message : error}` }); }
     const snapshotId = current.graph.id;

@@ -1,3 +1,4 @@
+import { deferMonacoLayout } from '../monaco-layout';
 import Editor from '@monaco-editor/react';
 import type { TestKind, TestMetadata } from '@test-impact/impact-engine';
 import type { DemoAnalysis, DemoExecution, DemoSnapshot } from '../types';
@@ -20,7 +21,7 @@ export function TestLegend() {
 
 export function TestInspector({ test, snapshot, analysis, execution, onShowChange }: {
   test: TestMetadata;
-  snapshot: DemoSnapshot;
+  snapshot: Pick<DemoSnapshot, 'id' | 'testFiles' | 'testLocations'>;
   analysis?: DemoAnalysis;
   execution?: DemoExecution;
   onShowChange: (path?: string) => void;
@@ -35,7 +36,7 @@ export function TestInspector({ test, snapshot, analysis, execution, onShowChang
   const changedPath = analysis?.diff[0]?.path;
 
   return <section className="test-inspector" aria-label={`Source for ${test.id}`}>
-    <div className="test-inspector-heading"><div><span>TEST SOURCE · {family?.label.toUpperCase()}</span><h2><b>{test.id}</b> {test.title.replace(/^\[[^\]]+\]\s*/, '')}</h2><p>{family?.purpose}. The highlighted lines contain this test and its assertions.</p></div>
+    <div className="test-inspector-heading"><div><span>TEST SOURCE · {test.runner === 'playwright' ? 'Playwright' : 'Vitest'} · {family?.label.toUpperCase()}</span><h2><b>{test.id}</b> {test.title.replace(/^\[[^\]]+\]\s*/, '')}</h2><p>{family?.purpose}. The highlighted lines contain this test and its assertions.</p></div>
       <div className="test-inspector-actions">{changedPath && <button onClick={() => onShowChange(changedPath)}>VIEW SOURCE CHANGE ↗</button>}</div>
     </div>
     <div className="test-inspector-evidence">
@@ -44,13 +45,13 @@ export function TestInspector({ test, snapshot, analysis, execution, onShowChang
       <div><b>RUN RESULT</b><span className={result?.status === 'failed' ? 'failure-text' : result?.status === 'passed' ? 'success-text' : ''}>{result ? `${result.status.toUpperCase()}${result.durationMs === undefined ? '' : ` · ${Math.round(result.durationMs)} ms`}` : selected ? 'Not run yet' : analysis ? 'Not run in selected mode' : 'Not run yet'}</span></div>
     </div>
     {result?.output && <details className="test-failure" open={result.status === 'failed'}><summary>RUNNER OUTPUT</summary><pre>{result.output}</pre></details>}
-    <div className="test-source-path">{test.file} · lines {location?.startLine ?? '?'}–{location?.endLine ?? '?'}</div>
+    <div className="test-source-path">{test.file} · lines {location?.startLine ?? '?'}–{location?.endLine ?? '?'} · fuentes fijadas {snapshot.id.slice(0, 10)}</div>
     <div className="test-source-editor">{source ? <Editor key={test.id} path={test.file} language="typescript" theme="vs-dark" value={source.content}
-      onMount={(editor, monaco) => {
+      onMount={(editor, monaco) => { deferMonacoLayout(editor);
         if (!location) return;
         editor.revealLineInCenter(location.startLine);
         editor.createDecorationsCollection([{ range: new monaco.Range(location.startLine, 1, location.endLine, 1), options: { isWholeLine: true, className: 'test-source-highlight' } }]);
       }}
-      options={{ readOnly: true, domReadOnly: true, minimap: { enabled: false }, fontSize: 12, lineHeight: 21, automaticLayout: true, scrollBeyondLastLine: false, padding: { top: 10 } }} /> : <p>Source unavailable in this snapshot.</p>}</div>
+      options={{ readOnly: true, domReadOnly: true, minimap: { enabled: false }, fontSize: 12, lineHeight: 21, automaticLayout: false, scrollBeyondLastLine: false, padding: { top: 10 } }} /> : <p>Source unavailable in this snapshot.</p>}</div>
   </section>;
 }

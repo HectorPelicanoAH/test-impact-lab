@@ -22,7 +22,7 @@ export interface FederatedImpact {
 }
 
 /** Versioned, reviewed subjects are declarations of local test intent, not measured coverage. */
-export function readFederatedSuites(archive: DiscoveryArchive): FederatedSuite[] {
+export function readFederatedSuites(archive: Pick<DiscoveryArchive, 'configuration' | 'executionFiles' | 'sources'>): FederatedSuite[] {
   const text = archive.configuration['impact/evidence/federated-tests.json'];
   if (!text) throw new Error('Missing federated test declarations.');
   const suites = JSON.parse(text) as FederatedSuite[];

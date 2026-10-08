@@ -1,0 +1,155 @@
+import { createServer as createViteServer } from 'vite';
+import { chromium, expect } from '@playwright/test';
+import type { AddressInfo } from 'node:net';
+import { mkdirSync, rmSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { createDemoApi } from '../apps/demo/server';
+import { materializeInventory } from './inventory/materialize.mjs';
+
+// Ephemeral servers, genuine extractors. No reuse of the developer's services.
+const external = materializeInventory(), previousInventory = process.env.INVENTORY_ROOT;
+process.env.INVENTORY_ROOT = external.root;
+const api = createDemoApi();
+let vite: Awaited<ReturnType<typeof createViteServer>> | undefined;
+let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
+const reports = resolve('.impact-runs/live-graph-browser'); mkdirSync(reports, { recursive: true });
+try {
+  await new Promise<void>((resolve, reject) => { api.once('error', reject); api.listen(0, '127.0.0.1', resolve); });
+  const apiPort = (api.address() as AddressInfo).port;
+  vite = await createViteServer({ root: resolve('apps/demo'), configFile: resolve('apps/demo/vite.config.ts'), server: { host: '127.0.0.1', port: 0, strictPort: false, proxy: { '/api': `http://127.0.0.1:${apiPort}` } } });
+  await vite.listen();
+  browser = await chromium.launch();
+  const page = await browser.newPage({ viewport: { width: 1680, height: 1050 } });
+  page.setDefaultTimeout(15000);
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  await page.addInitScript(() => {
+    (window as typeof window & { browserErrors: string[] }).browserErrors = [];
+    window.addEventListener('error', event => (window as typeof window & { browserErrors: string[] }).browserErrors.push(event.message));
+  });
+  if (process.argv.includes('--diagnose-resize')) {
+    await page.addInitScript(() => {
+      const Native = window.ResizeObserver;
+      const recent: { origin: string; targets: string[] }[] = [];
+      window.ResizeObserver = class extends Native {
+        constructor(callback: ResizeObserverCallback) {
+          const origin = new Error().stack ?? '';
+          super((entries, observer) => {
+            recent.push({ origin: origin.split('\n').slice(0, 4).join('\n'), targets: entries.slice(0, 2).map(entry => entry.target.className.toString()) });
+            if (recent.length > 8) recent.shift();
+            callback(entries, observer);
+          });
+        }
+      };
+      window.addEventListener('error', event => {
+        if (event.message.includes('ResizeObserver')) console.log('RESIZE_ORIGINS', JSON.stringify(recent));
+      });
+    });
+    page.on('console', message => { if (message.text().startsWith('RESIZE_ORIGINS')) console.log(message.text()); });
+  }
+  await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as AddressInfo).port}`);
+  await expect(page.getByRole('heading', { name: 'El grafo está vacío' })).toBeVisible();
+  await expect(page.locator('.react-flow__node')).toHaveCount(0);
+  await page.screenshot({ path: resolve(reports, '01-empty.png') });
+  await page.getByRole('navigation').getByRole('button', { name: 'Tests', exact: true }).click();
+  await page.getByRole('button', { name: 'Ver test y resultado', exact: true }).first().click();
+  await expect(page.locator('.test-inspector')).toContainText('Vitest');
+  await expect(page.locator('.test-source-editor .monaco-editor')).toBeVisible();
+  await expect(page.getByRole('button', { name: /RUN SELECTED TESTS/ })).toBeDisabled();
+  await page.getByRole('navigation').getByRole('button', { name: 'Grafos', exact: true }).click();
+  async function next() {
+    const button = page.getByRole('button', { name: 'Ejecutar siguiente paso', exact: true });
+    await expect(button).toBeEnabled({ timeout: 30000 });
+    const sequence = Number(await page.locator('.live-step').getAttribute('data-sequence'));
+    await button.click();
+    await expect(page.locator('.live-step')).toHaveAttribute('data-sequence', String(sequence + 1), { timeout: 60000 });
+    await expect(page.locator('.process-loader')).toHaveCount(0, { timeout: 30000 });
+    await expect(page.locator('.error-banner')).toHaveCount(0);
+    console.log(await page.locator('.live-step b').first().innerText());
+  }
+  await next(); await expect(page.locator('.react-flow__node')).toHaveCount(0);
+  await next(); expect(await page.locator('.react-flow__node').count()).toBeGreaterThan(0);
+  await next(); await expect(page.locator('.react-flow__edge')).not.toHaveCount(0);
+  const node = page.locator('.react-flow__node').filter({ hasText: 'LoginPage' }).first();
+  await node.click({ force: true }); await expect(page.getByText('ENLACES DEL NODO', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /Ver declaración/ }).first().click();
+  await expect(page.locator('.live-source')).toBeVisible();
+  await page.screenshot({ path: resolve(reports, '02-partial-proof.png') });
+  await page.getByRole('button', { name: 'Cerrar', exact: true }).click();
+  if (!process.argv.includes('--diagnose-resize')) {
+    for (let i = 0; i < 7; i++) await next();
+    await expect(page.getByRole('button', { name: 'Ejecutar siguiente paso', exact: true })).toBeDisabled();
+  }
+  await page.getByRole('navigation').getByRole('button', { name: 'Código', exact: true }).click();
+  await page.getByLabel('Escenario').selectOption('consumer'); await page.getByRole('button', { name: 'Aplicar cambio', exact: true }).click();
+  await expect(page.locator('.diff-editor .view-lines').filter({ hasText: 'runConsumerService' })).not.toHaveCount(0);
+  await expect.poll(async () => (await page.locator('.diff-editor .monaco-diff-editor').boundingBox())?.height ?? 0).toBeGreaterThan(200);
+  await page.screenshot({ path: resolve(reports, '03-consumer-diff.png') });
+  if (process.argv.includes('--diagnose-resize')) { console.log('Diagnostic browser errors:', await page.evaluate(() => (window as typeof window & { browserErrors: string[] }).browserErrors)); }
+  else {
+  await page.getByRole('button', { name: 'Analizar impacto', exact: true }).click();
+  for (let i = 0; i < 9; i++) await next();
+  await expect(page.locator('.live-step')).toContainText('Conectar eventos y consumidores');
+  await page.getByRole('button', { name: 'Ver novedades', exact: true }).click();
+  await expect(page.locator('.live-node.fresh')).not.toHaveCount(0);
+  await page.screenshot({ path: resolve(reports, '04-consumer-messaging.png') });
+  for (let i = 0; i < 5; i++) await next();
+  await page.getByRole('navigation').getByRole('button', { name: 'Tests', exact: true }).click();
+  await page.getByRole('button', { name: 'Ver test y resultado', exact: true }).first().click();
+  await expect(page.locator('.test-inspector')).toContainText('SUITE DISTRIBUIDA');
+  await page.screenshot({ path: resolve(reports, '05-suite-inspector.png') });
+  await page.getByRole('navigation').getByRole('button', { name: 'Código', exact: true }).click();
+  await page.getByLabel('Escenario').selectOption('http'); await page.getByRole('button', { name: 'Aplicar cambio', exact: true }).click();
+  await page.getByRole('button', { name: 'Analizar impacto', exact: true }).click();
+  for (let i = 0; i < 14; i++) await next();
+  await page.getByLabel('Encuadrar grafo').selectOption('http');
+  await page.screenshot({ path: resolve(reports, '06-http-impact.png') });
+  await expect(page.locator('.live-edge.retired')).not.toHaveCount(0);
+  // Retired edges still open the original source. The inspector is not restricted
+  // to the after graph where this binding no longer exists.
+  const clientOption = page.getByLabel('Buscar nodo').locator('option').filter({ hasText: /^createInventoryClient · symbol$/ });
+  await page.getByLabel('Buscar nodo').selectOption(await clientOption.getAttribute('value') as string);
+  await page.locator('.node-link-list').getByRole('button', { name: /invoca endpoint/ }).click();
+  await page.getByRole('button', { name: /Abrir evidencia/ }).first().click();
+  await expect(page.locator('.live-source')).toBeVisible();
+  await page.getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await page.getByRole('navigation').getByRole('button', { name: 'Tests', exact: true }).click();
+  const runResponse = page.waitForResponse(response => response.url().endsWith('/api/executions') && response.request().method() === 'POST');
+  await page.getByRole('button', { name: /RUN SELECTED TESTS/ }).click();
+  const started = await runResponse; expect(started.status()).toBe(202);
+  const executionId = (await started.json()).id as string;
+  await expect(page.locator('.run-card header strong')).toHaveText(/FAILED|INCOMPLETE|PASSED/, { timeout: 300000 });
+  await expect(page.locator('.error-banner')).toHaveCount(0);
+  const execution = await page.evaluate(async id => {
+    const editor = await fetch('/api/editor-input').then(response => response.json());
+    return fetch('/api/executions/' + id, { headers: { 'X-Test-Impact-Session': editor.sessionToken } }).then(response => response.json());
+  }, executionId);
+  expect(execution.suiteResults.find((item: { id: string }) => item.id === 'inventory-contract').status).toBe('failed');
+  expect(execution.suiteResults.find((item: { id: string }) => item.id === 'inventory-provider').status).toBe('passed');
+  expect(execution.suiteResults.find((item: { id: string }) => item.id === 'messaging-runtime').status).toBe('unavailable');
+  expect(execution.results.filter((item: { durationMs?: number }) => item.durationMs !== undefined).length).toBeGreaterThan(0);
+  await expect(page.getByLabel('Resumen de tests locales')).toContainText('0 failed');
+  await expect(page.getByLabel('Resumen de suites distribuidas')).toContainText('1 failed');
+  await expect(page.getByLabel('Resumen de suites distribuidas')).toContainText('2 unavailable');
+  await page.getByRole('button', { name: 'Ver test y resultado', exact: true }).first().click();
+  await expect(page.locator('.test-inspector')).toContainText('failed');
+  await expect(page.locator('.test-inspector .test-failure')).toBeVisible();
+  await page.locator('.test-inspector').scrollIntoViewIfNeeded();
+  await expect(page.locator('.test-inspector')).toBeInViewport();
+  await page.screenshot({ path: resolve(reports, '07-real-contract-failure.png') });
+  console.log(`Real run ${executionId}: ${execution.results.length} local tests, ${execution.suiteResults.length} suites; contract failed, pinned provider passed, broker explicitly unavailable. ${execution.durationMs} ms.`);
+  await page.getByRole('navigation').getByRole('button', { name: 'Grafos', exact: true }).click();
+  await page.getByRole('button', { name: 'Reiniciar grafo', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'El grafo está vacío' })).toBeVisible();
+  await expect(page.locator('.react-flow__node')).toHaveCount(0);
+  await page.getByRole('navigation').getByRole('button', { name: 'Código', exact: true }).click();
+  await expect(page.locator('.editor-header')).toContainText('MODIFIED');
+  expect(await page.evaluate(() => (window as typeof window & { browserErrors: string[] }).browserErrors)).toEqual([]);
+  expect(errors).toEqual([]);
+  console.log('Live graph browser: empty → partial evidence → new consumer → suite detail → retired HTTP source → real contract failure. No browser errors.');
+  }
+} finally {
+  await browser?.close(); await vite?.close(); api.closeAllConnections();
+  if (api.listening) await new Promise<void>(resolve => api.close(() => resolve()));
+  if (previousInventory === undefined) delete process.env.INVENTORY_ROOT; else process.env.INVENTORY_ROOT = previousInventory;
+  rmSync(external.root, { recursive: true, force: true });
+}

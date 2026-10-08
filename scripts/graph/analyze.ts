@@ -17,6 +17,11 @@ function missingSubjects(graph: ImpactGraph, archive: DiscoveryArchive) {
 export function analyzeOverlay(before: DiscoveryArchive, edits: OverlayEdit[]) {
   const sources = applyEdits(before.sources, edits, before.config);
   const after = buildArchive({ ...before, sources });
+  return { ...analyzePrepared(before, after, edits), federated: calculateFederatedImpact(before, after, edits) };
+}
+
+/** Analyze already-discovered snapshots; never runs extraction a second time. */
+export function analyzePrepared(before: DiscoveryArchive, after: DiscoveryArchive, edits: OverlayEdit[]) {
   const beforeView = compatibilityGraph(before), afterView = compatibilityGraph(after);
   const graph: ImpactGraph = { schemaVersion: 1,
     nodes: ordered(new Map([...beforeView.nodes, ...afterView.nodes].map(node => [node.id, node])).values()),
@@ -47,5 +52,5 @@ export function analyzeOverlay(before: DiscoveryArchive, edits: OverlayEdit[]) {
   const changedEntityIds = [...new Set([...oldMapping.result.changedEntities, ...newMapping.result.changedEntities,
     ...graph.nodes.filter(node => edits.some(edit => (edit.operation === 'add' || edit.operation === 'delete') && node.source?.path === edit.path)).map(node => node.id)])].sort();
   const result = calculateImpact({ diff, changedEntityIds, graph, catalogue: before.catalogue, uncertaintyReasons: [...reasons].sort() });
-  return { after, graph, diff, result, delta: delta(before.graph, after.graph), federated: calculateFederatedImpact(before, after, edits) };
+  return { after, graph, diff, result, delta: delta(before.graph, after.graph) };
 }
