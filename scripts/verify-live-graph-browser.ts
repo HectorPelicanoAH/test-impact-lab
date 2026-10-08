@@ -99,6 +99,10 @@ try {
     await expect(page.locator('.live-step')).toHaveAttribute('data-sequence', '10', { timeout: 180000 });
     await expect(page.getByRole('button', { name: 'Generar grafo completo', exact: true })).toBeDisabled();
     expect(phases.filter(item => item.id === discovery).map(item => item.sequence)).toEqual(Array.from({ length: 10 }, (_, index) => index));
+    await expect(page.locator('.process-console-log article[data-phase]')).toHaveCount(10);
+    await expect(page.locator('.process-console-log article[data-phase=imports]')).toContainText('ts.resolveModuleName()');
+    await expect(page.locator('.phase-process')).toContainText('validateSnapshot()');
+    await page.screenshot({ path: resolve(reports, 'process-console.png') });
     for (const [scenario, count, expected] of [['screen', 1, '1 tests · 0 suites seleccionadas'], ['event', 5, '0 tests · 5 suites seleccionadas']] as const) {
       await page.getByRole('navigation').getByRole('button', { name: 'Código', exact: true }).click();
       await page.getByLabel('Escenario').selectOption(scenario);
@@ -112,6 +116,8 @@ try {
       await expect(page.getByLabel('Selected tests').locator('.test-row.excluded')).toHaveCount(0);
       await expect(page.getByLabel('All tests').locator('.test-row')).toHaveCount(39);
       expect(phases.slice(start).map(item => item.sequence)).toEqual(Array.from({ length: 14 }, (_, index) => index));
+      await expect(page.locator('.process-console-log article[data-phase]')).toHaveCount(14);
+      await expect(page.locator('.process-console-log article[data-phase=selection]')).toContainText('calculateFederatedImpact(');
       await page.getByLabel('Selected tests').getByRole('button', { name: 'VIEW CODE', exact: true }).first().click();
       await expect(page.getByLabel('Test code viewer').locator('.test-source-editor .monaco-editor')).toBeVisible();
       await page.getByLabel('Selected tests').scrollIntoViewIfNeeded();

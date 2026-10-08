@@ -165,3 +165,7 @@ Entrega: **pipeline por fases y locators parciales → canvas progresivo e inspe
 La variante `feat/scoped-impact-v1-quick-changes` ofrece completar el descubrimiento o impacto con un botón, recorriendo secuencialmente las mismas fases del backend y conservando los resultados de cada una. Puede continuar una sesión parcial. Cancelar detiene los avances posteriores; no ejecuta automáticamente los tests físicos. Si se pide impacto sin base, completa primero el descubrimiento.
 
 Tests presenta Selected tests → Physical execution → visor de código → suites distribuidas → catálogo completo. La lista inicial reutiliza las filas del catálogo, omite entradas excluidas e incluye suites seleccionadas para no ocultar la regresión de eventos. Sin análisis vigente muestra Waiting for code change to calculate regression.
+
+### Registro de procesos por fase
+
+La consola inferior de Grafos conserva la tecnología, función o proceso ejecutado, duración y resultado de cada fase de descubrimiento e impacto. El resumen del paso también muestra el proceso previsto, en curso o ejecutado. Las fases llaman funciones del backend Node.js: TypeScript Compiler API para AST, imports y TypeChecker; adaptadores propios para HTTP y AMQP; correlación OTLP solo cuando hay capturas; validadores SHA-256 y motor propio para impacto y selección. El registro identifica fases omitidas y no presenta comandos de shell ficticios. La extracción y el análisis ocurren al avanzar cada fase; las fuentes se capturan previamente y los tests se ejecutan desde Physical execution.

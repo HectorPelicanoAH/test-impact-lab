@@ -418,3 +418,16 @@ button:disabled { opacity:.45; cursor:default; }
 
 .selection-empty { padding:18px; border:1px dashed var(--line); border-radius:5px; color:var(--muted); }
 .selected-tests { margin-bottom:24px; }
+
+.phase-process { display:block; color:#8fb8c5; font:10px/1.5 IBM Plex Mono,monospace; margin-top:6px; max-width:900px; }
+.phase-process b { font:inherit; color:var(--cyan); }
+.process-console { flex-shrink:0; border:1px solid var(--line); border-radius:5px; background:#080e16; font-size:11px; }
+.process-console summary { padding:9px 12px; cursor:pointer; color:#adc6e0; }
+.process-console > p { margin:0 12px 8px; color:var(--muted); font-size:10px; }
+.process-console-log { max-height:140px; overflow:auto; padding:0 12px 10px; font:10px/1.5 IBM Plex Mono,monospace; }
+.process-console-log article { border-top:1px solid #203045; padding:7px 0; }
+.process-console-log b, .process-console-log span, .process-console-log code { display:block; }
+.process-console-log span { color:var(--cyan); }
+.process-console-log code { color:#d3dfed; white-space:pre-wrap; }
+.process-console-log p { margin:3px 0; color:var(--muted); }
+.process-console-log .running b { color:var(--orange); }

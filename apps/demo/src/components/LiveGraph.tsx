@@ -24,8 +24,13 @@ export function LiveGraph({ session, token, pending, executionBusy, elapsed, foc
   const [framing, setFraming] = useState('login');
   const sourceVersion = useRef(0), flow = useRef<ReactFlowInstance<Node, Edge>>(null);
   const canvas = useRef<HTMLDivElement>(null);
+  const processLog = useRef<HTMLDivElement>(null);
   const placements = useRef(new Map<string, { x: number; y: number }>()), rows = useRef(new Map<string, number>()), firstFit = useRef(false), discoveryId = useRef<string | undefined>(undefined);
   const step = session?.step, busy = pending || session?.status === 'running';
+  useEffect(() => {
+    const log = processLog.current;
+    if (log) log.scrollTop = log.scrollHeight;
+  }, [session?.id, session?.steps.length, busy]);
   const shown = useMemo(() => {
     const before = session?.beforeGraph, graph = session?.graph;
     const nodes = [...new Map([...(before?.nodes ?? []), ...(graph?.nodes ?? [])].map(node => [node.id, node])).values()];
@@ -127,6 +132,7 @@ export function LiveGraph({ session, token, pending, executionBusy, elapsed, foc
     <div className="live-step" data-sequence={session?.sequence ?? 0} aria-live="polite" aria-busy={busy}>
       <div><b>{busy && <i className="process-loader" aria-hidden="true" />}{phase ? `${!busy && step && session && step.sequence < session.sequence ? 'Revisando paso' : 'Paso'} ${busy ? (session?.sequence ?? 0) + 1 : step?.sequence ?? 1}/${session?.total ?? 10} · ${phase.title}` : 'Construir el grafo desde las fuentes'}</b>
         <span className="live-technology">{phase?.technology ?? 'TypeScript Compiler API · adaptadores HTTP / AMQP'}</span>
+        {phase?.process && <small className="phase-process"><b>Proceso {busy ? 'en curso' : step ? 'ejecutado' : 'previsto'}</b> · {phase.process}</small>}
         <p>{phase?.explanation ?? 'Empieza con un grafo vacío. Cada paso descubre hechos nuevos y conserva el código que los justifica.'}</p>
         <small>{busy ? `En curso · ${Math.floor(elapsed / 1000)} s` : session?.status === 'error' ? session.error : session?.status === 'cancelled' ? 'Proceso cancelado. Reinicia el grafo para otra ejecución.' : session?.status === 'stale' ? 'Fuentes desactualizadas. Recarga y reconstruye el grafo.' : step?.result ?? '0 nodos · 0 conexiones'}</small>
       </div>
@@ -164,6 +170,20 @@ export function LiveGraph({ session, token, pending, executionBusy, elapsed, foc
           options={{ readOnly: true, minimap: { enabled: false }, automaticLayout: false, fontSize: 11, scrollBeyondLastLine: false }} /></div>}
       </aside>}
     </div>
+    <details className="process-console" open={!!session?.steps.length}>
+      <summary>Registro de procesos · {session?.steps.length ?? 0} fases completadas</summary>
+      <p>Las fases se ejecutan como funciones del backend Node.js. Estas líneas describen el proceso real; no son comandos de shell ni ejecuciones de tests.</p>
+      <div ref={processLog} className="process-console-log" role="log" aria-label="Registro de procesos" aria-live="polite">
+        {!session?.steps.length && <p>Esperando descubrimiento. Cada fase añadirá su tecnología, proceso, duración y resultado.</p>}
+        {session?.steps.map(item => <article key={item.sequence} data-phase={item.id}>
+          <b>[{item.sequence}/{session.total}] {item.title} · {Math.round(item.durationMs)} ms</b>
+          <span>{item.technology}</span><code>{item.process}</code><p>{item.result}</p>
+        </article>)}
+        {busy && session?.nextPhase && <article className="running"><b>EN CURSO · {session.nextPhase.title}</b><span>{session.nextPhase.technology}</span><code>{session.nextPhase.process}</code></article>}
+        {session?.status === 'error' && <p role="alert">Fase fallida: {session.error}</p>}
+        {session?.status === 'cancelled' && <p>Proceso cancelado; se conservan las fases confirmadas.</p>}
+      </div>
+    </details>
     {!!session?.graph.diagnostics.length && <details className="live-diagnostics"><summary>Diagnósticos del mapeo · {session.graph.diagnostics.length}</summary>{session.graph.diagnostics.map(item => <p key={item.id}><b>{item.code}</b> · {item.message}</p>)}</details>}
   </div>;
 }

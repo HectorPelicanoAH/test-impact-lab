@@ -10,11 +10,11 @@ import type { DemoAnalysis, DemoGraphSession, GraphStepResult } from './src/type
 
 export const inputIdentity = (input: WorkspaceInput) => hash({ sources: fileHashes(input.sources), configuration: fileHashes(input.configuration), execution: fileHashes(input.executionFiles), revision: input.inventoryRevision ?? null });
 const impactPhases: DiscoveryPhase[] = [
-  { id: 'diff', title: 'Comparar fuentes', technology: 'Comparación de bytes · overlay aislado', explanation: 'Fijamos las altas, modificaciones y bajas frente al grafo base. Los tests todavía no están seleccionados.' },
+  { id: 'diff', process: 'applyEdits() → createDiscoveryPipeline() sobre un overlay aislado; los rangos del diff se calculan al analizar el impacto.', title: 'Comparar fuentes', technology: 'Comparación de bytes · overlay aislado', explanation: 'Fijamos las altas, modificaciones y bajas frente al grafo base. Los tests todavía no están seleccionados.' },
   ...discoveryPhases,
-  { id: 'delta', title: 'Comparar grafos completos', technology: 'Delta de snapshots · motor propio', explanation: 'Confirmamos nodos y conexiones añadidos, cambiados o retirados, conservando su evidencia anterior.' },
-  { id: 'impact', title: 'Recorrer impacto local', technology: 'Motor TypeScript propio · políticas de contratos', explanation: 'Calculamos el impacto sobre ambos grafos. La incertidumbre puede exigir todos los tests locales; en ese caso no inventamos caminos.' },
-  { id: 'selection', title: 'Seleccionar suites y explicar el resultado', technology: 'Motor federado propio · catálogo revisado', explanation: 'Completamos las decisiones locales y distribuidas y explicamos su disponibilidad. Seleccionar no ejecuta los tests.' },
+  { id: 'delta', process: 'delta(base.graph, archive.graph) → confirmar altas, cambios y bajas entre snapshots validados.', title: 'Comparar grafos completos', technology: 'Delta de snapshots · motor propio', explanation: 'Confirmamos nodos y conexiones añadidos, cambiados o retirados, conservando su evidencia anterior.' },
+  { id: 'impact', process: 'analyzePrepared(base, after, edits) → analyzeSourceEdits() + calculateImpact(); alcance y caminos de los tests locales.', title: 'Recorrer impacto local', technology: 'Motor TypeScript propio · políticas de contratos', explanation: 'Calculamos el impacto sobre ambos grafos. La incertidumbre puede exigir todos los tests locales; en ese caso no inventamos caminos.' },
+  { id: 'selection', process: 'calculateFederatedImpact(base, after, edits) → sujetos revisados y disponibilidad; registrar análisis para el runner, sin ejecutar tests.', title: 'Seleccionar suites y explicar el resultado', technology: 'Motor federado propio · catálogo revisado', explanation: 'Completamos las decisiones locales y distribuidas y explicamos su disponibilidad. Seleccionar no ejecuta los tests.' },
 ];
 interface Session {
   id: string; kind: DemoGraphSession['kind']; input: WorkspaceInput; inputId: string; status: DemoGraphSession['status'];
@@ -113,7 +113,11 @@ export class GraphSessions {
         if (phase.id === 'diff') result = `${session.edits.length} archivos modificados en una copia de trabajo. El base queda pendiente de revalidar.`;
         if (phase.id === 'impact') result = session.local!.result.selectionMode === 'conservative-full' ? `Selección conservadora: ${session.local!.result.selectedTests.length} tests locales. ${session.local!.result.warnings.join(' ')}` : `${session.local!.result.selectedTests.length} tests locales seleccionados por caminos causales.`;
         if (phase.id === 'selection') result = `${session.analysis!.result.selectedTests.length} tests locales y ${session.analysis!.federated.suites.filter(item => item.selected).length} suites distribuidas seleccionados. Todavía sin ejecutar.`;
-        const step: GraphStepResult = { ...phase, sequence: expected + 1, durationMs: performance.now() - start, result,
+        const process = phase.id === 'observations' && !session.input.observationDataset && !session.input.meshDataset
+          ? 'Omitida correlación: no hay capturas OTLP ni dataset mesh. No se ejecuta instrumentación ni tráfico.'
+          : phase.id === 'external' && !session.input.inventoryRevision
+            ? 'Omitido extractExternalRepository(): proveedor contract-only, sin fuentes externas disponibles.' : phase.process;
+        const step: GraphStepResult = { ...phase, process, sequence: expected + 1, durationMs: performance.now() - start, result,
           newNodeIds: newNodes.map(item => item.id), newEdgeIds: newEdges.map(item => item.id),
           updatedNodeIds: [...new Set([...difference.nodes.changed.filter(item => changes.nodes.added.some(change => change.id === item.id) || changes.nodes.changed.some(change => change.id === item.id)).map(item => item.id),
             ...(phase.id === 'observations' ? archive.graph.observations.flatMap(item => item.correlation.nodeIds) : [])])],
