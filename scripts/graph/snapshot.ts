@@ -274,13 +274,14 @@ export function compatibilityGraph(archive: DiscoveryArchive): ImpactGraph {
     if (!from || !to || from === to) continue;
     const old = legacyGraph.edges.find(item => item.id === edge.qualifiers.legacyId);
     if (old) { edges.push({ ...old }); continue; }
-    // New relationships are displayed; uncertainty policies are handled by analysis, not guessed traversal rules.
+    // Proven code dependencies propagate to their dependants. Structural containment
+    // remains display-only; unresolved relationships never enter this projection.
     if (!['imports', 'calls', 'renders', 'implements', 'contains', 'routes', 'realizes'].includes(edge.type)
       || (legacyGraph.nodes.some(node => node.id === from) && legacyGraph.nodes.some(node => node.id === to))) continue;
     const proof = graph.evidence.find(item => item.id === edge.evidenceIds[0])!;
     edges.push({ id: edge.id, from, to, type: edge.type as GraphEdge['type'],
       evidence: { kind: 'static', source: 'path' in proof.locator ? proof.locator.path : 'snapshot', reason: proof.reason },
-      policy: { reverseImpact: false, forwardBoundaryEvidence: false, contractExposure: false } });
+      policy: { reverseImpact: ['imports', 'calls', 'renders', 'implements', 'routes', 'realizes'].includes(edge.type), forwardBoundaryEvidence: false, contractExposure: false } });
   }
   return { schemaVersion: 1, nodes: ordered(nodes), edges: ordered(edges) };
 }
