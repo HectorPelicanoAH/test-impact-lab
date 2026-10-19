@@ -1,0 +1,29 @@
+{
+  "format": "test-impact-view/1",
+  "metadata": {
+    "title": "Portable structure example",
+    "sample": true,
+    "note": "Illustrative data for exploring the interface; not produced by executed tests."
+  },
+  "nodes": [
+    { "id": "example:transform", "kind": "symbol", "label": "Transform", "group": "library" },
+    { "id": "example:client", "kind": "file", "label": "Client", "group": "application" },
+    { "id": "example:contract", "kind": "contract", "label": "Public API contract", "group": "boundary" },
+    { "id": "example:unit", "kind": "test", "label": "Transform unit test", "group": "library" },
+    { "id": "example:e2e", "kind": "test", "label": "Journey E2E · no capture", "group": "application" }
+  ],
+  "edges": [
+    { "id": "example:import", "type": "imports", "from": "example:client", "to": "example:transform", "evidenceIds": ["example:static"] },
+    { "id": "example:binding", "type": "uses-contract", "from": "example:client", "to": "example:contract", "evidenceIds": ["example:config"] },
+    { "id": "example:test-import", "type": "test-depends-on", "from": "example:unit", "to": "example:transform", "evidenceIds": ["example:test-static"] }
+  ],
+  "evidence": [
+    { "id": "example:static", "kind": "static", "reason": "Illustrative import resolution; not an execution capture." },
+    { "id": "example:config", "kind": "configuration", "reason": "Illustrative contract binding." },
+    { "id": "example:test-static", "kind": "static", "reason": "A test imports a module; this does not demonstrate which instructions it executes." }
+  ],
+  "diagnostics": [
+    { "id": "example:missing-capture", "code": "capture-not-provided", "message": "The E2E has no product links until attributable instrumentation is available.", "scope": { "ids": ["example:e2e"] } }
+  ],
+  "sources": {}
+}

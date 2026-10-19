@@ -7,6 +7,9 @@
     "node": "^24.15.0 || >=26.0.0"
   },
   "scripts": {
+    "portable:export": "node scripts/export-portable.mjs",
+    "portable:view": "node portable/bin/impact.mjs view",
+    "test:portable-browser": "node scripts/verify-portable-browser.mjs",
     "validate:plan": "node scripts/validate-plan.mjs",
     "dev": "node scripts/dev.mjs",
     "dev:events": "node scripts/dev-events.mjs",

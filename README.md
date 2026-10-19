@@ -4,6 +4,12 @@ A real login and orders application with a deterministic test-impact engine in a
 
 This branch adds the progressive v1-style explorer: **Código / Grafos / Tests**. Grafos opens empty; each next step runs one extractor phase, identifies its technology and preserves source evidence. Impact reconstructs the overlay through the same phases before propagating/selecting tests. Framing and node search change the viewport without removing graph facts. See the [15–20 minute demo guide](docs/DEMO-GRAFO-PROGRESIVO.md), [SDD](docs/SDD-GRAFO-PROGRESIVO.md) and [validation record](docs/LIVE-GRAPH-HANDOFF.md). `pnpm test:live-graph-browser` checks the real progression and a physical contract-failure run using temporary servers and a pinned Inventory fixture.
 
+## Independent toolkit
+
+The exportable toolkit lives in [portable/](portable/README.md), with its own package, CLI, filtered evidence viewer, onboarding skill and [SDD](portable/docs/SDD.md). It runs independently of the demo. This extraction preview provides inspection and visualization; baseline capture and impact selection remain planned.
+
+Run `node portable/bin/impact.mjs view` to preview the common UI, or `pnpm portable:export /absolute/empty/directory` to prepare a standalone repository without the demo services or Git history.
+
 ## Run
 
 Use **Node.js 24.15+ (24.x) or 26+** and **pnpm 11.19.0** (pinned in `packageManager`).
@@ -107,6 +113,7 @@ Archives include sources, tests, runner inputs, manifests and evidence. `GET /ap
 - [Implementation state and optional Phase 7 handoff](docs/IMPLEMENTATION_STATE.md)
 - [Graph, catalogue and API types](packages/impact-engine/src/schema.ts)
 - [Supplied SDD](docs/SDD.md)
+- [Portable test-impact generator SDD](portable/docs/SDD.md): project inspection, deterministic adapters, per-test coverage, fast impact checks, CI and a common filtered UI. [Implementation status](portable/docs/IMPLEMENTATION-STATE.md).
 
 ## Dependency discovery extension
 

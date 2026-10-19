@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Test Impact · Evidence Explorer</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <header><div><span class="eyebrow">TEST IMPACT / PORTABLE</span><h1 id="title">Evidence Explorer</h1><p id="revision">Loading snapshot…</p></div><span class="tag">Read-only</span></header>
+  <main>
+    <section id="status" class="notice" aria-live="polite">Reading artifact…</section>
+    <section id="metrics" class="metrics" aria-label="Summary"></section>
+    <section class="panel filters" aria-label="Graph filters">
+      <label>Search all nodes<input id="search" type="search" placeholder="Name, ID, or path"></label>
+      <label>Group<select id="group"><option value="">All</option></select></label>
+      <label>Node type<select id="kind"><option value="">All</option></select></label>
+      <label>Relationship<select id="relation"><option value="">All</option></select></label>
+      <label>Evidence<select id="evidence"><option value="">All</option></select></label>
+      <button id="reset" type="button">Reset</button>
+    </section>
+    <div class="workspace">
+      <section class="panel graph-panel">
+        <div class="section-heading"><div><h2>Dependencies</h2><p id="visibility" aria-live="polite"></p></div><div class="pager"><button id="previous" type="button">Previous</button><button id="next" type="button">Next</button></div></div>
+        <div class="graph-scroll"><svg id="graph" role="group" aria-label="Dependencies of nodes on this page"></svg></div>
+        <details open><summary>Nodes · accessible alternative to the graph</summary><div id="nodes" class="node-list"></div></details>
+      </section>
+      <aside class="panel inspector" aria-label="Evidence inspector">
+        <span class="eyebrow">INSPECTOR</span>
+        <h2 id="selection-title">Select a node</h2>
+        <div id="selection"><p>Inspect its dependencies and consumers. Each link retains its supporting evidence.</p></div>
+      </aside>
+    </div>
+    <section class="panel"><div class="section-heading"><div><h2>Diagnostics</h2><p id="diagnostics-count" aria-live="polite"></p></div><div class="pager"><button id="diagnostics-previous" type="button">Previous</button><button id="diagnostics-next" type="button">Next</button></div></div><div id="diagnostics"></div></section>
+  </main>
+  <footer>A static dependency, a declaration, measured execution, and an observation represent different evidence classes.</footer>
+</body>
+</html>
