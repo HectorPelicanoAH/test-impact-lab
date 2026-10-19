@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Test Impact · Evidence Explorer</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <header><div><span class="eyebrow">TEST IMPACT / PORTABLE</span><h1 id="title">Explorador de evidencia</h1><p id="revision">Cargando snapshot…</p></div><span class="tag">Solo consulta</span></header>
+  <main>
+    <section id="status" class="notice" aria-live="polite">Leyendo artefacto…</section>
+    <section id="metrics" class="metrics" aria-label="Resumen"></section>
+    <section class="panel filters" aria-label="Filtros del grafo">
+      <label>Buscar en todos los nodos<input id="search" type="search" placeholder="Nombre, ID o ruta"></label>
+      <label>Grupo<select id="group"><option value="">Todos</option></select></label>
+      <label>Tipo de nodo<select id="kind"><option value="">Todos</option></select></label>
+      <label>Relación<select id="relation"><option value="">Todas</option></select></label>
+      <label>Evidencia<select id="evidence"><option value="">Todas</option></select></label>
+      <button id="reset" type="button">Restablecer</button>
+    </section>
+    <div class="workspace">
+      <section class="panel graph-panel">
+        <div class="section-heading"><div><h2>Dependencias</h2><p id="visibility" aria-live="polite"></p></div><div class="pager"><button id="previous" type="button">Anterior</button><button id="next" type="button">Siguiente</button></div></div>
+        <div class="graph-scroll"><svg id="graph" role="group" aria-label="Dependencias de los nodos de esta página"></svg></div>
+        <details open><summary>Nodos · alternativa accesible al grafo</summary><div id="nodes" class="node-list"></div></details>
+      </section>
+      <aside class="panel inspector" aria-label="Inspector de evidencia">
+        <span class="eyebrow">INSPECTOR</span>
+        <h2 id="selection-title">Elige un nodo</h2>
+        <div id="selection"><p>Consulta sus dependencias y consumidores. Cada enlace conserva la evidencia que lo justifica.</p></div>
+      </aside>
+    </div>
+    <section class="panel"><div class="section-heading"><div><h2>Diagnósticos</h2><p id="diagnostics-count" aria-live="polite"></p></div><div class="pager"><button id="diagnostics-previous" type="button">Anteriores</button><button id="diagnostics-next" type="button">Siguientes</button></div></div><div id="diagnostics"></div></section>
+  </main>
+  <footer>Una dependencia estática, una declaración, una ejecución medida y una observación representan evidencias diferentes.</footer>
+</body>
+</html>
