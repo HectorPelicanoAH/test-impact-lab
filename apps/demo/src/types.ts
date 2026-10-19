@@ -1,6 +1,7 @@
 import type { FileDiff, ImpactGraph, ImpactResult, SnapshotRef, TestKind, TestMetadata } from '@test-impact/impact-engine';
 import type { GraphSnapshotV2, OverlayEdit, SnapshotDeltaV2 } from '../../../packages/impact-engine/src/schema-v2';
-import type { FederatedImpact, SuiteDecision } from '../../../packages/impact-engine/src/federated';
+import type { FederatedImpact, FederatedSuite, SuiteDecision } from '../../../packages/impact-engine/src/federated';
+import type { DiscoveryPhase } from '../../../scripts/graph/snapshot';
 export type { LocatedSource } from '../../../scripts/graph/locator';
 
 export interface DemoFile {
@@ -19,6 +20,7 @@ export interface DemoSnapshot extends SnapshotRef {
   discovery: GraphSnapshotV2;
   editableRoots: string[];
   externalCatalogue: { id: string; title: string; path: string; availability: 'local' | 'inaccessible'; execution: 'not-integrated' }[];
+  suites: DemoSuite[];
 }
 
 export interface DemoAnalysis {
@@ -37,6 +39,20 @@ export interface DemoAnalysis {
 export interface DemoAnalysisRequest {
   snapshotId: string;
   edits: OverlayEdit[];
+}
+
+export type DemoSuite = FederatedSuite & { source: string | null; availability: SuiteDecision['availability'] };
+export type DemoEditorInput = Pick<DemoSnapshot, 'sessionToken' | 'files' | 'testFiles' | 'testLocations' | 'catalogue' | 'editableRoots' | 'externalCatalogue' | 'suites'> & { id: string };
+export interface GraphStepResult extends DiscoveryPhase {
+  sequence: number; durationMs: number; result: string;
+  newNodeIds: string[]; newEdgeIds: string[]; updatedNodeIds: string[]; updatedEdgeIds: string[];
+  removedNodeIds: string[]; removedEdgeIds: string[]; confirmedNodeIds: string[]; confirmedEdgeIds: string[];
+}
+export interface DemoGraphSession {
+  id: string; kind: 'discovery' | 'impact'; inputId: string;
+  status: 'waiting' | 'running' | 'completed' | 'error' | 'cancelled' | 'stale';
+  sequence: number; total: number; nextPhase?: DiscoveryPhase; step?: GraphStepResult; steps: GraphStepResult[];
+  graph: GraphSnapshotV2; beforeGraph?: GraphSnapshotV2; layoutLayers: Record<string, string>; changedPaths: string[]; localImpact?: ImpactResult; snapshotId?: string; analysis?: DemoAnalysis; error?: string;
 }
 
 export type ExecutionMode = 'selected' | 'full';

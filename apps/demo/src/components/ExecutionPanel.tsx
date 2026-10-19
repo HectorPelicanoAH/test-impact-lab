@@ -15,16 +15,18 @@ const duration = (value?: number) => value === undefined ? '—' : value >= 1000
 function RunCard({ execution, onInspect }: { execution: DemoExecution; onInspect: (id: string) => void }) {
   const passed = execution.results.filter(result => result.status === 'passed').length;
   const failed = execution.results.filter(result => result.status === 'failed').length;
+  const suites = execution.suiteResults ?? [];
   return <article className={`run-card ${execution.status}`}>
     <header><div><span>{execution.mode === 'selected' ? 'SELECTED RUN' : 'FULL SUITE'}</span><strong>{execution.status.toUpperCase()}</strong></div><b>{duration(execution.durationMs)}</b></header>
-    <div className="run-totals"><span><b>{passed}</b> passed</span><span><b>{failed}</b> failed</span><span><b>{execution.results.length}</b> tests</span></div>
+    <div className="run-totals" aria-label="Resumen de tests locales"><span><b>{execution.results.length}</b> tests locales</span><span><b>{passed}</b> passed</span><span><b>{failed}</b> failed</span></div>
+    {!!suites.length && <div className="run-totals" aria-label="Resumen de suites distribuidas"><span><b>{suites.length}</b> suites</span><span><b>{suites.filter(item => item.status === 'passed').length}</b> passed</span><span><b>{suites.filter(item => item.status === 'failed').length}</b> failed</span><span><b>{suites.filter(item => item.status === 'unavailable').length}</b> unavailable</span></div>}
     {execution.error && <pre>{execution.error}</pre>}
     <div className="run-results">{execution.results.map(result => <div className={result.status} key={result.testId}>
       <i /><b>{result.testId}</b><button className="run-inspect" onClick={() => onInspect(result.testId)}>{result.name} · VIEW TEST ↗</button><small>{result.status.toUpperCase()} · {duration(result.durationMs)}</small>
       {result.output && <details><summary>OUTPUT</summary><pre>{result.output}</pre></details>}
     </div>)}</div>
     {!!execution.suiteResults?.length && <div className="run-results"><div className="panel-title">DISTRIBUTED SUITES</div>{execution.suiteResults.map(suite =>
-      <div className={suite.status} key={suite.id}><i /><b>{suite.id}</b><span>{suite.file}</span><small>{suite.status.toUpperCase()} · {duration(suite.durationMs)}</small>
+      <div className={suite.status} key={suite.id}><i /><b>{suite.id}</b><button className="run-inspect" onClick={() => onInspect(suite.id)}>{suite.file} · VER TEST ↗</button><small>{suite.status.toUpperCase()} · {duration(suite.durationMs)}</small>
         {suite.output && <details><summary>OUTPUT</summary><pre>{suite.output}</pre></details>}
       </div>)}</div>}
   </article>;
@@ -39,10 +41,10 @@ export function ExecutionPanel({ selectedCount, totalCount, executions, busy, di
     ? (1 - selected.durationMs / full.durationMs) * 100 : undefined;
   return <section className="execution-panel">
     <div className="execution-actions"><div><span>PHYSICAL EXECUTION</span><h2>Run the calculated regression in an isolated source overlay.</h2><p>The server derives fixed runners from the pinned local and external catalogues. Unavailable suites remain visible.</p></div><div>
-      <button disabled={disabled || busy || selectedCount === 0} onClick={() => onRun('selected')}>{selectedBusy ? 'RUNNING…' : `RUN SELECTED TESTS · ${selectedCount}`}</button>
+      <button disabled={disabled || busy || selectedCount === 0} onClick={() => onRun('selected')}>{selectedBusy ? 'RUNNING…' : `RUN SELECTED TESTS + SUITES · ${selectedCount}`}</button>
       <button disabled={disabled || busy} onClick={() => onRun('full')}>{fullBusy ? 'RUNNING…' : `RUN FULL SUITE · ${totalCount}`}</button>
     </div></div>
-    {selected && full && <div className="comparison"><div><span>TESTS AVOIDED</span><strong>{totalCount - selectedCount}</strong></div><div><span>SELECTED TIME</span><strong>{duration(selected.durationMs)}</strong></div><div><span>FULL TIME</span><strong>{duration(full.durationMs)}</strong></div><div><span>TIME REDUCTION</span><strong>{reduction === undefined ? '—' : `${reduction.toFixed(1)}%`}</strong></div></div>}
+    {selected && full && <div className="comparison"><div><span>ENTRADAS EXCLUIDAS</span><strong>{totalCount - selectedCount}</strong></div><div><span>SELECTED TIME</span><strong>{duration(selected.durationMs)}</strong></div><div><span>FULL TIME</span><strong>{duration(full.durationMs)}</strong></div><div><span>TIME REDUCTION</span><strong>{reduction === undefined ? '—' : `${reduction.toFixed(1)}%`}</strong></div></div>}
     {(selected || full) && <div className="run-grid">{selected && <RunCard execution={selected} onInspect={onInspect} />}{full && <RunCard execution={full} onInspect={onInspect} />}</div>}
   </section>;
 }

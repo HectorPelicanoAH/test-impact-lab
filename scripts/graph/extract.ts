@@ -12,7 +12,7 @@ export function location(source: ts.SourceFile, node: ts.Node): SourceLocation {
 export const parseSource = (path: string, text: string) => ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, path.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
 
 /** Compiler program over immutable source bytes. No fallback to the live checkout/node_modules. */
-export function extractTypescript(builder: GraphBuilder) {
+export function indexTypescript(builder: GraphBuilder) {
   const { files, config } = builder;
   const root = '/__impact__';
   const relative = (path: string) => posix.relative(root, path);
@@ -143,19 +143,21 @@ export function extractTypescript(builder: GraphBuilder) {
     builder.edge('routes', routeId, declarationIds.get(target)!, location(source, node), 'Supported imported React Router Route binds a literal path to a resolved component.');
     builder.edge('realizes', declarationIds.get(target)!, screenId, location(source, node), 'Component realizes the screen bound by this route.');
   }
+  function resolveRelationships(pass: 'imports' | 'behavior') {
   for (const source of valid) {
     function visit(node: ts.Node) {
-      if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteralLike(node.moduleSpecifier)) {
+      if (pass === 'imports' && (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteralLike(node.moduleSpecifier)) {
         moduleReference(source, node.moduleSpecifier, ts.isImportDeclaration(node) ? 'import' : 'reexport', ts.isImportDeclaration(node) ? Boolean(node.importClause?.isTypeOnly) : node.isTypeOnly);
       }
-      if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) moduleReference(source, node.argument.literal, 'import-type', true);
-      if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference) && node.moduleReference.expression && ts.isStringLiteral(node.moduleReference.expression)) moduleReference(source, node.moduleReference.expression, 'import-equals', false);
+      if (pass === 'imports' && ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) moduleReference(source, node.argument.literal, 'import-type', true);
+      if (pass === 'imports' && ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference) && node.moduleReference.expression && ts.isStringLiteral(node.moduleReference.expression)) moduleReference(source, node.moduleReference.expression, 'import-equals', false);
       if (ts.isCallExpression(node)) {
         if (node.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(node.expression) && node.expression.text === 'require' && !checker.getSymbolAtLocation(node.expression)?.declarations?.length)) {
+          if (pass !== 'imports') { ts.forEachChild(node, visit); return; }
           const argument = node.arguments[0];
           if (argument && ts.isStringLiteralLike(argument)) moduleReference(source, argument, 'dynamic-literal', false);
           else diagnose(source, node, 'dynamic-reference', 'Nonliteral module target; no safe dependency scope can be proven.');
-        } else {
+        } else if (pass === 'behavior') {
           const target = resolveDeclaration(node.expression);
           const callable = target && (ts.isFunctionDeclaration(target) || ts.isMethodDeclaration(target)
             || (ts.isVariableDeclaration(target) && target.initializer && (ts.isArrowFunction(target.initializer) || ts.isFunctionExpression(target.initializer))));
@@ -163,12 +165,12 @@ export function extractTypescript(builder: GraphBuilder) {
           else diagnose(source, node, target && ts.isMethodSignature(target) ? 'ambiguous-dispatch' : 'unresolved-symbol', 'Call has no supported concrete target in this snapshot; no name-based dependency is asserted.');
         }
       }
-      if (ts.isNewExpression(node)) {
+      if (pass === 'behavior' && ts.isNewExpression(node)) {
         const target = resolveDeclaration(node.expression);
         if (target && ts.isClassDeclaration(target)) builder.edge('calls', owner(node, source), declarationIds.get(target)!, location(source, node), 'Direct construction resolves to this local class.');
         else diagnose(source, node, 'unresolved-symbol', 'Constructor target is not present in this snapshot.');
       }
-      if (ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node)) {
+      if (pass === 'behavior' && (ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node))) {
         route(source, node);
         if (!/^[a-z]/.test(node.tagName.getText())) {
           const target = resolveDeclaration(node.tagName);
@@ -176,7 +178,7 @@ export function extractTypescript(builder: GraphBuilder) {
           else diagnose(source, node.tagName, 'unresolved-symbol', 'JSX component has no local source declaration.');
         }
       }
-      if (ts.isHeritageClause(node) && node.token === ts.SyntaxKind.ImplementsKeyword) {
+      if (pass === 'behavior' && ts.isHeritageClause(node) && node.token === ts.SyntaxKind.ImplementsKeyword) {
         for (const type of node.types) {
           const target = resolveDeclaration(type.expression), from = declarationIds.get(node.parent);
           if (from && target && ts.isInterfaceDeclaration(target)) builder.edge('implements', from, declarationIds.get(target)!, location(source, type), 'Explicit implements clause resolves to this local interface.');
@@ -187,5 +189,14 @@ export function extractTypescript(builder: GraphBuilder) {
     }
     visit(source);
   }
-  return { program, declarationIds, fileIds };
+  }
+  return { program, declarationIds, fileIds,
+    resolveImports: () => resolveRelationships('imports'), resolveBehavior: () => resolveRelationships('behavior') };
+}
+
+export function extractTypescript(builder: GraphBuilder) {
+  const context = indexTypescript(builder);
+  context.resolveImports();
+  context.resolveBehavior();
+  return context;
 }

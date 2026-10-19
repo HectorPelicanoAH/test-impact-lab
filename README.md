@@ -2,6 +2,8 @@
 
 A real login and orders application with a deterministic test-impact engine in a TypeScript monorepo. The explorer guides source edits through versioned dependency discovery, deterministic impact analysis and physically measured selected/full regression runs. The reviewed login catalogue contains 39 tests. **G2–G9** add static discovery, immutable graph archives, evidence navigation, a separately materialized inventory HTTP provider, real RabbitMQ processing by independent consumers, distributed impact selection, versioned OpenTelemetry observations, an optional local service mesh and six source-based learning journeys.
 
+This branch adds the progressive v1-style explorer: **Código / Grafos / Tests**. Grafos opens empty; each next step runs one extractor phase, identifies its technology and preserves source evidence. Impact reconstructs the overlay through the same phases before propagating/selecting tests. Framing and node search change the viewport without removing graph facts. See the [15–20 minute demo guide](docs/DEMO-GRAFO-PROGRESIVO.md), [SDD](docs/SDD-GRAFO-PROGRESIVO.md) and [validation record](docs/LIVE-GRAPH-HANDOFF.md). `pnpm test:live-graph-browser` checks the real progression and a physical contract-failure run using temporary servers and a pinned Inventory fixture.
+
 ## Run
 
 Use **Node.js 24.15+ (24.x) or 26+** and **pnpm 11.19.0** (pinned in `packageManager`).
@@ -38,18 +40,19 @@ pnpm impact LoginButton            # Explain a hypothetical entity change
 pnpm impact 'User.authenticate'
 pnpm impact 'POST /login'
 pnpm test:selected LoginButton     # Physically run the computed subset
-pnpm test:evidence-browser          # G3 Chromium evidence/navigation flow on ephemeral servers
-pnpm test:discovery-browser         # G2 add/connect/delete browser flow
+pnpm test:live-graph-browser         # Progressive extraction/impact, pinned evidence and real contract failure
 pnpm test:discovery-execution       # G2 CRUD overlay executes 39 real login tests
 pnpm test:federated-execution       # G6 selected/full mutation across local and external suites
 pnpm graph:legacy:check             # Historical login seed topology/policies
-pnpm test:journeys                 # Six Chromium overlays, actual evidence and runners
+pnpm exec vitest run tests/dependency-graph/journeys.test.ts # Six source overlays and their analysis
 pnpm graph:audit                   # All locators, corpus, determinism and measured indexing
 ```
 
-The explorer serves an immutable SHA-256-addressed snapshot of source files under [explicit product roots](impact/discovery.json), including disconnected files. Monaco edits stay in browser memory. **ADD FILE / DELETE FILE** operate only on that working copy; connect a new component with an import/JSX reference, then **CALCULATE REGRESSION**. The API rebuilds the edited graph and returns before/after IDs, node/edge delta and explicit unresolved-dependency diagnostics. Suggested changes modify source text and do not send scenario names or test IDs. **RELOAD SNAPSHOT** discards browser edits and loads current checkout inputs; old analyses cannot execute after those inputs change.
+The explorer loads fixed source bytes under [explicit product roots](impact/discovery.json), including disconnected files, without calculating the new session's graph. Monaco edits stay in browser memory. **ADD FILE / DELETE FILE** operate only on that working copy. Build the baseline with **Ejecutar siguiente paso**, apply a code scenario, then **Analizar impacto**. Impact advances through a separate paused pipeline over the overlay. Scenario changes send source edits, never scenario names or chosen test IDs. **Recargar fuentes** discards browser edits; changed checkout inputs invalidate existing analyses.
 
-In **IMPACT GRAPH**, switch between system, configured source areas (not inferred runtime services) and code. Select a node or edge with the canvas or searchable keyboard buttons to inspect direction, policy, origin/revision, reason, dependencies and consumers. Filter by area, relation or evidence kind. Open exact archived UTF-16 ranges for static code or reviewed JSON configuration; **BACK TO PATH** returns to the inspector. Before/after and topology delta keep removed source navigable in its original revision. When source/range is unproven the UI reports that and offers no false code link. The canvas displays a legible bounded neighborhood; the index searches all filtered nodes. On narrow screens zoom or use the keyboard index. **CREATE GUIDED SCREEN** adds a component and links it from the login page *in the overlay only*; it does not claim a new route. Then calculate to see its new graph facts and archived source.
+**Grafos** starts empty and accumulates the complete v2 graph. Each step explains its technology and result, highlights new or refreshed facts and shows a loader during actual work. Cards retain identity and position between steps. **Encuadrar**, **Ver novedades**, the minimap and **Buscar nodo** navigate without truncating facts; **Archivos / estructura** is an explicit filter with a hidden count. Select a node to inspect all its links, then open an edge's archived source range or configuration. Removed HTTP bindings retain the original evidence. **Revisar paso** reads a saved partial without running another phase. **Reiniciar grafo** clears the active construction/impact and preserves editor changes.
+
+**Tests** exposes local tests and registered distributed suites before analysis, including their sources, assertions and runners. Executing requires a complete valid impact. The runner uses isolated captured bytes, reports physical durations/output and marks unavailable/skipped suites explicitly. The basic `pnpm dev` profile supplies pinned Inventory source; RabbitMQ suites require `pnpm dev:events`. The older G2/G3/G9 browser scripts describe the previous UI; use `test:live-graph-browser` for this branch.
 
 Discovery commands: `pnpm graph:generate` (also `graph:discover`) publishes v2; `pnpm graph:check` verifies it against a complete rebuild; `pnpm graph:watch` watches inputs and performs debounced **complete rebuilds**, not incremental AST indexing. To publish/check a snapshot with external code, pass the same clean `INVENTORY_ROOT` to both commands. The snapshot pins that repository's Git commit separately from the product's content revision; an uncommitted external source change is rejected. `pnpm test:discovery-browser` and `pnpm test:evidence-browser` run real Chromium flows on ephemeral servers; `pnpm test:discovery-execution` executes an added/connected component and deleted stylesheet against all 39 login tests. No running developer services are reused by verification.
 

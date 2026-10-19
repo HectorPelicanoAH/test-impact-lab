@@ -1,18 +1,20 @@
+import { deferMonacoLayout } from './monaco-layout';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import { SnapshotDiffEditor as DiffEditor } from './components/SnapshotDiffEditor';
-import type { TestKind } from '@test-impact/impact-engine';
+import type { TestKind, TestMetadata } from '@test-impact/impact-engine';
 import { RepositoryTree } from './components/RepositoryTree';
-import { ImpactSummary } from './components/ImpactSummary';
-import { DiscoveryExplorer } from './components/DiscoveryExplorer';
+import { LiveGraph } from './components/LiveGraph';
 import { ExecutionPanel } from './components/ExecutionPanel';
 import { TestInspector, TestLegend } from './components/TestInspector';
+import { SuiteInspector } from './components/SuiteInspector';
 import { applySuggestion, suggestions } from './suggestions';
 import { journeyEdits, journeys, type JourneyId } from './journeys';
-import type { DemoAnalysis, DemoAnalysisRequest, DemoExecution, DemoExecutionRequest, DemoSnapshot, ExecutionMode } from './types';
+import type { DemoAnalysis, DemoEditorInput, DemoGraphSession, DemoExecution, DemoExecutionRequest, ExecutionMode } from './types';
 
-type View = 'application' | 'code' | 'graph' | 'tests';
-const viewLabels: Record<View, string> = { application: 'APPLICATION', code: 'CODE', graph: 'IMPACT GRAPH', tests: 'TESTS' };
+type View = 'code' | 'graph' | 'tests';
+const viewLabels: Record<View, string> = { code: 'Código', graph: 'Grafos', tests: 'Tests' };
+const processLabels: Record<DemoGraphSession['status'], string> = { waiting: 'Listo para el siguiente paso', running: 'En curso', completed: 'Proceso completado', error: 'Fase fallida', cancelled: 'Cancelado', stale: 'Fuentes desactualizadas' };
 const kindLabels: Record<TestKind, string> = { e2e: 'E2E', component: 'COMPONENT', 'frontend-unit': 'FRONTEND UNIT', contract: 'CONTRACT', integration: 'INTEGRATION', 'backend-unit': 'BACKEND UNIT' };
 const languageFor = (path: string) => path.endsWith('.css') ? 'css' : path.endsWith('.json') ? 'json' : 'typescript';
 
@@ -24,8 +26,8 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export function App() {
-  const [snapshot, setSnapshot] = useState<DemoSnapshot>();
-  const [view, setView] = useState<View>('code');
+  const [snapshot, setSnapshot] = useState<DemoEditorInput>();
+  const [view, setView] = useState<View>('graph');
   const [selectedPath, setSelectedPath] = useState('');
   const [editorMode, setEditorMode] = useState<'edit' | 'diff'>('edit');
   const [inspectedTestId, setInspectedTestId] = useState<string>();
@@ -36,15 +38,18 @@ export function App() {
   const [focusTest, setFocusTest] = useState<string>();
   const [focusEdge, setFocusEdge] = useState<string>();
   const [pending, setPending] = useState(false);
+  const [automatic, setAutomatic] = useState(false);
+  const automaticLock = useRef(false);
   const [executions, setExecutions] = useState<Partial<Record<ExecutionMode, DemoExecution>>>({});
+  const [executionStarting, setExecutionStarting] = useState(false);
   const [error, setError] = useState<string>();
   const [journey, setJourney] = useState<JourneyId>('screen');
   const [appliedJourney, setAppliedJourney] = useState<JourneyId>();
-  const inspectorRef = useRef<HTMLDivElement>(null);
+  const inspectorRef = useRef<HTMLElement>(null);
   const workingRevision = useRef(0);
 
   useEffect(() => {
-    request<DemoSnapshot>('/api/snapshot').then(data => {
+    request<DemoEditorInput>('/api/editor-input').then(data => {
       setSnapshot(data);
       setSelectedPath(data.files.find(file => file.path.endsWith('LoginButton.tsx'))?.path ?? data.files[0]?.path ?? '');
       setInspectedTestId(data.catalogue[0]?.id);
@@ -59,15 +64,10 @@ export function App() {
     const existing = snapshot.files.filter(file => !deleted.has(file.path));
     return [...existing, ...Object.keys(edits).filter(path => !snapshot.files.some(file => file.path === path)).map(path => ({ path, content: edits[path]!, language: 'typescript' as const }))];
   }, [snapshot, edits, deleted]);
-  const activeGraph = analysis?.graph ?? snapshot?.graph;
   const activeExecution = executions.full ?? executions.selected;
-  const inspectedTest = snapshot?.catalogue.find(test => test.id === inspectedTestId) ?? snapshot?.catalogue[0];
-  const workflow = [
-    { label: 'CHANGE', detail: modified.size ? `${modified.size} file${modified.size === 1 ? '' : 's'} modified` : 'Choose or edit source', view: 'code' as View, complete: modified.size > 0 },
-    { label: 'CALCULATE', detail: analysis ? `${analysis.result.selectedTests.length} tests selected` : 'Map source impact', view: 'graph' as View, complete: Boolean(analysis) },
-    { label: 'INSPECT', detail: analysis ? `${(snapshot?.catalogue.length ?? 0) - analysis.result.selectedTests.length} safely avoided` : 'Review causal paths', view: 'tests' as View, complete: Boolean(analysis) },
-    { label: 'EXECUTE', detail: activeExecution ? activeExecution.status.toUpperCase() : 'Run selected or full suite', view: 'tests' as View, complete: activeExecution?.status === 'passed' || activeExecution?.status === 'failed' },
-  ];
+  const suiteCatalogue = analysis?.federated.suites ?? snapshot?.suites ?? [];
+  const inspectedSuite = suiteCatalogue.find(suite => suite.id === inspectedTestId);
+  const inspectedTest = inspectedSuite ? undefined : snapshot?.catalogue.find(test => test.id === inspectedTestId) ?? snapshot?.catalogue[0];
 
   function updateFile(value: string) {
     if (!snapshot || !selectedPath || deleted.has(selectedPath)) return;
@@ -118,29 +118,158 @@ export function App() {
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to apply journey.'); }
   }
 
-  async function calculate() {
-    if (!snapshot) return;
-    const revision = workingRevision.current;
-    setPending(true);
-    setError(undefined);
-    try {
-      const body: DemoAnalysisRequest = {
-        snapshotId: snapshot.id,
-        edits: [...Object.entries(edits).filter(([path]) => !deleted.has(path)).sort(([a], [b]) => a.localeCompare(b)).map(([path, editedContent]) => ({ path, content: editedContent,
-          ...(snapshot.files.some(file => file.path === path) ? {} : { operation: 'add' as const }) })), ...[...deleted].sort().map(path => ({ path, operation: 'delete' as const }))],
-      };
-      const result = await request<DemoAnalysis>('/api/analyses', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Test-Impact-Session': snapshot.sessionToken }, body: JSON.stringify(body) });
-      if (revision !== workingRevision.current) return;
-      setAnalysis(result);
-      setExecutions({});
-      setFocusTest(result.result.selectedTests[0]);
-      setFocusEdge(undefined);
-      setView('graph');
-    } catch (cause) {
-      if (revision === workingRevision.current) setError(cause instanceof Error ? cause.message : 'Unable to calculate regression.');
-    } finally {
-      setPending(false);
+
+  const [graphSession, setGraphSession] = useState<DemoGraphSession>();
+  const [baseSession, setBaseSession] = useState<DemoGraphSession>();
+  const [elapsed, setElapsed] = useState(0);
+  const executionBusy = executionStarting || Object.values(executions).some(item => item?.status === 'running' || item?.status === 'queued');
+  const headers = { 'Content-Type': 'application/json', 'X-Test-Impact-Session': snapshot?.sessionToken ?? '' };
+  useEffect(() => {
+    if (!pending && graphSession?.status !== 'running') { setElapsed(0); return; }
+    const start = Date.now(), timer = setInterval(() => setElapsed(Date.now() - start), 250);
+    return () => clearInterval(timer);
+  }, [pending, graphSession?.status]);
+  useEffect(() => {
+    if (graphSession?.kind === 'impact') {
+      void request('/api/graph-sessions/' + graphSession.id, { method: 'DELETE', headers }).catch(() => {});
+      setGraphSession(baseSession);
     }
+  }, [edits, deleted]);
+  async function poll(state: DemoGraphSession, revision: number) {
+    let next = state;
+    while (next.status === 'running') {
+      await new Promise(resolve => setTimeout(resolve, 200));
+      if (revision !== workingRevision.current) return;
+      next = await request<DemoGraphSession>('/api/graph-sessions/' + state.id, { headers });
+      if (revision !== workingRevision.current) return;
+      setGraphSession(next);
+    }
+    if (revision !== workingRevision.current) return;
+    setGraphSession(next);
+    if (next.status === 'completed' && next.kind === 'discovery') setBaseSession(next);
+    if (next.analysis) setAnalysis(next.analysis);
+    if (next.status === 'error' || next.status === 'stale') setError(next.error ?? 'Las fuentes han cambiado. Recarga y reconstruye.');
+    return next;
+  }
+  async function advance(state?: DemoGraphSession) {
+    if (!snapshot || pending || executionBusy) return;
+    const revision = workingRevision.current;
+    setPending(true); setError(undefined);
+    let current = state ?? graphSession;
+    try {
+      if (!current) {
+        current = await request<DemoGraphSession>('/api/graph-sessions', { method: 'POST', headers, body: JSON.stringify({ kind: 'discovery', inputId: snapshot.id }) });
+        if (revision !== workingRevision.current) return;
+        setGraphSession(current);
+      }
+      const next = await request<DemoGraphSession>('/api/graph-sessions/' + current.id + '/next', { method: 'POST', headers,
+        body: JSON.stringify({ sequence: current.sequence, key: crypto.randomUUID() }) });
+      if (revision !== workingRevision.current) return;
+      setGraphSession(next); await poll(next, revision);
+    } catch (cause) {
+      if (revision !== workingRevision.current) return;
+      setError(cause instanceof Error ? cause.message : 'No se pudo consultar la fase.');
+      if (current) {
+        try { const next = await request<DemoGraphSession>('/api/graph-sessions/' + current.id, { headers }); await poll(next, revision); } catch { /* Reconcile explicitly when connection returns. */ }
+      }
+    } finally { if (revision === workingRevision.current) setPending(false); }
+  }
+  async function calculate() {
+    if (!snapshot || !baseSession || pending || executionBusy || !modified.size) return;
+    const revision = workingRevision.current;
+    setPending(true); setError(undefined); setAnalysis(undefined); setExecutions({}); setFocusTest(undefined); setView('graph');
+    try {
+      if (graphSession?.kind === 'impact') await request('/api/graph-sessions/' + graphSession.id, { method: 'DELETE', headers });
+      const overlay = [...Object.entries(edits).filter(([path]) => !deleted.has(path)).sort(([a], [b]) => a.localeCompare(b)).map(([path, content]) => ({ path, content,
+        ...(snapshot.files.some(file => file.path === path) ? {} : { operation: 'add' as const }) })), ...[...deleted].sort().map(path => ({ path, operation: 'delete' as const }))];
+      const next = await request<DemoGraphSession>('/api/graph-sessions', { method: 'POST', headers, body: JSON.stringify({ kind: 'impact', inputId: snapshot.id, baseSessionId: baseSession.id, edits: overlay }) });
+      if (revision === workingRevision.current) setGraphSession(next);
+    } catch (cause) { if (revision === workingRevision.current) setError(cause instanceof Error ? cause.message : 'No se pudo iniciar el impacto.'); }
+    finally { if (revision === workingRevision.current) setPending(false); }
+  }
+  async function runAll() {
+    if (!snapshot || pending || automaticLock.current || executionBusy) return;
+    automaticLock.current = true; setAutomatic(true); setPending(true); setError(undefined); setView('graph');
+    const revision = workingRevision.current;
+    let current = graphSession;
+    const create = (kind: 'discovery' | 'impact', base?: DemoGraphSession) => request<DemoGraphSession>('/api/graph-sessions', {
+      method: 'POST', headers, body: JSON.stringify({ kind, inputId: snapshot.id, ...(base ? { baseSessionId: base.id, edits: [
+        ...Object.entries(edits).filter(([path]) => !deleted.has(path)).map(([path, content]) => ({ path, content,
+          ...(snapshot.files.some(file => file.path === path) ? {} : { operation: 'add' }) })),
+        ...[...deleted].map(path => ({ path, operation: 'delete' })),
+      ] } : {}) }),
+    });
+    async function complete(state: DemoGraphSession): Promise<DemoGraphSession | undefined> {
+      let next = await request<DemoGraphSession>('/api/graph-sessions/' + state.id, { headers });
+      if (revision !== workingRevision.current) return;
+      if (next.status === 'running') next = await poll(next, revision) ?? next;
+      while (revision === workingRevision.current && (next.status === 'waiting' || next.status === 'error')) {
+        const response = await request<DemoGraphSession>('/api/graph-sessions/' + next.id + '/next', {
+          method: 'POST', headers, body: JSON.stringify({ sequence: next.sequence, key: crypto.randomUUID() }),
+        });
+        if (revision !== workingRevision.current) return;
+        setGraphSession(response);
+        const finished = await poll(response, revision);
+        if (!finished || revision !== workingRevision.current) return;
+        next = finished;
+        if (next.status !== 'waiting') break;
+      }
+      return revision === workingRevision.current ? next : undefined;
+    }
+    try {
+      let base = baseSession;
+      if (!base || base.status !== 'completed') {
+        current = current?.kind === 'discovery' && ['waiting', 'running', 'error'].includes(current.status) ? current : await create('discovery');
+        if (revision !== workingRevision.current) return;
+        setGraphSession(current);
+        base = await complete(current);
+        if (!base || base.status !== 'completed') return;
+      }
+      if (modified.size && revision === workingRevision.current) {
+        setAnalysis(undefined); setExecutions({}); setFocusTest(undefined);
+        current = current?.kind === 'impact' && ['waiting', 'running', 'error'].includes(current.status) ? current : await create('impact', base);
+        if (revision !== workingRevision.current) return;
+        setGraphSession(current);
+        const finished = await complete(current);
+        if (finished?.status === 'completed' && finished.analysis && revision === workingRevision.current) {
+          setInspectedTestId(finished.analysis.result.selectedTests[0] ?? finished.analysis.federated.suites.find(suite => suite.selected)?.id);
+          setView('tests');
+        }
+      }
+    } catch (cause) {
+      if (revision === workingRevision.current) setError(cause instanceof Error ? cause.message : 'No se pudo completar el proceso. Consulta el estado antes de reintentar.');
+    } finally {
+      if (revision === workingRevision.current) { automaticLock.current = false; setAutomatic(false); setPending(false); }
+    }
+  }
+  async function cancelGraph() {
+    const current = graphSession;
+    workingRevision.current++; automaticLock.current = false; setAutomatic(false); setPending(false); setAnalysis(undefined);
+    if (current) {
+      try { setGraphSession(await request<DemoGraphSession>('/api/graph-sessions/' + current.id, { method: 'DELETE', headers })); }
+      catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo cancelar.'); return false; }
+    }
+    return true;
+  }
+  async function resetGraph() {
+    if (executionBusy) return;
+    if (!await cancelGraph()) return;
+    setGraphSession(undefined); setBaseSession(undefined); setExecutions({}); setFocusTest(undefined); setError(undefined);
+  }
+  async function review(sequence?: number) {
+    if (!graphSession || pending) return;
+    const revision = workingRevision.current;
+    try {
+      const next = await request<DemoGraphSession>('/api/graph-sessions/' + graphSession.id + (sequence ? '?sequence=' + sequence : ''), { headers });
+      if (revision === workingRevision.current) setGraphSession(next);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Paso no disponible.'); }
+  }
+  async function reconcile() {
+    if (!graphSession) return;
+    const revision = workingRevision.current; setPending(true);
+    try { await poll(await request<DemoGraphSession>('/api/graph-sessions/' + graphSession.id, { headers }), revision); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo consultar el estado.'); }
+    finally { if (revision === workingRevision.current && !automaticLock.current) setPending(false); }
   }
 
   function createSource() {
@@ -190,9 +319,9 @@ export function App() {
     const revision = ++workingRevision.current;
     setAppliedJourney(undefined);
     try {
-      const next = await request<DemoSnapshot>('/api/snapshot');
+      const next = await request<DemoEditorInput>('/api/editor-input');
       if (revision !== workingRevision.current) return;
-      setSnapshot(next); setEdits({}); setDeleted(new Set()); setAnalysis(undefined); setFocusTest(undefined); setFocusEdge(undefined); setExecutions({});
+      setSnapshot(next); setGraphSession(undefined); setBaseSession(undefined); setEdits({}); setDeleted(new Set()); setAnalysis(undefined); setFocusTest(undefined); setFocusEdge(undefined); setExecutions({});
       setSelectedPath(next.files[0]?.path ?? ''); setError(undefined);
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to reload snapshot.'); }
   }
@@ -216,11 +345,12 @@ export function App() {
   }
 
   async function runExecution(mode: ExecutionMode) {
-    if (!snapshot || !analysis) return;
+    if (!snapshot || !analysis || executionBusy) return;
     const revision = workingRevision.current;
     setError(undefined);
+    setExecutionStarting(true);
     try {
-      const body: DemoExecutionRequest = { snapshotId: snapshot.id, analysisId: analysis.id, mode };
+      const body: DemoExecutionRequest = { snapshotId: analysis.snapshotId, analysisId: analysis.id, mode };
       let execution = await request<DemoExecution>('/api/executions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Test-Impact-Session': snapshot.sessionToken }, body: JSON.stringify(body) });
       if (revision !== workingRevision.current) return;
       setExecutions(current => ({ ...current, [mode]: execution }));
@@ -232,7 +362,19 @@ export function App() {
       }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to execute tests.');
-    }
+    } finally { setExecutionStarting(false); }
+  }
+
+  const tableHead = <div className="test-table-head"><span>STATUS</span><span>ID / TEST</span><span>TYPE</span><span>EVIDENCE</span></div>;
+  function testRows(tests: TestMetadata[]) {
+    return tests.map(test => {
+          const selected = analysis?.result.selectedTests.includes(test.id);
+          const excluded = analysis?.result.excludedTests.find(item => item.testId === test.id);
+          const runResult = activeExecution?.results.find(result => result.testId === test.id);
+          const status = runResult?.status;
+          const label = status ? status.toUpperCase() : selected ? 'SELECTED' : analysis ? 'AVOIDED' : 'READY';
+          return <div className={`test-row ${selected ? 'selected' : analysis ? 'excluded' : ''} ${status ? `executed-${status}` : ''} ${inspectedTest?.id === test.id ? 'inspected' : ''}`} key={test.id}><span><i />{label}</span><span><button className="test-name-button" onClick={() => inspectTest(test.id)}><b>{test.id}</b>{test.name.replace(/^\[[^\]]+\]\s*/, '')}</button></span><span>{kindLabels[test.kind]}</span><span>{selected ? <><button onClick={() => inspectTest(test.id)}>VIEW CODE</button> <button onClick={() => explain(test.id)}>WHY?</button></> : <>{excluded?.explanation ?? 'Awaiting analysis'} <button onClick={() => inspectTest(test.id)}>VIEW CODE</button></>}</span></div>;
+         });
   }
 
   if (!snapshot) return <main className="loading-screen"><div className="logo-mark">TIL</div><p>{error ?? 'Loading immutable repository snapshot…'}</p></main>;
@@ -241,50 +383,22 @@ export function App() {
     <header className="topbar">
       <div className="brand"><div className="logo-mark">TIL</div><div><b>TEST IMPACT LAB</b><span>deterministic regression explorer</span></div></div>
       <nav>{(Object.keys(viewLabels) as View[]).map(item => <button key={item} className={view === item ? 'active' : ''} onClick={() => setView(item)}>{viewLabels[item]}</button>)}</nav>
-      <div className="top-actions"><span className={modified.size ? 'dirty' : ''}>{modified.size} MODIFIED</span><button className="primary" onClick={calculate} disabled={pending}>{pending ? 'CALCULATING…' : 'CALCULATE REGRESSION'}</button></div>
+      <div className="top-actions"><span className={modified.size ? 'dirty' : ''}>{modified.size} MODIFIED</span><button className="primary" onClick={calculate} disabled={pending || executionBusy || !baseSession || !modified.size}>{pending ? 'En curso…' : 'Analizar impacto'}</button></div>
     </header>
 
     {error && <div className="error-banner"><span>{error}</span><button onClick={() => setError(undefined)}>Dismiss</button></div>}
 
-    <div className="suggestion-strip"><div><span>QUICK CHANGES</span>{suggestions.map(item => <button key={item.id} onClick={() => chooseSuggestion(item.id)}><b>{item.title}</b><small>{item.description}</small></button>)}</div>
-      <button className="reset" disabled={!modified.size} onClick={() => { workingRevision.current++; setAppliedJourney(undefined); setEdits({}); setDeleted(new Set()); setAnalysis(undefined); setFocusTest(undefined); setFocusEdge(undefined); setExecutions({}); setSelectedPath(snapshot.files[0]?.path ?? ''); }}>RESET</button>
-      <button className="reset" onClick={reloadSnapshot}>RELOAD SNAPSHOT</button>
-    </div>
 
-    <section className="workflow-ribbon" aria-label="Regression workflow">
-      <div className="workflow-intro"><span>GUIDED FLOW</span><b>From source edit to measured regression</b></div>
-      <div className="workflow-steps">{workflow.map((step, index) => <button key={step.label} className={`${step.complete ? 'complete' : ''} ${view === step.view ? 'current' : ''}`} onClick={() => setView(step.view)}>
-        <i>{index + 1}</i><span><b>{step.label}</b><small>{step.detail}</small></span>
-      </button>)}</div>
-      <div className="workflow-proof"><i />DETERMINISTIC · REAL RUNNERS</div>
-    </section>
-
-    <section className="learning-journeys panel" aria-label="Learning journeys">
-      <div className="journey-choice"><label htmlFor="learning-journey">LEARNING JOURNEY</label><select id="learning-journey" value={journey} onChange={event => setJourney(event.target.value as JourneyId)}>{journeys.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select><button onClick={applyJourney} disabled={pending}>APPLY JOURNEY</button><small>Starts from this snapshot and replaces the current overlay.</small></div>
-      <p>{journeys.find(item => item.id === (appliedJourney ?? journey))!.description}</p>
-      {appliedJourney && <div className="journey-progress" aria-label="Journey evidence">
-        <span>Applied: {journeys.find(item => item.id === appliedJourney)!.title}</span>
-        {[...modified].map(path => <button key={path} onClick={() => showChange(path)}>{path} · SOURCE DIFF</button>)}
-        <button onClick={() => setView('graph')} disabled={!analysis}>DELTA · {analysis ? `${analysis.delta.edges.added.length} added / ${analysis.delta.edges.removed.length} removed edges` : 'calculate first'}</button>
-        <button disabled={!analysis} onClick={() => {
-          const edge = analysis?.delta.edges.added.find(item => item.type !== 'contains') ?? analysis?.delta.edges.removed.find(item => item.type !== 'contains')
-            ?? analysis?.discovery.edges.find(item => item.evidenceIds.some(id => analysis.discovery.evidence.some(proof => proof.id === id && 'path' in proof.locator && modified.has(proof.locator.path))));
-          setFocusTest(undefined); setFocusEdge(undefined); setFocusEdge(edge?.id); setView('graph');
-        }}>INSPECT JOURNEY EVIDENCE</button>
-        <button onClick={() => setView('tests')} disabled={!analysis}>IMPACT → EXECUTION{analysis ? ` · ${analysis.federated.mode}` : ''}</button>
-        <span role="status">{activeExecution ? `Execution: ${activeExecution.status}${activeExecution.suiteResults?.some(item => item.status === 'unavailable') ? ' · unavailable suites are not passes' : ''}` : 'Execution: not run'}</span>
-      </div>}
-      <details><summary>What the sources prove · refresh and visibility</summary><p>Compiler facts resolve supported imports, calls and JSX. HTTP and RabbitMQ adapters bind explicit contracts and registrations. Reviewed test subjects declare intent; they do not measure coverage. OpenTelemetry and mesh record observed traffic for their own revision and time window; absent traffic cannot remove a dependency.</p><p>Calculate analyzes the actual edited bytes against the pinned snapshot. Reload snapshot reads the current checkout and resets the overlay. Filesystem watching rebuilds the full index after a change; unchanged fingerprints skip extraction. Dynamic references, inaccessible repositories and unsupported patterns remain diagnostics and require conservative selection. Only registered, available suites can execute; failed, skipped and unavailable results remain visible.</p></details>
-    </section>
-
+    {view === 'code' && <div className="scenario-strip">
+      <label htmlFor="learning-journey">Escenario</label><select id="learning-journey" value={journey} onChange={event => setJourney(event.target.value as JourneyId)} disabled={pending || executionBusy}>{journeys.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
+      <button onClick={applyJourney} disabled={pending || executionBusy}>Aplicar cambio</button>
+      <button onClick={() => { workingRevision.current++; setEdits({}); setDeleted(new Set()); setAnalysis(undefined); setExecutions({}); }} disabled={pending || executionBusy}>Restaurar código</button>
+      <button onClick={reloadSnapshot} disabled={pending || executionBusy}>Recargar fuentes</button>
+    </div>}
+    {view === 'code' && <div className="suggestion-strip" aria-label="Quick changes de v1"><div><span>QUICK CHANGES</span>{suggestions.map(item => <button key={item.id} onClick={() => chooseSuggestion(item.id)} disabled={pending || executionBusy}><b>{item.title}</b><small>{item.description}</small></button>)}</div></div>}
     <main className="workspace">
-      {view === 'application' && <section className="application-view">
-        <div className="view-intro"><span>LIVE APPLICATION</span><h1>The same login journey represented by the code, graph and tests.</h1><p>Try an invalid password, then sign in with the public demo credentials.</p></div>
-        <div className="browser-frame"><div className="browser-chrome"><i /><i /><i /><span>{import.meta.env.VITE_APPLICATION_URL ?? 'http://127.0.0.1:5173'}</span></div><iframe title="Login application" src={import.meta.env.VITE_APPLICATION_URL ?? 'http://127.0.0.1:5173'} /></div>
-      </section>}
-
       {view === 'code' && <section className="code-view">
-        <div className="source-management"><label htmlFor="new-source-path">NEW SOURCE · OVERLAY ONLY</label><input id="new-source-path" value={newPath} onChange={event => setNewPath(event.target.value)} /><button onClick={createSource}>ADD FILE</button><button onClick={createGuidedScreen}>CREATE GUIDED SCREEN</button><button onClick={deleteSource} disabled={!selectedPath}>DELETE FILE</button>
+        <div className="source-management"><label htmlFor="new-source-path">NEW SOURCE · OVERLAY ONLY</label><input id="new-source-path" value={newPath} onChange={event => setNewPath(event.target.value)} /><button onClick={createSource} disabled={pending || executionBusy}>ADD FILE</button><button onClick={deleteSource} disabled={!selectedPath || pending || executionBusy}>DELETE FILE</button>
           <small>Changes never write to the checkout. Connect a new component with an import/JSX reference, then calculate.</small>
           {deleted.size > 0 && <span role="status">Deleted in overlay: {[...deleted].join(', ')}</span>}</div>
         <RepositoryTree files={workingFiles} selected={selectedPath} modified={modified} onSelect={path => { setSelectedPath(path); setEditorMode(modified.has(path) ? 'diff' : 'edit'); }} />
@@ -298,42 +412,37 @@ export function App() {
                 editor.onDidUpdateDiff(revealFirstChange);
                 revealFirstChange();
               }}
-              options={{ readOnly: true, renderSideBySide: true, originalEditable: false, minimap: { enabled: false }, fontSize: 13, lineHeight: 21, automaticLayout: true, scrollBeyondLastLine: false }} /></div></div>
-            : <Editor path={selectedPath} language={languageFor(selectedPath)} theme="vs-dark" value={content} onChange={value => updateFile(value ?? '')}
-              options={{ readOnly: !selectedPath || deleted.has(selectedPath), minimap: { enabled: false }, fontSize: 13, lineHeight: 21, fontLigatures: true, padding: { top: 14 }, scrollBeyondLastLine: false, automaticLayout: true, tabSize: 2 }} />}
+              options={{ readOnly: true, renderSideBySide: true, originalEditable: false, minimap: { enabled: false }, fontSize: 13, lineHeight: 21, automaticLayout: false, scrollBeyondLastLine: false }} /></div></div>
+            : <Editor onMount={editor => deferMonacoLayout(editor)} path={selectedPath} language={languageFor(selectedPath)} theme="vs-dark" value={content} onChange={value => updateFile(value ?? '')}
+              options={{ readOnly: pending || executionBusy || !selectedPath || deleted.has(selectedPath), minimap: { enabled: false }, fontSize: 13, lineHeight: 21, fontLigatures: true, padding: { top: 14 }, scrollBeyondLastLine: false, automaticLayout: false, tabSize: 2 }} />}
         </div>
-        <aside className="impact-panel panel"><div className="panel-title">REGRESSION IMPACT</div><ImpactSummary result={analysis?.result} federated={analysis?.federated} catalogue={snapshot.catalogue} graph={activeGraph!} onWhy={explain} /></aside>
       </section>}
+      <section className="graph-view progressive-view" hidden={view !== 'graph'}><LiveGraph session={graphSession} token={snapshot.sessionToken} pending={pending} executionBusy={executionBusy} elapsed={elapsed} focusTest={focusTest}
+        onNext={() => { void advance(); }} onReset={() => { void resetGraph(); }} onCancel={() => { void cancelGraph(); }} onReview={sequence => { void review(sequence); }} onTest={inspectTest}
+        onReconcile={() => { void reconcile(); }} onRunAll={() => { void runAll(); }} automatic={automatic}
+        quickDisabled={!!analysis || !modified.size && baseSession?.status === 'completed'} quickLabel={modified.size ? 'Analizar impacto completo' : 'Generar grafo completo'} /></section>
 
-      {view === 'graph' && <section className="graph-view"><DiscoveryExplorer snapshot={snapshot} analysis={analysis} focusTest={focusTest} focusEdge={focusEdge} onFocusTest={setFocusTest} /></section>}
-
-      {view === 'tests' && <section className="tests-view"><div className="tests-heading"><div><span>TEST CATALOGUE</span><h1>Local and distributed regression suites.</h1></div>{analysis && <div><strong>{analysis.result.selectedTests.length + analysis.federated.suites.filter(item => item.selected).length}</strong><span>selected</span></div>}</div>
-        <div className="discovery-summary"><h3>EXTERNAL INVENTORY TESTS · {snapshot.externalCatalogue.length || 'SOURCE INACCESSIBLE'}</h3><p>{snapshot.externalCatalogue.length ? 'Registered in the independent Git repository. G6 selects its reviewed suite and executes the pinned source when available.' : 'Contract-only inventory: external source/tests unavailable. No external pass or coverage is claimed.'}</p>
-          {snapshot.externalCatalogue.map(test => <p key={test.id}>{test.title} · {test.path} · G6 suite: inventory-provider</p>)}</div>
-        <TestLegend />
-        {modified.size > 0 && <div className="changed-files"><b>CHANGED SOURCE</b>{[...modified].sort().map(path => <button key={path} onClick={() => showChange(path)}>{path} <span>VIEW RED / GREEN DIFF ↗</span></button>)}</div>}
-        {analysis && <div className="panel"><div className="panel-title">DISTRIBUTED IMPACT · {analysis.federated.mode.toUpperCase()}</div>
-          {analysis.federated.warnings.map(warning => <p key={warning}>{warning}</p>)}
-          {analysis.federated.suites.map(suite => <div className="selected-row" key={suite.id}><div><b>{suite.id}</b><span>{suite.selected ? 'Affected' : 'Excluded'} · {suite.availability}</span><small>{suite.reason}</small>
-            <small>{suite.path.map(step => {
-              const edge = analysis.discovery.edges.find(item => item.id === step.edgeId) ?? snapshot.discovery.edges.find(item => item.id === step.edgeId);
-              return `${step.direction} ${edge?.type ?? 'historical edge'}`;
-            }).join(' → ')}</small></div>{suite.path.length > 0 && <button onClick={() => { setFocusEdge(suite.path.at(-1)!.edgeId); setView('graph'); }}>INSPECT EVIDENCE</button>}</div>)}
-        </div>}
+      {view === 'tests' && <section className="tests-view">
+        <section className="selected-tests" aria-label="Selected tests"><div className="tests-heading"><div><span>CALCULATED REGRESSION</span><h1>Selected tests</h1></div>{analysis && <div><strong>{analysis.result.selectedTests.length + analysis.federated.suites.filter(item => item.selected).length}</strong><span>{analysis.result.selectedTests.length} tests · {analysis.federated.suites.filter(item => item.selected).length} suites seleccionadas</span></div>}</div>
+          {!analysis ? <p className="selection-empty" role="status">Waiting for code change to calculate regression.</p> : !analysis.result.selectedTests.length && !analysis.federated.suites.some(suite => suite.selected) ? <p className="selection-empty" role="status">No tests selected for this change.</p> : <div className="test-table">{tableHead}{testRows(snapshot.catalogue.filter(test => analysis.result.selectedTests.includes(test.id)))}
+            {analysis.federated.suites.filter(suite => suite.selected).map(suite => {
+              const result = activeExecution?.suiteResults?.find(item => item.id === suite.id);
+              return <div className={`test-row selected ${result ? `executed-${result.status}` : ''}`} key={suite.id}><span><i />{result?.status.toUpperCase() ?? 'SELECTED'}</span><span><button className="test-name-button" onClick={() => inspectTest(suite.id)}><b>{suite.id}</b>{suite.file}</button></span><span>DISTRIBUTED SUITE</span><span><button onClick={() => inspectTest(suite.id)}>VIEW CODE</button> <button onClick={() => explain(suite.id)}>WHY?</button></span></div>;
+            })}</div>}
+        </section>
         <ExecutionPanel selectedCount={(analysis?.result.selectedTests.length ?? 0) + (analysis?.federated.suites.filter(item => item.selected).length ?? 0)}
-          totalCount={snapshot.catalogue.length + (analysis?.federated.suites.length ?? 0)} executions={executions}
-          busy={Object.values(executions).some(execution => execution?.status === 'queued' || execution?.status === 'running')} disabled={!analysis} onRun={runExecution} onInspect={inspectTest} />
-        {inspectedTest && <div ref={inspectorRef}><TestInspector test={inspectedTest} snapshot={snapshot} analysis={analysis} execution={activeExecution} onShowChange={showChange} /></div>}
-        <div className="test-table"><div className="test-table-head"><span>STATUS</span><span>ID / TEST</span><span>TYPE</span><span>EVIDENCE</span></div>{snapshot.catalogue.map(test => {
-          const selected = analysis?.result.selectedTests.includes(test.id);
-          const excluded = analysis?.result.excludedTests.find(item => item.testId === test.id);
-          const runResult = activeExecution?.results.find(result => result.testId === test.id);
-          const status = runResult?.status;
-          const label = status ? status.toUpperCase() : selected ? 'SELECTED' : analysis ? 'AVOIDED' : 'READY';
-          return <div className={`test-row ${selected ? 'selected' : analysis ? 'excluded' : ''} ${status ? `executed-${status}` : ''} ${inspectedTest?.id === test.id ? 'inspected' : ''}`} key={test.id}><span><i />{label}</span><span><button className="test-name-button" onClick={() => inspectTest(test.id)}><b>{test.id}</b>{test.name.replace(/^\[[^\]]+\]\s*/, '')}</button></span><span>{kindLabels[test.kind]}</span><span>{selected ? <><button onClick={() => inspectTest(test.id)}>VIEW CODE</button> <button onClick={() => explain(test.id)}>WHY?</button></> : <>{excluded?.explanation ?? 'Awaiting analysis'} <button onClick={() => inspectTest(test.id)}>VIEW CODE</button></>}</span></div>;
-        })}</div></section>}
+          totalCount={snapshot.catalogue.length + suiteCatalogue.length} executions={executions}
+          busy={executionBusy} disabled={!analysis} onRun={runExecution} onInspect={inspectTest} />
+        <section ref={inspectorRef} aria-label="Test code viewer"><div className="panel-title">TEST CODE</div>
+          {inspectedTest && <TestInspector test={inspectedTest} snapshot={snapshot} analysis={analysis} execution={activeExecution} onShowChange={showChange} />}
+          {inspectedSuite && <SuiteInspector suite={inspectedSuite} sessionId={graphSession?.id} token={snapshot.sessionToken} execution={activeExecution} onGraph={() => explain(inspectedSuite.id)} />}
+        </section>
+        <section className="panel" aria-label="Distributed suites"><div className="panel-title">SUITES DISTRIBUIDAS</div>{suiteCatalogue.map(suite =>
+          <div className="selected-row" key={suite.id}><div><b>{suite.id}</b><span>{'selected' in suite ? suite.selected ? 'Seleccionada' : 'Excluida' : 'Sin analizar'} · {suite.availability}</span></div>
+          <button onClick={() => inspectTest(suite.id)}>Ver test y resultado</button>{'path' in suite && suite.path.length > 0 && <button onClick={() => explain(suite.id)}>Ver camino</button>}</div>)}</section>
+        <section className="all-tests" aria-label="All tests"><div className="panel-title">ALL TESTS</div><details><summary>Tipos de tests e IDs</summary><TestLegend /></details><div className="test-table">{tableHead}{testRows(snapshot.catalogue)}</div></section></section>}
     </main>
 
-    <footer><span><i /> DETERMINISTIC SELECTION</span><span title={snapshot.id}>SNAPSHOT {snapshot.id.slice(0, 16)}</span><span>{activeGraph!.nodes.length} NODES · {activeGraph!.edges.length} EDGES</span><span>NO AI AT RUNTIME</span></footer>
+    <footer><span><i /> Fuentes fijadas · Sin IA en runtime</span><span>{graphSession ? processLabels[graphSession.status] : 'Grafo vacío'}</span><span>{graphSession?.step ? 'Paso ' + graphSession.step.sequence + '/' + graphSession.total : '0 nodos · 0 conexiones'}</span></footer>
   </div>;
 }
