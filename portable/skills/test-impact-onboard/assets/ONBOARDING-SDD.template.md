@@ -1,31 +1,31 @@
-# SDD de incorporación — <proyecto>
+# Onboarding SDD — <project>
 
-Estado: diseño pendiente de inspección. Sustituir los campos por hechos del proyecto.
+Status: design pending inspection. Replace fields with project facts.
 
-## Proyecto e inputs
+## Project and inputs
 
-Revisión/árbol, raíces incluidas y excluidas, toolchain, configuración y entradas externas.
+Revision/tree, included and excluded roots, toolchain, configuration, and external inputs.
 
-## Capacidades observadas
+## Observed capabilities
 
-Por lenguaje/framework/runner: dependencia estática, identidad/selección de tests, cobertura, atribución, source mapping y variantes. Clasificar supported/partial/unsupported/unknown con evidencia.
+For each language/framework/runner: static dependencies, test identity/selection, coverage, attribution, source mapping, and variants. Classify supported/partial/unsupported/unknown with evidence.
 
-## Necesidades y alcance
+## Needs and scope
 
-Adaptadores reutilizables, diferencias por implementar, construcciones no resueltas y ámbito de fallback.
+Reusable adapters, differences to implement, unresolved constructs, and fallback scope.
 
-## Captura y contratos
+## Capture and contracts
 
-Unidad de ejecución/medición, aislamiento, hooks, procesos, contexto, cierre y proveedor de coverage. Fronteras y disponibilidad de implementaciones externas.
+Execution/measurement unit, isolation, hooks, processes, context, closure, and coverage provider. Boundaries and external-implementation availability.
 
-## Operación local y CI
+## Local operation and CI
 
-Baseline, base del diff, consulta rápida, ejecución del plan, refresco, procedencia y retención de artefactos. Separar comandos existentes de futuros.
+Baseline, diff base, fast query, plan execution, refresh, provenance, and artifact retention. Separate existing commands from future commands.
 
-## Validación y presupuesto
+## Validation and budget
 
-Corpus positivo/negativo, selected/full, cambios controlados, criterios de omisión, latencia, overhead y almacenamiento.
+Positive/negative corpus, selected/full, controlled changes, omission criteria, latency, overhead, and storage.
 
-## Fases y estado
+## Phases and state
 
-Entregables, aceptación y nivel de razonamiento por fase. Mantener decisiones, comandos/resultados reales y siguiente acción.
+Deliverables, acceptance, and reasoning level per phase. Maintain decisions, actual commands/results, and the next action.

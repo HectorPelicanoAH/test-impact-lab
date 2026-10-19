@@ -1,25 +1,25 @@
-# Procedencia y separación
+# Provenance and separation
 
-Esta distribución se prepara en la rama `feat/instalable` de test-impact-lab. La revisión de origen anterior a la extracción es `29050d51e4f11e5808994e62531100c1b8dae807`.
+This distribution is prepared on the `feat/instalable` branch of test-impact-lab. The source revision before extraction is `29050d51e4f11e5808994e62531100c1b8dae807`.
 
-## Reutilizado
+## Reused components
 
-El serializador canónico y el hash de `src/core.mjs` se extraen de `scripts/graph/core.ts`, eliminando imports y tipos específicos del laboratorio. Se añaden normalización y validación para un formato de consulta explícitamente experimental.
+The canonical serializer and hash in `src/core.mjs` are extracted from `scripts/graph/core.ts`, removing lab-specific imports and types. Normalization and validation are added for an explicitly experimental inspection format.
 
-El diseño visual conserva la idea de grafo, tabla de tests e inspector de evidencia. La implementación del visor es nueva, sin React/Monaco/React Flow y sin dependencias de login, pedidos, Inventory, broker, escenas o editor de producto.
+The visual design retains the graph, test table, and evidence inspector concept. The viewer implementation is new, without React/Monaco/React Flow or dependencies on login, orders, Inventory, broker, scenes, or the product editor.
 
-El puente `src/import-v2.mjs` lee un grafo/archivo v2 exportado. No importa el selector legacy ni sus reglas, y conserva los sujetos revisados como declaraciones. Valida la estructura del formato visual, no certifica la autenticidad del dataset ni su completitud como baseline.
+The `src/import-v2.mjs` bridge reads an exported v2 graph/archive. It does not import the legacy selector or its rules, and preserves reviewed subjects as declarations. It validates the view format's structure, not dataset authenticity or completeness as a baseline.
 
-## Fuera de esta raíz
+## Outside this root
 
-La demo, servicios, tests del producto y archivos de escenario se conservan en el laboratorio de origen. No se copian al exportar esta distribución.
+The demo, services, product tests, and scenario files remain in the source lab. They are not copied when this distribution is exported.
 
-El descubridor completo y el motor de impacto del laboratorio utilizan configuración y metadatos específicos. Su adaptación al contrato general requiere P1–P5; no se han trasladado como si fueran un motor universal.
+The lab's full discoverer and impact engine use specific configuration and metadata. Adapting them to the general contract requires P1–P5; they have not been moved as though they were a universal engine.
 
-Los SDD históricos de dependencias, el contrato v2 y la auditoría G9 sirven como antecedentes. Sus rutas originales se mencionan en el SDD como documentación histórica y no son imports o enlaces necesarios para ejecutar el paquete.
+The historical dependency SDDs, v2 contract, and G9 audit provide background. Their original paths are mentioned in the SDD as historical documentation and are not imports or links required to run the package.
 
-## Formatos
+## Formats
 
-`test-impact-view/1` es un formato de lectura/visualización de la extracción E0. No es todavía el bundle completo de P2 y no representa una certificación de cobertura o de exclusión de tests.
+`test-impact-view/1` is the E0 extraction's reading/visualization format. It is not yet P2's complete bundle and does not certify coverage or test exclusion.
 
-El SDD general y la skill están preparados para evolucionar con versiones explícitas. La publicación y licencia de una distribución pública se decidirán después; este paquete está marcado privado y UNLICENSED.
+The general SDD and skill are designed to evolve through explicit versions. Public distribution and licensing will be decided later; this package is marked private and UNLICENSED.

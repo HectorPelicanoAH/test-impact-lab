@@ -1,318 +1,318 @@
-# SDD — Generación portable de grafos y selección de tests
+# SDD — Portable graph generation and test selection
 
-Fecha: **2026-10-19**. Versión del diseño: **0.2**. Estado: **extracción E0 implementada; desarrollo P1–P8 pendiente**.
+Date: **2026-10-19**. Design version: **0.2**. Status: **E0 extraction implemented; P1–P8 development pending**.
 
-Este SDD define un sistema que una skill puede adaptar a cada proyecto después de inspeccionarlo. El resultado es código y configuración ejecutables en el repositorio, una CLI determinista y artefactos comunes que también consume una UI de consulta. Abarca los distintos tipos de tests y permite operar tanto localmente como en CI.
+This SDD defines a system that a skill can adapt to each project after inspecting it. The output is executable code and configuration in the repository, a deterministic CLI, and common artifacts also consumed by an inspection UI. It covers different test types and supports both local and CI operation.
 
-El diseño es independiente del lenguaje, framework, topología del repositorio y proveedor de CI. Cada adaptador declara un ámbito concreto; esta independencia del contrato no implica soporte implementado para todas las tecnologías.
+The design is independent of language, framework, repository topology, and CI provider. Each adapter declares a specific scope; this independence of the contract does not imply implemented support for every technology.
 
-Registro de ejecución: [IMPLEMENTATION-STATE.md](IMPLEMENTATION-STATE.md). La procedencia del laboratorio se documenta en [ORIGIN.md](ORIGIN.md). Las fases P0–P8 y la extracción E0 de este documento tienen su propio estado.
+Execution log: [IMPLEMENTATION-STATE.md](IMPLEMENTATION-STATE.md). The lab's provenance is documented in [ORIGIN.md](ORIGIN.md). Phases P0–P8 and extraction E0 in this document have their own status.
 
-La distribución inicial implementa `inspect`, `validate`, `import-v2`, `view` e `info`, además de una skill de incorporación. El formato experimental `test-impact-view/1` sirve para inspección visual y no sustituye al contrato completo de bundles de P2. Baseline, check, ejecución seleccionada e integración CI permanecen planificados. Véase el [README](../README.md) para la experiencia de uso disponible y la prevista.
+The initial distribution implements `inspect`, `validate`, `import-v2`, `view`, and `info`, together with an onboarding skill. The experimental `test-impact-view/1` format supports visual inspection and does not replace P2's complete bundle contract. Baseline creation, impact checking, selected execution, and CI integration remain planned. See the [README](../README.md) for the available and planned usage.
 
-## Índice
+## Contents
 
-1. [Objetivo y resultados](#1-objetivo-y-resultados)
-2. [Decisiones y requisitos](#2-decisiones-y-requisitos)
-3. [Alcance y límites](#3-alcance-y-límites)
-4. [Determinismo y significado de la evidencia](#4-determinismo-y-significado-de-la-evidencia)
-5. [Estándares y reutilización](#5-estándares-y-reutilización)
-6. [Arquitectura](#6-arquitectura)
-7. [Inspección y necesidades de cada proyecto](#7-inspección-y-necesidades-de-cada-proyecto)
-8. [Contrato de adaptadores](#8-contrato-de-adaptadores)
-9. [Identidad y modelo de datos](#9-identidad-y-modelo-de-datos)
-10. [Artefactos portables](#10-artefactos-portables)
-11. [Enlace de los distintos tipos de tests](#11-enlace-de-los-distintos-tipos-de-tests)
-12. [Captura de cobertura por unidad de ejecución](#12-captura-de-cobertura-por-unidad-de-ejecución)
-13. [OpenTelemetry y correlación distribuida](#13-opentelemetry-y-correlación-distribuida)
-14. [Contratos como frontera](#14-contratos-como-frontera)
-15. [Baseline inicial y mantenimiento](#15-baseline-inicial-y-mantenimiento)
-16. [Vigencia e invalidación](#16-vigencia-e-invalidación)
-17. [Algoritmo de impacto](#17-algoritmo-de-impacto)
-18. [Actualización incremental y rendimiento](#18-actualización-incremental-y-rendimiento)
-19. [Experiencia de CLI](#19-experiencia-de-cli)
-20. [CI y procedencia de artefactos](#20-ci-y-procedencia-de-artefactos)
-21. [UI común y grafos grandes](#21-ui-común-y-grafos-grandes)
-22. [Skill y SDD de incorporación](#22-skill-y-sdd-de-incorporación)
-23. [Diagnósticos y comportamiento ante fallos](#23-diagnósticos-y-comportamiento-ante-fallos)
-24. [Validación y medición](#24-validación-y-medición)
-25. [Relación con la implementación actual](#25-relación-con-la-implementación-actual)
-26. [Fases de desarrollo y nivel de razonamiento](#26-fases-de-desarrollo-y-nivel-de-razonamiento)
-27. [Aceptación global](#27-aceptación-global)
-28. [Decisiones pendientes y riesgos](#28-decisiones-pendientes-y-riesgos)
-29. [Operación y recuperación](#29-operación-y-recuperación)
-30. [Glosario](#30-glosario)
-31. [Referencias oficiales](#31-referencias-oficiales)
+1. [Objective and outcomes](#1-objective-and-outcomes)
+2. [Decisions and requirements](#2-decisions-and-requirements)
+3. [Scope and limitations](#3-scope-and-limitations)
+4. [Determinism and the meaning of evidence](#4-determinism-and-the-meaning-of-evidence)
+5. [Standards and reuse](#5-standards-and-reuse)
+6. [Architecture](#6-architecture)
+7. [Project inspection and needs](#7-project-inspection-and-needs)
+8. [Adapter contract](#8-adapter-contract)
+9. [Identity and data model](#9-identity-and-data-model)
+10. [Portable artifacts](#10-portable-artifacts)
+11. [Linking different test types](#11-linking-different-test-types)
+12. [Coverage capture per execution unit](#12-coverage-capture-per-execution-unit)
+13. [OpenTelemetry and distributed correlation](#13-opentelemetry-and-distributed-correlation)
+14. [Contracts as boundaries](#14-contracts-as-boundaries)
+15. [Initial baseline and maintenance](#15-initial-baseline-and-maintenance)
+16. [Validity and invalidation](#16-validity-and-invalidation)
+17. [Impact algorithm](#17-impact-algorithm)
+18. [Incremental updates and performance](#18-incremental-updates-and-performance)
+19. [CLI experience](#19-cli-experience)
+20. [CI and artifact provenance](#20-ci-and-artifact-provenance)
+21. [Common UI and large graphs](#21-common-ui-and-large-graphs)
+22. [Skill and onboarding SDD](#22-skill-and-onboarding-sdd)
+23. [Diagnostics and failure behavior](#23-diagnostics-and-failure-behavior)
+24. [Validation and measurement](#24-validation-and-measurement)
+25. [Relationship to the current implementation](#25-relationship-to-the-current-implementation)
+26. [Development phases and reasoning level](#26-development-phases-and-reasoning-level)
+27. [Overall acceptance](#27-overall-acceptance)
+28. [Open decisions and risks](#28-open-decisions-and-risks)
+29. [Operation and recovery](#29-operation-and-recovery)
+30. [Glossary](#30-glossary)
+31. [Official references](#31-official-references)
 
-## 1. Objetivo y resultados
+## 1. Objective and outcomes
 
-Un usuario debe poder incorporar un repositorio sin dibujar previamente su grafo ni mantener listas manuales de qué tests corresponden a cada cambio. La incorporación inspecciona el proyecto, identifica necesidades, implementa adaptadores acotados y deja un sistema que funciona sin consultar un LLM en cada ejecución.
+A user must be able to onboard a repository without drawing its graph beforehand or maintaining manual lists of which tests correspond to each change. Onboarding inspects the project, identifies needs, implements scoped adapters, and leaves a system that works without consulting an LLM on each run.
 
-El sistema debe responder:
+The system must answer:
 
-- Qué archivos, símbolos, paquetes, recursos y contratos existen dentro del ámbito analizado.
-- Qué dependencias están demostradas y con qué evidencia.
-- Qué código ha ejecutado cada test o grupo de tests identificable.
-- Qué cambia entre dos estados del código, incluidas sus dependencias anteriores y posteriores.
-- Qué tests deben ejecutarse y qué reglas permiten excluir otros.
-- Dónde falta evidencia, qué selección adicional provoca esa falta y qué ejecución puede mejorarla.
+- Which files, symbols, packages, resources, and contracts exist within the analyzed scope.
+- Which dependencies are demonstrated and by what evidence.
+- Which code each identifiable test or test group executed.
+- What changes between two code states, including their dependencies before and after the change.
+- Which tests must run and which rules allow others to be excluded.
+- Where evidence is missing, what additional selection that causes, and which execution could improve it.
 
-La primera construcción puede ser costosa: inventario completo, extracción estática y ejecución instrumentada de las suites previstas. Las consultas posteriores de impacto deben reutilizar el baseline y actualizar únicamente lo necesario, sin exigir ejecutar la suite completa para poder calcular una selección.
+The initial build may be expensive: full inventory, static extraction, and instrumented execution of the planned suites. Subsequent impact queries must reuse the baseline and update only what is necessary, without requiring the full suite to run before calculating a selection.
 
-La UI comparte el formato de entrada entre proyectos. Debe permitir entender las relaciones y las áreas sin evidencia sin renderizar todos los nodos a la vez.
+The UI shares its input format across projects. It must make relationships and areas without evidence understandable without rendering every node at once.
 
-El producto entregable comprende cuatro partes: contrato común, núcleo determinista, adaptadores ejecutables y skill de incorporación. CLI, CI y UI son consumidores del mismo núcleo.
+The deliverable comprises four parts: a common contract, a deterministic core, executable adapters, and an onboarding skill. CLI, CI, and UI consume the same core.
 
-## 2. Decisiones y requisitos
+## 2. Decisions and requirements
 
-Estas decisiones recogen lo acordado durante la definición. Los identificadores permiten comprobar su implementación.
+These decisions capture the agreement reached during definition. Their identifiers make implementation traceable.
 
-| ID | Requisito |
+| ID | Requirement |
 | --- | --- |
-| R01 | Inspeccionar el proyecto y extraer sus necesidades antes de elegir e implementar adaptadores. |
-| R02 | Mantener el SDD general: no presuponer frontend, backend, monorepo, lenguaje, runner ni CI. |
-| R03 | Priorizar relaciones deterministas, verificables y regenerables. |
-| R04 | Reservar a la IA el análisis y desarrollo; generación autoritativa y selección en ejecución sin LLM. |
-| R05 | Incluir unitarios, componentes, contratos, integración, E2E y categorías adicionales detectadas. |
-| R06 | Crear relaciones de cobertura de E2E a código exclusivamente con instrumentación atribuible. |
-| R07 | Combinar análisis estático y cobertura por unidad identificable para otros tests, distinguiendo su significado. |
-| R08 | Usar cobertura por test para ejecución de código y OpenTelemetry para contexto y correlación, cuando corresponda. |
-| R09 | Preferir estándares y herramientas del ecosistema a protocolos e instrumentación propios. |
-| R10 | Emitir artefactos estables, documentados y validados, consumibles por una UI común. |
-| R11 | Separar bootstrap costoso, consulta rápida de impacto y ejecución de la selección. |
-| R12 | Integrar el flujo en CI y compartir artefactos entre jobs con identidad y procedencia comprobables. |
-| R13 | Modelar contratos como fronteras explícitas, incluso sin acceso al otro repositorio. |
-| R14 | Ante incertidumbre, ampliar selección; mostrar tests desconocidos o inaccesibles como tales. |
-| R15 | Ofrecer filtros, agregación y navegación que funcionen en proyectos grandes. |
-| R16 | Recomendar niveles de razonamiento por fase sin fijar modelos, con atención al coste. |
-| R17 | Evitar mantenimiento manual de listas cambio→tests y asociaciones basadas solo en opinión. |
-| R18 | Publicar resultados de validación reales y límites de soporte; no afirmar corrección universal. |
+| R01 | Inspect the project and identify its needs before choosing and implementing adapters. |
+| R02 | Keep the SDD general: do not assume a frontend, backend, monorepo, language, runner, or CI. |
+| R03 | Prioritize deterministic, verifiable, regenerable relationships. |
+| R04 | Use AI for analysis and development; authoritative generation and runtime selection must work without an LLM. |
+| R05 | Include unit, component, contract, integration, E2E, and any additional detected test categories. |
+| R06 | Create E2E-to-code coverage relationships exclusively through attributable instrumentation. |
+| R07 | Combine static analysis and coverage per identifiable unit for other tests, distinguishing their meaning. |
+| R08 | Use per-test coverage for code execution and OpenTelemetry for context and correlation, where appropriate. |
+| R09 | Prefer ecosystem standards and tools to custom protocols and instrumentation. |
+| R10 | Emit stable, documented, validated artifacts consumable by a common UI. |
+| R11 | Separate expensive bootstrap, fast impact queries, and execution of the selection. |
+| R12 | Integrate the workflow into CI and share artifacts across jobs with verifiable identity and provenance. |
+| R13 | Model contracts as explicit boundaries, even without access to the other repository. |
+| R14 | Broaden selection under uncertainty; identify unknown or inaccessible tests as such. |
+| R15 | Provide filtering, aggregation, and navigation that work for large projects. |
+| R16 | Recommend reasoning levels per phase without prescribing models, taking cost into account. |
+| R17 | Avoid manual maintenance of change→test lists and associations based only on opinion. |
+| R18 | Publish actual validation results and support limitations; do not claim universal correctness. |
 
-El conocimiento de QA o desarrollo puede aportar escenarios, datos, clasificación de suites y casos para el corpus. Esa información no habilita excluir tests ni crea por sí sola cobertura demostrada. Si una política añade tests obligatorios, puede ampliar la selección y debe mostrarse como política.
+QA or development knowledge can contribute scenarios, data, suite classification, and corpus cases. That information does not authorize test exclusion or establish demonstrated coverage by itself. A policy may add mandatory tests and broaden selection, and must be presented as a policy.
 
-## 3. Alcance y límites
+## 3. Scope and limitations
 
-### 3.1 Ámbitos de proyecto
+### 3.1 Project scopes
 
-El contrato admite un repositorio de biblioteca, aplicación cliente, servicio, monolito, monorepo o un conjunto de repositorios explícitamente registrados. Un proyecto puede contener varios lenguajes y runners, siempre con soporte declarado por adaptador.
+The contract supports a library repository, client application, service, monolith, monorepo, or an explicitly registered set of repositories. A project can contain multiple languages and runners, provided support is declared by each adapter.
 
-Un repositorio externo puede ser visible con código fijado, visible solo mediante un contrato o inaccesible. No se necesita disponer conjuntamente de frontend y backend. El resultado debe distinguir exhaustividad dentro del ámbito registrado de visibilidad sobre sistemas externos.
+An external repository may be visible through pinned code, visible only through a contract, or inaccessible. Frontend and backend code do not need to be available together. Results must distinguish completeness within the registered scope from visibility into external systems.
 
-Los archivos no ejecutables también importan: estilos, plantillas, assets, migraciones, esquemas, configuración, lockfiles, generación de código, traducciones y datos de prueba. Se extraen sus dependencias cuando exista un adaptador probado; en otro caso activan reglas conservadoras de ámbito.
+Non-executable files also matter: styles, templates, assets, migrations, schemas, configuration, lockfiles, code generation, translations, and test data. Extract their dependencies when a validated adapter exists; otherwise, trigger conservative scope rules.
 
-### 3.2 Entrega inicial obligatoria
+### 3.2 Required initial delivery
 
-- Contrato portable con validadores y ejemplos independientes del proyecto demo.
-- Núcleo de normalización, diagnóstico, impacto y vigencia.
-- Primer adaptador elegido tras la inspección, no fijado por este SDD.
-- Inventario de tests y captura atribuible para los runners incluidos en ese ámbito.
-- Baseline, check de impacto, ejecución, actualización y diagnóstico por CLI.
-- Integración con CI mediante comandos y artefactos neutrales.
-- UI de consulta común con filtros y agregación.
-- Skill que inspecciona, produce un SDD de incorporación e implementa el adaptador dentro del alcance acordado.
-- Validación en un proyecto real y una segunda incorporación que contraste la portabilidad.
+- A portable contract with validators and examples independent of the demo project.
+- A core for normalization, diagnostics, impact, and validity.
+- A first adapter chosen after inspection, rather than prescribed by this SDD.
+- Test inventory and attributable capture for runners included in that scope.
+- Baseline creation, impact checking, execution, updates, and diagnostics through the CLI.
+- CI integration through neutral commands and artifacts.
+- A common inspection UI with filtering and aggregation.
+- A skill that inspects, produces an onboarding SDD, and implements the adapter within the agreed scope.
+- Validation on a real project and a second onboarding to assess portability.
 
-La segunda incorporación puede usar el mismo lenguaje con una estructura o runner distintos. No permite anunciar soporte multilenguaje si solo se han implementado adaptadores de un lenguaje.
+The second onboarding may use the same language with a different structure or runner. It does not justify advertising support for multiple languages if only adapters for one language have been implemented.
 
-### 3.3 Extensiones posteriores
+### 3.3 Subsequent extensions
 
-Se admiten otros lenguajes, protocolos, proveedores de CI, almacenamiento remoto y ejecución multirrepositorio. Cada extensión necesita su matriz de capacidades y pruebas. Un servicio alojado multiusuario, facturación, distribución comercial y administración de organizaciones requieren un alcance posterior.
+Other languages, protocols, CI providers, remote storage, and cross-repository execution are permitted. Each extension needs its own capability matrix and tests. A hosted multiuser service, billing, commercial distribution, and organization management require a subsequent scope.
 
-La primera entrega no necesita base de grafos, Kubernetes, service mesh ni una plataforma de observabilidad alojada. Su incorporación debe responder a una necesidad medida del proyecto.
+The initial delivery does not require a graph database, Kubernetes, service mesh, or a hosted observability platform. Adding them must address a measured project need.
 
-## 4. Determinismo y significado de la evidencia
+## 4. Determinism and the meaning of evidence
 
-### 4.1 Tres propiedades diferentes
+### 4.1 Three different properties
 
-**Extracción estática determinista:** mismos bytes, configuración, toolchain y adaptadores generan el mismo grafo normalizado.
+**Deterministic static extraction:** the same bytes, configuration, toolchain, and adapters generate the same normalized graph.
 
-**Captura de ejecución atribuible:** el mecanismo registra qué ocurrió bajo una identidad y unas condiciones concretas. Los recorridos pueden variar por datos, concurrencia, entorno, aleatoriedad o servicios externos.
+**Attributable execution capture:** the mechanism records what happened under a specific identity and conditions. Paths may vary with data, concurrency, environment, randomness, or external services.
 
-**Selección determinista:** mismos snapshots, diff, conjunto de evidencia y políticas generan la misma selección y las mismas explicaciones.
+**Deterministic selection:** the same snapshots, diff, evidence set, and policies generate the same selection and explanations.
 
-Por tanto, el requisito no exige que dos ejecuciones físicas tengan iguales tiempos, trace IDs o cobertura. Exige preservar las entradas de cada medición y procesarlas de forma determinista. La ausencia de ejecución observada no demuestra ausencia de dependencia.
+The requirement therefore does not demand identical timing, trace IDs, or coverage from two physical runs. It requires preserving each measurement's inputs and processing them deterministically. Absence of observed execution does not demonstrate absence of dependency.
 
-### 4.2 Clases de evidencia
+### 4.2 Evidence classes
 
-| Clase | Afirmación permitida | Límite |
+| Class | Permitted claim | Limitation |
 | --- | --- | --- |
-| `static` | Una construcción concreta resuelve a una dependencia con el analizador declarado. | Un import no prueba ejecución ni assertions. |
-| `configuration` | Una configuración registrada establece un binding o ámbito. | Una URL coincidente no demuestra proveedor ni implementación. |
-| `measured-coverage` | Una unidad identificada ejecutó ciertos puntos del código en una captura. | No prueba todas sus posibles ramas ni qué comportamiento comprueba. |
-| `observation` | Se observó una interacción, span o recurso correlacionado. | No equivale a cobertura de instrucciones. |
-| `declaration` | Existe una declaración humana o de herramienta sobre intención o clasificación. | No habilita exclusiones ni se convierte automáticamente en coverage. |
+| `static` | A specific construct resolves to a dependency using the declared analyzer. | An import does not prove execution or assertions. |
+| `configuration` | Registered configuration establishes a binding or scope. | A matching URL does not establish a provider or implementation. |
+| `measured-coverage` | An identified unit executed certain code points during a capture. | It does not prove all possible branches or which behavior is checked. |
+| `observation` | An interaction, span, or correlated resource was observed. | It is not instruction coverage. |
+| `declaration` | A human or tool declaration describes intent or classification. | It does not authorize exclusions or automatically become coverage. |
 
-Cada evidencia incorpora método, versión, entradas, ámbito, localizador, estado y limitaciones. Una relación puede acumular varias evidencias sin cambiar su significado.
+Each evidence record includes method, version, inputs, scope, locator, status, and limitations. A relationship may accumulate multiple evidence records without changing its meaning.
 
-No se usarán puntuaciones genéricas como «95 % de confianza» para autorizar exclusiones. Se emplearán condiciones comprobables: resolución única, captura completa para el ámbito declarado, mapeo de fuentes válido y vigencia.
+Generic scores such as “95% confidence” must not authorize exclusions. Use verifiable conditions: unique resolution, complete capture for the declared scope, valid source mapping, and current validity.
 
-### 4.3 Invariantes
+### 4.3 Invariants
 
-1. Ninguna arista autoritativa carece de evidencia verificable.
-2. Las sugerencias del asistente son hipótesis hasta que un adaptador las demuestre o un diagnóstico las conserve como pendientes.
-3. Todos los archivos incluidos se registran en el inventario aunque estén desconectados.
-4. La resolución respeta el compilador/runtime y las condiciones del build; nombres iguales no bastan.
-5. Los cambios se interpretan sobre el estado anterior y el posterior.
-6. Un dato desconocido no se convierte en «sin impacto».
-7. Una evidencia más pobre no permite una selección más estrecha bajo la misma política.
-8. Añadir un filtro de UI no modifica el grafo ni la selección.
-9. Un timeout, skip, cancelación o informe ausente nunca cuenta como test pasado.
-10. La unión de ejecuciones solo mezcla evidencia con compatibilidad demostrada de entradas y contexto.
-11. La evidencia positiva observada puede ampliar selección; excluir exige además justificar el ámbito y la vigencia.
-12. Las decisiones dependientes de versión quedan fijadas y se pueden volver a reproducir.
+1. Every authoritative edge has verifiable evidence.
+2. Assistant suggestions remain hypotheses until an adapter demonstrates them or a diagnostic preserves them as pending.
+3. Every included file is registered in the inventory, even if disconnected.
+4. Resolution follows the compiler/runtime and build conditions; matching names are insufficient.
+5. Changes are interpreted against both the previous and subsequent states.
+6. Unknown information does not become “no impact.”
+7. Weaker evidence cannot permit a narrower selection under the same policy.
+8. Adding a UI filter does not modify the graph or selection.
+9. A timeout, skip, cancellation, or missing report never counts as a passed test.
+10. Combining runs only merges evidence with demonstrated compatibility of inputs and context.
+11. Positive observed evidence may broaden selection; exclusion also requires justification of scope and validity.
+12. Version-dependent decisions are pinned and reproducible.
 
-### 4.4 Integridad y variación operativa
+### 4.4 Integrity and operational variation
 
-El hash del grafo estático no incluye timestamps, rutas absolutas, orden de ejecución ni duración. El hash de un artefacto bruto verifica sus bytes completos, aunque contenga valores variables.
+The static graph hash excludes timestamps, absolute paths, execution order, and duration. A raw artifact's hash verifies all its bytes, even when it contains variable values.
 
-Un bundle distingue el hash semántico del grafo, el de su conjunto de evidencia y el de sus metadatos operativos. No se eliminarán datos variables de un informe original para fingir que dos capturas fueron idénticas.
+A bundle distinguishes the semantic graph hash, evidence-set hash, and operational metadata hash. Variable data must not be removed from an original report to pretend that two captures were identical.
 
-## 5. Estándares y reutilización
+## 5. Standards and reuse
 
-El adaptador debe justificar con un ADR breve cualquier mecanismo propio que duplique una capacidad interoperable disponible. «Disponible» significa compatible con las versiones y condiciones del proyecto, probado en el corpus y operativo con su presupuesto.
+An adapter must provide a short ADR justifying any custom mechanism that duplicates an available interoperable capability. “Available” means compatible with the project's versions and conditions, tested against the corpus, and operational within its budget.
 
-| Necesidad | Preferencia de diseño | Aplicación y límite |
+| Need | Preferred design | Application and limitation |
 | --- | --- | --- |
-| Resolución de dependencias | API del compilador o resolver oficial del ecosistema | Respetar alias, exports, condiciones y opciones reales del proyecto. |
-| Trazas y propagación | OpenTelemetry y W3C Trace Context | Correlacionar actividad dentro y entre procesos. |
-| Transporte de telemetría | OTLP | Mantener compatibilidad con Collector y backends; no exigir uno alojado. |
-| Cobertura | Motor y formato de cobertura del ecosistema | Verificar atribución por test; el formato agregado no la garantiza. |
-| Fuentes transformadas | Source maps estándar, si el stack los usa | Validar contra los bytes exactos del build y originales. |
-| Validación de artefactos | JSON Schema, dialecto fijado | Propuesta inicial: Draft 2020-12. |
-| Serialización para hashes | JSON Canonicalization Scheme, RFC 8785 | Ordenar además los arrays semánticos según el contrato. |
-| Identidad de código | Git más hashes del contenido capturado | Git SHA por sí solo no identifica cambios locales. |
-| Contratos | Formatos existentes del proyecto | Pueden ser OpenAPI, AsyncAPI, GraphQL, protobuf o contratos de consumidor. |
-| Resultados de test | Informe nativo del runner y normalización común | Conservar su semántica; no asumir un único dialecto universal de JUnit XML. |
+| Dependency resolution | Compiler API or official ecosystem resolver | Respect actual aliases, exports, conditions, and project options. |
+| Traces and propagation | OpenTelemetry and W3C Trace Context | Correlate activity within and across processes. |
+| Telemetry transport | OTLP | Preserve compatibility with Collector and backends; do not require a hosted backend. |
+| Coverage | Ecosystem coverage engine and format | Verify per-test attribution; an aggregate format does not guarantee it. |
+| Transformed sources | Standard source maps when the stack uses them | Validate against the exact build and original bytes. |
+| Artifact validation | JSON Schema with a pinned dialect | Initial proposal: Draft 2020-12. |
+| Serialization for hashes | JSON Canonicalization Scheme, RFC 8785 | Also order semantic arrays according to the contract. |
+| Code identity | Git plus captured-content hashes | A Git SHA alone does not identify local changes. |
+| Contracts | Existing project formats | These may include OpenAPI, AsyncAPI, GraphQL, protobuf, or consumer contracts. |
+| Test results | Native runner report and common normalization | Preserve semantics; do not assume a single universal JUnit XML dialect. |
 
-OpenTelemetry documenta la [propagación de contexto](https://opentelemetry.io/docs/concepts/context-propagation/), W3C especifica [Trace Context](https://www.w3.org/TR/trace-context/) y OTLP define el [protocolo de telemetría](https://opentelemetry.io/docs/specs/otlp/). Estas capacidades sustentan la correlación del diseño.
+OpenTelemetry documents [context propagation](https://opentelemetry.io/docs/concepts/context-propagation/), W3C specifies [Trace Context](https://www.w3.org/TR/trace-context/), and OTLP defines the [telemetry protocol](https://opentelemetry.io/docs/specs/otlp/). These capabilities underpin correlation in the design.
 
-El contrato de artefactos fijará un dialecto de [JSON Schema](https://json-schema.org/draft/2020-12) y reglas de canonicalización basadas en [RFC 8785](https://www.rfc-editor.org/rfc/rfc8785.html). JCS no decide por sí mismo qué arrays representan conjuntos; esa decisión pertenece a este contrato.
+The artifact contract will pin a [JSON Schema](https://json-schema.org/draft/2020-12) dialect and canonicalization rules based on [RFC 8785](https://www.rfc-editor.org/rfc/rfc8785.html). JCS does not determine which arrays represent sets; that decision belongs to this contract.
 
-Para JavaScript transformado, la referencia de mapeo es la [especificación ECMA-426](https://tc39.es/ecma426/). Su uso no demuestra automáticamente que todos los puntos instrumentados tengan un mapeo único.
+For transformed JavaScript, the mapping reference is the [ECMA-426 specification](https://tc39.es/ecma426/). Using it does not automatically demonstrate a unique mapping for every instrumented point.
 
-Las versiones de estándares, SDK, convenciones y dependencias se fijarán al implementar cada adaptador. No se usará una rama `latest` o `main` como identidad reproducible.
+Versions of standards, SDKs, conventions, and dependencies will be pinned when each adapter is implemented. A `latest` or `main` branch must not be used as a reproducible identity.
 
-## 6. Arquitectura
+## 6. Architecture
 
 ```mermaid
 flowchart TD
-  R[Repositorio y configuración] --> I[Inspección y necesidades]
-  I --> P[SDD de incorporación]
-  P --> A[Adaptadores ejecutables]
-  R --> S[Extracción estática]
+  R[Repository and configuration] --> I[Inspection and needs]
+  I --> P[Onboarding SDD]
+  P --> A[Executable adapters]
+  R --> S[Static extraction]
   A --> S
-  R --> T[Inventario de tests]
+  R --> T[Test inventory]
   A --> T
-  T --> X[Ejecución instrumentada]
-  X --> C[Cobertura atribuible]
-  X --> O[Contexto y trazas OpenTelemetry]
-  S --> N[Validación y normalización]
+  T --> X[Instrumented execution]
+  X --> C[Attributable coverage]
+  X --> O[OpenTelemetry context and traces]
+  S --> N[Validation and normalization]
   C --> N
   O --> N
-  N --> B[Bundle versionado e índices]
-  D[Diff base y destino] --> M[Motor de impacto]
+  N --> B[Versioned bundle and indexes]
+  D[Base and target diff] --> M[Impact engine]
   B --> M
-  M --> L[Selección explicada]
-  L --> E[Runner local o CI]
+  M --> L[Explained selection]
+  L --> E[Local or CI runner]
   E --> N
-  B --> U[UI común de consulta]
+  B --> U[Common inspection UI]
   L --> U
 ```
 
-### 6.1 Responsabilidades
+### 6.1 Responsibilities
 
-- **Skill:** inspecciona, redacta el plan, escribe o adapta código y documenta necesidades no resueltas.
-- **Adaptador estático:** emite hechos localizados y diagnósticos; no decide qué tests ejecutar.
-- **Adaptador de runner:** enumera casos, conserva identidad y traduce una selección a una ejecución soportada.
-- **Adaptador de cobertura:** captura y normaliza ejecución con atribución demostrable.
-- **Adaptador de correlación:** enlaza contexto, spans y recursos con identidades verificadas.
-- **Núcleo:** valida, normaliza, versiona, calcula vigencia y propaga impacto.
-- **Almacenamiento:** conserva bundles inmutables e índices derivados reemplazables.
-- **CLI/CI/UI:** presentan o ejecutan decisiones del núcleo con las mismas reglas.
+- **Skill:** inspects, drafts the plan, writes or adapts code, and documents unresolved needs.
+- **Static adapter:** emits located facts and diagnostics; it does not decide which tests run.
+- **Runner adapter:** enumerates cases, preserves identity, and translates a selection into supported execution.
+- **Coverage adapter:** captures and normalizes execution with demonstrable attribution.
+- **Correlation adapter:** connects context, spans, and resources to verified identities.
+- **Core:** validates, normalizes, versions, determines validity, and propagates impact.
+- **Storage:** preserves immutable bundles and replaceable derived indexes.
+- **CLI/CI/UI:** present or execute core decisions using the same rules.
 
-### 6.2 Separación de operaciones
+### 6.2 Separation of operations
 
-La inspección inicial lee archivos y manifiestos. Algunos runners ejecutan código al cargar configuración o enumerar casos; esa operación se identifica como ejecución de código del proyecto y se realiza dentro de su entorno de trabajo previsto.
+Initial inspection reads files and manifests. Some runners execute code when loading configuration or enumerating cases; this operation is identified as execution of project code and performed within its intended working environment.
 
-El check rápido no necesita arrancar la aplicación, ejecutar tests, descargar herramientas ni consultar un LLM. Puede utilizar índices ya preparados; si un inventario dinámico no puede actualizarse sin ejecutar el runner, debe ampliar la selección o pedir una operación explícita de actualización.
+The fast check does not need to start the application, run tests, download tools, or consult an LLM. It may use prepared indexes; if a dynamic inventory cannot be updated without executing the runner, selection must broaden or an explicit update operation must be requested.
 
-Los adaptadores se ejecutan como herramientas del proyecto, con límites de tiempo, memoria y salida documentados. Declarar un adaptador no equivale a disponer de aislamiento del sistema operativo.
+Adapters run as project tools, with documented time, memory, and output limits. Declaring an adapter does not establish operating-system isolation.
 
-## 7. Inspección y necesidades de cada proyecto
+## 7. Project inspection and needs
 
-### 7.1 Inventario de entrada
+### 7.1 Input inventory
 
-La inspección debe recoger como mínimo:
+Inspection must collect at least:
 
-- Raíces, submódulos, workspaces, proyectos anidados y límites de propiedad.
-- Lenguajes, versiones, compiladores, resolución de módulos y herramientas de build.
-- Entradas de la aplicación, bibliotecas internas, paquetes compartidos y código generado.
-- Runners, suites, variantes, parametrizaciones, fixtures, mocks y servicios de test.
-- Comandos existentes, lifecycle hooks y preparación/limpieza del entorno.
-- Cobertura disponible, granularidad real, aislamiento, paralelismo y mapeo de fuentes.
-- Contratos, clientes generados, bindings, servicios accesibles y revisiones externas.
-- CI actual: checkout, referencia base, matrices, shards, cachés, artefactos y permisos efectivos.
-- Configuración compartida, flags, variables que afectan comportamiento, datasets y versiones de mocks.
-- Tamaños del proyecto, duración actual de tests y recursos disponibles.
-- Exclusiones explícitas y archivos presentes que no entran en ningún ámbito conocido.
+- Roots, submodules, workspaces, nested projects, and ownership boundaries.
+- Languages, versions, compilers, module resolution, and build tools.
+- Application entry points, internal libraries, shared packages, and generated code.
+- Runners, suites, variants, parameterization, fixtures, mocks, and test services.
+- Existing commands, lifecycle hooks, and environment setup/cleanup.
+- Available coverage, actual granularity, isolation, parallelism, and source mapping.
+- Contracts, generated clients, bindings, accessible services, and external revisions.
+- Current CI: checkout, base reference, matrices, shards, caches, artifacts, and effective permissions.
+- Shared configuration, flags, behavior-affecting variables, datasets, and mock versions.
+- Project sizes, current test duration, and available resources.
+- Explicit exclusions and existing files outside every known scope.
 
-Los secretos se representan por referencias o versiones seguras del entorno; sus valores no se copian a informes ni se publican como hashes fáciles de adivinar.
+Secrets are represented by references or safe environment versions; their values are not copied into reports or published as easily guessed hashes.
 
-### 7.2 Informe de capacidades
+### 7.2 Capability report
 
-Cada capacidad se clasifica como `supported`, `partial`, `unsupported` o `unknown`, con evidencia de la inspección y acción conservadora.
+Each capability is classified as `supported`, `partial`, `unsupported`, or `unknown`, with inspection evidence and a conservative action.
 
-| Capacidad | Pregunta que debe responder |
+| Capability | Question it must answer |
 | --- | --- |
-| Inventario completo | ¿Se conocen todas las raíces incluidas y lo excluido? |
-| Resolución | ¿Se reproduce la resolución efectiva del build? |
-| Dependencias dinámicas | ¿Qué patrones son resolubles y cuáles quedan abiertos? |
-| Identidad de tests | ¿Se distinguen casos, parámetros, variantes y grupos? |
-| Selección de ejecución | ¿El runner ejecuta casos exactos o solo archivo/suite? |
-| Cobertura | ¿Se obtiene por caso, grupo, proceso o únicamente agregada? |
-| Atribución | ¿Hay mezcla entre tests concurrentes o trabajo tardío? |
-| Fuentes | ¿Se puede enlazar cada rango con bytes originales verificados? |
-| Contratos | ¿Qué frontera se conoce y qué lado se puede verificar? |
-| Contexto distribuido | ¿Qué procesos preservan la identidad y cuáles la pierden? |
-| Incrementalidad | ¿Qué se puede invalidar localmente y qué exige reconstrucción? |
+| Complete inventory | Are all included roots and exclusions known? |
+| Resolution | Does it reproduce effective build resolution? |
+| Dynamic dependencies | Which patterns can be resolved and which remain open? |
+| Test identity | Are cases, parameters, variants, and groups distinguished? |
+| Execution selection | Can the runner execute exact cases, or only files/suites? |
+| Coverage | Is it available per case, group, process, or only in aggregate? |
+| Attribution | Can concurrent tests or late work contaminate each other? |
+| Sources | Can each range be linked to verified original bytes? |
+| Contracts | Which boundary is known and which side can be verified? |
+| Distributed context | Which processes preserve identity and which lose it? |
+| Incrementality | What can be invalidated locally and what requires rebuilding? |
 
-La falta de una capacidad se convierte en necesidad de implementación o límite declarado. No se rellenará la matriz con capacidades inferidas del nombre de una dependencia.
+A missing capability becomes an implementation need or a declared limitation. The matrix must not be filled with capabilities inferred from a dependency's name.
 
-### 7.3 SDD de incorporación
+### 7.3 Onboarding SDD
 
-Antes de implementar, producir un SDD específico con:
+Before implementation, produce a project-specific SDD containing:
 
-1. Estado observado, revisión y comandos conocidos.
-2. Ámbito de código y catálogo de runners.
-3. Necesidades y diferencias respecto a adaptadores existentes.
-4. Matriz de resolución estática e instrumentación.
-5. Entorno reproducible, variantes y unidades mínimas de ejecución.
-6. Política de contratos y de incertidumbre.
-7. Diseño del baseline, caché e integración CI.
-8. Presupuesto de rendimiento y almacenamiento.
-9. Corpus, criterios de aceptación y validación comparada.
-10. Archivos a crear/modificar, fases y nivel de razonamiento recomendado.
+1. Observed state, revision, and known commands.
+2. Code scope and runner catalogue.
+3. Needs and differences from existing adapters.
+4. Static resolution and instrumentation matrix.
+5. Reproducible environment, variants, and minimum execution units.
+6. Contract and uncertainty policies.
+7. Baseline, cache, and CI integration design.
+8. Performance and storage budget.
+9. Corpus, acceptance criteria, and comparative validation.
+10. Files to create/modify, phases, and recommended reasoning level.
 
-Si falta una decisión material, se documenta y pregunta al usuario. Se continúa con las partes independientes. No se exige que el usuario diseñe el grafo ni proporcione asociaciones manuales test→código.
+If a material decision is missing, document it and ask the user. Continue independent work. The user is not required to design the graph or provide manual test→code associations.
 
-## 8. Contrato de adaptadores
+## 8. Adapter contract
 
-### 8.1 Manifiesto
+### 8.1 Manifest
 
-Cada adaptador debe declarar:
+Each adapter must declare:
 
-- Identificador, versión y hash del ejecutable/configuración.
-- Lenguajes, framework, compiladores y runners soportados, con intervalos de versiones probados.
-- Relaciones que puede emitir y patrones exactos que resuelve.
-- Granularidades de cobertura y selección de tests.
-- Tratamiento de mocks, hooks, procesos, navegación y concurrencia.
-- Dependencias de herramientas y formatos nativos.
-- Patrones sin soporte, límites de recursos e invalidación requerida.
-- Versión de contrato portable producida y pruebas del corpus superadas.
+- Identifier, version, and executable/configuration hash.
+- Supported languages, framework, compilers, and runners, with tested version ranges.
+- Relationships it can emit and exact patterns it resolves.
+- Coverage and test-selection granularities.
+- Handling of mocks, hooks, processes, navigation, and concurrency.
+- Tool dependencies and native formats.
+- Unsupported patterns, resource limits, and required invalidation.
+- Produced portable-contract version and corpus tests passed.
 
-Un adaptador local generado para un proyecto también cumple este contrato. No se aceptan excepciones invisibles en el núcleo para reconocer nombres de archivos o escenarios concretos.
+A local adapter generated for a project must also satisfy this contract. Hidden exceptions in the core that recognize specific file names or scenarios are not accepted.
 
-### 8.2 Operaciones conceptuales
+### 8.2 Conceptual operations
 
 ```text
 inspect(inputs)                       -> capabilities, needs, diagnostics
@@ -326,95 +326,95 @@ resolveExecution(selection, catalogue) -> argvPlans, expectedResults
 invalidation(changeSet, fingerprints)  -> affectedScopes, rebuildRequirements
 ```
 
-Son interfaces de diseño, no una obligación de implementar todos los adaptadores en un lenguaje común. El transporte entre núcleo y adaptador debe ser validable y no depender de memoria compartida de la UI.
+These are design interfaces, not a requirement to implement all adapters in a common language. Transport between core and adapter must be validatable and independent of shared UI memory.
 
-### 8.3 Resolución estática
+### 8.3 Static resolution
 
-Priorizar APIs de compilador y resolvers reales para imports, exports, herencia, llamadas directas y construcciones soportadas. Frameworks con plantillas, inyección, rutas o plugins requieren reglas explícitas y pruebas.
+Prioritize compiler APIs and actual resolvers for imports, exports, inheritance, direct calls, and supported constructs. Frameworks with templates, injection, routes, or plugins require explicit rules and tests.
 
-Un import dinámico literal puede ser resoluble. Una cadena calculada o un registro abierto solo permite una relación acotada si se demuestra el conjunto completo de destinos. Si existen varios candidatos, conservarlos como diagnóstico o conjunto conservador, sin escoger uno por similitud.
+A literal dynamic import may be resolvable. A computed string or open registry only permits a bounded relationship when the complete target set is demonstrated. If multiple candidates exist, retain them as a diagnostic or conservative set, without choosing one by similarity.
 
-### 8.4 Conformidad
+### 8.4 Conformance
 
-Para incorporarse, cada adaptador supera positivos y negativos de su corpus: alias, reexports, nombres homónimos, ciclos, módulos desconectados, configuración, altas/bajas, mocks, casos dinámicos y condiciones no soportadas. La salida debe ser idéntica con caché fría y caliente.
+To be incorporated, each adapter must pass positive and negative corpus cases: aliases, reexports, namesakes, cycles, disconnected modules, configuration, additions/deletions, mocks, dynamic cases, and unsupported conditions. Output must be identical with cold and warm caches.
 
-Si la extracción incremental no está implementada, el adaptador declara reconstrucción completa y publica mediciones reales. No se denomina incremental a un watcher que reconstruye todo.
+If incremental extraction is not implemented, the adapter declares a complete rebuild and publishes actual measurements. A watcher that rebuilds everything must not be described as incremental.
 
-## 9. Identidad y modelo de datos
+## 9. Identity and data model
 
-### 9.1 Identidad del proyecto y del código
+### 9.1 Project and code identity
 
-`projectId` y `repositoryId` son namespaces estables configurados. No se derivan del basename del checkout ni de rutas absolutas.
+`projectId` and `repositoryId` are configured stable namespaces. They are not derived from the checkout basename or absolute paths.
 
-Un estado de fuentes incluye revisión Git cuando exista, hash del árbol capturado y hashes de todos los archivos/configuraciones relevantes. El contenido local sin commit se representa mediante ese hash y una marca explícita de working tree.
+A source state includes the Git revision when available, captured-tree hash, and hashes of all relevant files/configurations. Uncommitted local content is represented by that hash and an explicit working-tree marker.
 
-Los archivos usan rutas relativas POSIX. Deben rechazarse colisiones, rutas que escapen de raíces y diferencias de mayúsculas ambiguas en el entorno. La política de enlaces simbólicos debe resolverlos dentro de raíces permitidas o rechazarlos con diagnóstico.
+Files use relative POSIX paths. Collisions, paths escaping roots, and ambiguous case differences in the environment must be rejected. The symbolic-link policy must resolve links within allowed roots or reject them with a diagnostic.
 
-Los símbolos usan una clave cualificada derivada de su declaración y ámbito. Las posiciones son localizadores, no la única identidad. Si no puede demostrarse continuidad tras un renombrado, se representa baja y alta.
+Symbols use a qualified key derived from their declaration and scope. Positions are locators, not the sole identity. If continuity after a rename cannot be demonstrated, represent a deletion and addition.
 
-### 9.2 Identidad de tests
+### 9.2 Test identity
 
-La identidad se obtiene del runner cuando sea estable o de una clave normalizada:
+Identity comes from the runner when stable, or from a normalized key:
 
 ```text
 repository + runnerProject + testFile + suitePath + caseKey + parameterKey + variant
 ```
 
-El ordinal de aparición y el número de línea no bastan como identidad estable. La parametrización debe ofrecer una clave reproducible; si no existe, usar una unidad de grupo. Los títulos duplicados requieren desambiguación validada o diagnóstico.
+Appearance order and line number are insufficient for stable identity. Parameterization must provide a reproducible key; otherwise, use a group unit. Duplicate titles require validated disambiguation or a diagnostic.
 
-Un ID anotado explícitamente es opcional y sirve para identidad, nunca para declarar cobertura. No se obliga a reescribir todos los títulos con el patrón de IDs del catálogo legacy.
+An explicitly annotated ID is optional and establishes identity, never coverage. Rewriting every title to match the legacy catalogue's ID pattern is not required.
 
-Las **unidades de selección** pueden ser caso, archivo o suite. Las **unidades de medición** pueden ser distintas. Si el runner ejecuta un archivo completo para seleccionar un caso, el plan debe mostrar la ampliación y exigir resultados de todos los casos ejecutados.
+**Selection units** may be cases, files, or suites. **Measurement units** may differ. If the runner executes an entire file to select a case, the plan must expose the expansion and require results for every executed case.
 
-### 9.3 Nodos y relaciones
+### 9.3 Nodes and relationships
 
-Nodos comunes: repositorio, paquete, archivo, símbolo, asset, test, grupo de tests, contrato y recurso. Endpoints, servicios, eventos o consumidores son extensiones tipadas con identidad explícita.
+Common nodes: repository, package, file, symbol, asset, test, test group, contract, and resource. Endpoints, services, events, and consumers are typed extensions with explicit identity.
 
-| Relación | Dirección semántica | Uso en impacto |
+| Relationship | Semantic direction | Impact use |
 | --- | --- | --- |
-| `imports`, `calls`, `renders`, `reads-resource` | Consumidor → dependencia | Propagación inversa según condiciones del adaptador. |
-| `resolves-to`, `injects` | Uso/binding → destino | Aplicar conjunto completo de candidatos o ampliar ámbito. |
-| `contains` | Contenedor → contenido | Agrupación; no propaga automáticamente a todo el contenedor. |
-| `test-depends-on` | Test/grupo → dependencia estática | Candidatos conservadores; no afirma ejecución medida. |
-| `executes` | Test/grupo → punto de código | Evidencia positiva de cobertura atribuible. |
-| `uses-contract` | Consumidor → contrato | Propagación y evaluación de frontera explícitas. |
-| `implements-contract` | Implementación → contrato | Requiere evidencia del lado accesible. |
-| `observed-interaction` | Actor → recurso/actor | Evidencia contextual; no elimina dependencias no observadas. |
+| `imports`, `calls`, `renders`, `reads-resource` | Consumer → dependency | Reverse propagation according to adapter conditions. |
+| `resolves-to`, `injects` | Use/binding → target | Apply the complete candidate set or broaden scope. |
+| `contains` | Container → contents | Grouping; does not automatically propagate throughout the container. |
+| `test-depends-on` | Test/group → static dependency | Conservative candidates; does not assert measured execution. |
+| `executes` | Test/group → code point | Positive evidence of attributable coverage. |
+| `uses-contract` | Consumer → contract | Explicit propagation and boundary evaluation. |
+| `implements-contract` | Implementation → contract | Requires evidence from the accessible side. |
+| `observed-interaction` | Actor → resource/actor | Contextual evidence; does not remove unobserved dependencies. |
 
-Las políticas de propagación se versionan por relación. Compartir archivo, paquete, broker o nombre no crea por sí solo una llamada o cobertura.
+Propagation policies are versioned per relationship. Sharing a file, package, broker, or name does not itself establish a call or coverage.
 
-### 9.4 Entidades mínimas
+### 9.4 Minimum entities
 
-| Entidad | Campos obligatorios conceptuales |
+| Entity | Conceptually required fields |
 | --- | --- |
-| `Node` | ID, tipo, namespace, clave lógica, atributos, localizadores. |
-| `Edge` | ID, tipo, origen, destino, calificadores, referencias a evidencia y política. |
-| `Evidence` | ID, clase, productor/versión, inputs, ámbito, localizador, estado, limitaciones. |
-| `TestCase` | ID, runner, localizador, variante, unidad seleccionable, disponibilidad y fingerprint. |
-| `CoverageRecord` | Unidad, intento, contexto, código/build, puntos ejecutados, integridad de captura y procedencia. |
-| `Diagnostic` | Código, causa, ámbito afectado, acción conservadora, evidencia y posible recuperación. |
-| `Analysis` | Base/destino, baseline usado, entradas/políticas, seleccionados, excluidos, no disponibles y causas. |
-| `RunResult` | Plan, unidad, intento, estado, resultados nativos, cobertura, tiempo y errores de infraestructura. |
+| `Node` | ID, type, namespace, logical key, attributes, locators. |
+| `Edge` | ID, type, source, target, qualifiers, evidence and policy references. |
+| `Evidence` | ID, class, producer/version, inputs, scope, locator, status, limitations. |
+| `TestCase` | ID, runner, locator, variant, selectable unit, availability, fingerprint. |
+| `CoverageRecord` | Unit, attempt, context, code/build, executed points, capture integrity, provenance. |
+| `Diagnostic` | Code, cause, affected scope, conservative action, evidence, possible recovery. |
+| `Analysis` | Base/target, baseline used, inputs/policies, selected, excluded, unavailable, reasons. |
+| `RunResult` | Plan, unit, attempt, status, native results, coverage, timing, infrastructure errors. |
 
-El esquema común debe separar tipo lógico de test —unitario, contrato, etc.— del runner que lo ejecuta. Un runner puede ejecutar varias categorías.
+The common schema must separate logical test type—unit, contract, and so on—from its runner. One runner may execute multiple categories.
 
-### 9.5 Localizadores
+### 9.5 Locators
 
-La fuente se identifica con ruta, hash y revisión/árbol. Un rango especifica base, unidad de columnas y si el extremo final es exclusivo. Se preserva la unidad nativa cuando haga falta y se normaliza mediante un adaptador probado.
+A source is identified by path, hash, and revision/tree. A range specifies its base, column unit, and whether its end is exclusive. Preserve the native unit when necessary and normalize it through a tested adapter.
 
-Los JSON Pointers localizan configuración; los mapas de cobertura identifican puntos de ejecución originales; los spans se referencian por dataset y trace/span ID. No se genera un enlace a una línea actual para explicar una evidencia histórica de bytes distintos.
+JSON Pointers locate configuration; coverage maps identify original execution points; spans are referenced by dataset and trace/span ID. Do not link a current line to explain historical evidence from different bytes.
 
-### 9.6 Estado de evidencia
+### 9.6 Evidence status
 
-La resolución puede ser `resolved`, `ambiguous` o `unresolved`; la vigencia, `current`, `inherited-valid`, `stale` o `incompatible`; la captura, `complete`, `partial` o `unknown`.
+Resolution may be `resolved`, `ambiguous`, or `unresolved`; validity may be `current`, `inherited-valid`, `stale`, or `incompatible`; capture may be `complete`, `partial`, or `unknown`.
 
-Son dimensiones diferentes. Una captura completa significa que se recogió el ámbito que el plan prometía; no que se hayan ejecutado todas las ramas posibles de la aplicación.
+These are different dimensions. A complete capture means the scope promised by the plan was collected; it does not mean every possible application branch was executed.
 
-## 10. Artefactos portables
+## 10. Portable artifacts
 
-### 10.1 Estructura propuesta
+### 10.1 Proposed structure
 
-La configuración de incorporación se versiona en Git. Los datos pesados y las capturas se guardan como artefactos inmutables fuera del historial ordinario de código.
+Onboarding configuration is versioned in Git. Large data and captures are stored as immutable artifacts outside normal code history.
 
 ```text
 test-impact.config.json
@@ -422,12 +422,12 @@ test-impact/
   project-profile.json
   adapters.lock.json
   policies.json
-  adapters/                         # adaptadores locales, cuando existan
+  adapters/                         # local adapters, when present
   docs/
     ONBOARDING-SDD.md
     IMPLEMENTATION-STATE.md
 
-.test-impact/                       # datos generados; normalmente ignorados por Git
+.test-impact/                       # generated data; normally ignored by Git
   bundles/<bundle-id>/
     manifest.json
     graph.json
@@ -456,429 +456,429 @@ test-impact/
     baseline.json
 ```
 
-Los nombres son la propuesta de interfaz para P2; no son archivos o comandos implementados al crear este SDD. Una revisión de contrato puede ajustarlos antes de publicar la versión 1.
+These names are the proposed P2 interface; they are not files or commands implemented by creating this SDD. A contract revision may adjust them before version 1 is published.
 
-Los archivos de índice obligatorios existen aunque su lista esté vacía. Los payloads referenciados se materializan según el manifiesto. «No capturado» se distingue de una captura válida con cero puntos ejecutados.
+Required index files exist even when their lists are empty. Referenced payloads are materialized according to the manifest. “Not captured” is distinguished from a valid capture with zero executed points.
 
-### 10.2 Manifiesto
+### 10.2 Manifest
 
-Debe contener:
+It must contain:
 
-- Versión de esquema y del productor.
-- Identidad del proyecto, repositorios y árbol de fuentes.
-- Versiones/hashes de adaptadores, políticas, configuración y toolchain.
-- Matriz de variantes y entorno que afectan al resultado.
-- Hash, tamaño, tipo y ruta de cada artefacto.
-- Hash semántico del grafo y referencia exacta al conjunto de evidencia.
-- Estado del catálogo y de la captura por ámbito.
-- Padres y certificados de reutilización, cuando se hereda evidencia.
-- Procedencia de CI o ejecución local, distinta de la integridad de bytes.
-- Capacidades mínimas requeridas al lector.
+- Schema and producer versions.
+- Project, repository, and source-tree identity.
+- Adapter, policy, configuration, and toolchain versions/hashes.
+- Variant matrix and environment affecting the result.
+- Hash, size, type, and path of each artifact.
+- Semantic graph hash and an exact reference to the evidence set.
+- Catalogue and capture status per scope.
+- Parents and reuse certificates when evidence is inherited.
+- CI or local execution provenance, separate from byte integrity.
+- Minimum capabilities required of the reader.
 
-El ID del bundle se calcula sobre un manifiesto canónico sin su propio campo de ID. Los artefactos se hashean antes. Los ciclos de autorreferencia en hashes quedan prohibidos.
+The bundle ID is calculated over a canonical manifest excluding its own ID field. Artifacts are hashed first. Self-referential hash cycles are prohibited.
 
-Los metadatos de código conservan bytes y finales de línea originales. La canonicalización se aplica al JSON del contrato; no modifica fuentes para hacer coincidir sus hashes.
+Code metadata preserves original bytes and line endings. Canonicalization applies to contract JSON; it does not modify sources to make their hashes match.
 
-### 10.3 Compatibilidad de lectura
+### 10.3 Reader compatibility
 
-Cada archivo incluye su versión de esquema o está bajo una versión de bundle que la fija inequívocamente. Los lectores rechazan versiones mayores incompatibles y relaciones o políticas desconocidas que afecten a una exclusión.
+Each file includes its schema version or belongs to a bundle version that pins it unambiguously. Readers reject incompatible major versions and unknown relationships or policies affecting exclusion.
 
-Los campos adicionales se introducen mediante extensiones con namespace. Una UI puede indicar que no sabe representar una extensión; el motor no puede ignorarla silenciosamente si altera propagación o vigencia.
+Additional fields are introduced through namespaced extensions. A UI may indicate that it cannot represent an extension; the engine cannot silently ignore it if it changes propagation or validity.
 
-Se publicarán esquemas, fixtures mínimos y ejemplos con varias tecnologías. La UI no debe importar metadatos particulares del proyecto para entender el significado de un archivo.
+Schemas, minimum fixtures, and examples using multiple technologies will be published. The UI must not import project-specific metadata to understand a file's meaning.
 
-### 10.4 Datos brutos e índices
+### 10.4 Raw data and indexes
 
-Conservar cobertura y resultados nativos cuando sea viable, junto a su normalización. Los índices invertidos —punto→tests, dependencia→consumidores y test→closure— son reconstruibles y no sustituyen la evidencia original.
+Preserve native coverage and results alongside their normalization when feasible. Inverted indexes—point→tests, dependency→consumers, and test→closure—are rebuildable and do not replace original evidence.
 
-Los sources pueden archivarse completos, parcialmente o quedar disponibles desde un checkout por hash. El manifiesto declara cuál de estos modos usa. Si falta la fuente histórica, el inspector muestra el localizador y la limitación.
+Sources may be archived completely, partially, or made available from a checkout by hash. The manifest declares which mode is used. If historical source is missing, the inspector shows the locator and limitation.
 
-Una exportación de telemetría de un exporter en JSONL conserva su formato declarado; no se anunciará como un formato JSONL universal de OTLP.
+Telemetry exported in JSONL retains its exporter's declared format; it must not be advertised as a universal OTLP JSONL format.
 
-### 10.5 Publicación
+### 10.5 Publication
 
-Construir en una ubicación temporal, validar hashes, esquema y referencias, y publicar de forma atómica. Actualizar el puntero al baseline únicamente cuando el bundle esté completo y cumpla su política de promoción.
+Build in a temporary location, validate hashes, schema, and references, then publish atomically. Update the baseline pointer only when the bundle is complete and satisfies its promotion policy.
 
-Un fallo conserva el baseline anterior y deja visible que no representa las entradas actuales. El último artefacto existente no equivale automáticamente al baseline adecuado.
+A failure preserves the previous baseline and visibly indicates that it does not represent the current inputs. The latest existing artifact is not automatically the appropriate baseline.
 
-## 11. Enlace de los distintos tipos de tests
+## 11. Linking different test types
 
-| Tipo lógico | Evidencia anterior a ejecutar | Evidencia de ejecución | Regla inicial |
+| Logical type | Evidence before execution | Execution evidence | Initial rule |
 | --- | --- | --- | --- |
-| Unitario | Imports, llamadas, fixtures, mocks y configuración resolubles. | Cobertura del cuerpo y hooks atribuibles. | La dependencia estática puede seleccionar; medir permite explicar ejecución y afinar dentro de límites probados. |
-| Componente | Componente montado, módulos, plantillas, assets y configuración. | Renders, eventos, hooks y ramas ejecutados. | Considerar recursos y dependencias de framework; un import no demuestra un render. |
-| Contrato | Asociación a un contrato mediante el test real, cliente, esquema y binding verificados. | Operaciones/casos ejecutados y resultado del verificador. | Separar contrato consumido, proveedor real y proveedor simulado. |
-| Integración | Composición y dependencias explícitas del fixture, módulos y recursos. | Cobertura de procesos instrumentados más interacciones correlacionadas. | Si solo hay identidad por suite, seleccionar la suite. |
-| E2E | Dependencias de infraestructura del test; no asociación inferida al código de producto. | Cobertura atribuida de navegador y procesos accesibles. | Crear enlaces E2E→código de producto solo con instrumentación. |
-| Arquitectura, snapshots, visuales u otros | Entradas declaradas y accesos demostrables del runner. | Lecturas/ejecución observadas cuando exista soporte. | Seleccionar de forma amplia o permanente cuando no pueda demostrarse un ámbito estrecho. |
+| Unit | Resolvable imports, calls, fixtures, mocks, and configuration. | Attributable coverage of the body and hooks. | Static dependencies may select tests; measurement explains execution and refines selection within tested limits. |
+| Component | Mounted component, modules, templates, assets, and configuration. | Executed renders, events, hooks, and branches. | Account for resources and framework dependencies; an import does not demonstrate a render. |
+| Contract | Association with a contract through the actual test, verified client, schema, and binding. | Executed operations/cases and verifier results. | Distinguish the consumed contract, real provider, and simulated provider. |
+| Integration | Composition and explicit fixture, module, and resource dependencies. | Instrumented-process coverage plus correlated interactions. | Select the suite when identity is available only per suite. |
+| E2E | Test-infrastructure dependencies; no inferred association with product code. | Attributed browser and accessible-process coverage. | Create E2E→product-code links only through instrumentation. |
+| Architecture, snapshot, visual, or other | Declared inputs and demonstrable runner access. | Observed reads/execution where supported. | Select broadly or always when a narrow scope cannot be demonstrated. |
 
-### 11.1 Dependencias estáticas de tests
+### 11.1 Static test dependencies
 
-El grafo puede mostrar que un unitario importa un módulo o que un test utiliza un fixture. Esto no permite asumir que cada símbolo importado se ejercita ni que un mock ejecuta la implementación real.
+The graph may show that a unit test imports a module or a test uses a fixture. This does not justify assuming that every imported symbol is exercised or that a mock executes the real implementation.
 
-El selector inicial usa las dependencias de archivo/paquete como sobreaproximación cuando no existe un análisis más preciso demostrado. La instrumentación aporta la evidencia de los puntos efectivamente alcanzados.
+The initial selector uses file/package dependencies as an overapproximation when no demonstrated finer analysis exists. Instrumentation supplies evidence of the points actually reached.
 
-Para E2E se permiten enlaces a su propia infraestructura, por ejemplo un helper o configuración de runner. Esos enlaces no se convierten en cobertura del producto ni en asociaciones deducidas de selectores DOM, títulos, URLs o nombres parecidos.
+E2E tests may link to their own infrastructure, such as a helper or runner configuration. Those links do not become product coverage or associations inferred from DOM selectors, titles, URLs, or similar names.
 
-### 11.2 Atribución limitada
+### 11.2 Limited attribution
 
-Si solo se puede demostrar «esta suite ejecutó este código», el nodo de evidencia es la suite. Todos sus casos pueden incluirse mediante la unidad de ejecución, sin repartir artificialmente esa cobertura entre ellos.
+If the only demonstrable claim is “this suite executed this code,” the evidence node is the suite. All its cases may be included through the execution unit without artificially distributing coverage between them.
 
-Un reporte agregado de toda la suite sirve para cobertura global y diagnósticos. No se divide por heurísticas en supuestos reportes por test.
+An aggregate report for an entire suite serves overall coverage and diagnostics. It is not heuristically split into supposed per-test reports.
 
-### 11.3 Categorías y variantes
+### 11.3 Categories and variants
 
-Clasificar por configuración de runner, ubicación verificada o metadatos, con origen explícito. El sistema debe admitir una clasificación desconocida. La categoría no decide por sí sola el nivel de precisión.
+Classify using runner configuration, verified location, or metadata with explicit provenance. The system must support unknown classifications. Category alone does not determine precision.
 
-Browsers, runtimes, plataformas, flags y datasets son variantes cuando alteran los recorridos o la compatibilidad. No se aplica sin más la cobertura de una variante a otra.
+Browsers, runtimes, platforms, flags, and datasets are variants when they affect paths or compatibility. Coverage from one variant must not be applied to another without justification.
 
-## 12. Captura de cobertura por unidad de ejecución
+## 12. Coverage capture per execution unit
 
-### 12.1 Estrategia de elección
+### 12.1 Selection strategy
 
-Elegir, en orden práctico:
+Choose, in practical order:
 
-1. Soporte nativo del ecosistema para contextos o cobertura por caso, si satisface aislamiento y granularidad.
-2. Ejecución aislada por caso, archivo o suite, recogiendo cobertura del proceso y sus hijos.
-3. Instrumentación adicional con contexto de ejecución, solo si el adaptador demuestra su atribución.
-4. Cobertura por grupo y selección de ese grupo completo si la precisión individual no resulta viable.
+1. Native ecosystem support for contexts or per-case coverage, if it meets isolation and granularity requirements.
+2. Isolated execution per case, file, or suite, collecting coverage from the process and its children.
+3. Additional instrumentation with execution context, only if the adapter demonstrates attribution.
+4. Group coverage and selection of the entire group when individual precision is not feasible.
 
-La selección no obliga a usar un único proveedor de cobertura. Como ejemplos de capacidades del ecosistema, [Vitest documenta proveedores V8 e Istanbul](https://vitest.dev/guide/coverage.html) y [Coverage.py documenta contextos de medición](https://coverage.readthedocs.io/en/latest/contexts.html). Es necesario probar las versiones y los hooks elegidos; disponer de coverage no garantiza automáticamente captura por caso.
+The choice does not mandate a single coverage provider. Examples of ecosystem capabilities include [Vitest's V8 and Istanbul providers](https://vitest.dev/guide/coverage.html) and [Coverage.py's measurement contexts](https://coverage.readthedocs.io/en/latest/contexts.html). Chosen versions and hooks must be tested; having coverage does not automatically guarantee per-case capture.
 
-### 12.2 Protocolo de captura
+### 12.2 Capture protocol
 
-Cada ejecución debe:
+Each execution must:
 
-1. Fijar catálogo, código, build, variantes, fixtures y plan de instrumentación.
-2. Declarar qué procesos, páginas, workers y recursos entran en el ámbito.
-3. Crear identidad de unidad, ejecución, shard e intento.
-4. Preparar contexto y cobertura antes de las partes relevantes del setup.
-5. Registrar cuerpo, hooks y trabajo derivado dentro del ámbito definido.
-6. Esperar una condición de finalización observable o marcar trabajo pendiente.
-7. Volcar cobertura y cerrar procesos/targets con confirmación o fallo explícito.
-8. Validar los informes esperados, integridad y atribución.
-9. Mapear a fuentes originales y emitir estado de captura.
+1. Pin catalogue, code, build, variants, fixtures, and instrumentation plan.
+2. Declare which processes, pages, workers, and resources are in scope.
+3. Create unit, run, shard, and attempt identities.
+4. Prepare context and coverage before the relevant setup stages.
+5. Record the body, hooks, and derived work within the defined scope.
+6. Wait for an observable completion condition or mark pending work.
+7. Flush coverage and close processes/targets with confirmation or explicit failure.
+8. Validate expected reports, integrity, and attribution.
+9. Map to original sources and emit capture status.
 
-Si un proceso termina antes del volcado o un target desaparece, el resultado es parcial o desconocido aunque el runner muestre un test pasado.
+If a process terminates before flushing or a target disappears, the result is partial or unknown even if the runner reports a passed test.
 
-### 12.3 Concurrencia
+### 12.3 Concurrency
 
-Propagar un test ID en el contexto no vuelve por sí solo contextuales unos contadores globales de cobertura. Dos tests concurrentes pueden incrementar el mismo contador y mezclar evidencias.
+Propagating a test ID through context does not itself make global coverage counters contextual. Two concurrent tests may increment the same counter and mix evidence.
 
-El adaptador debe elegir aislamiento por proceso/instancia o un mecanismo de contadores asociado al contexto con pruebas de intercalado. Si no lo demuestra, agrupa la unidad de medición o desactiva concurrencia solo para la captura afectada.
+The adapter must choose process/instance isolation or a context-associated counter mechanism validated with interleaving tests. If it cannot demonstrate attribution, it groups the measurement unit or disables concurrency only for the affected capture.
 
-No atribuir cobertura restando snapshots globales entre `beforeEach` y `afterEach` cuando hay concurrencia, resets no fiables, acumulación o trabajo asíncrono tardío. Tampoco inferirla por coincidencia de ventanas temporales.
+Do not attribute coverage by subtracting global snapshots between `beforeEach` and `afterEach` when concurrency, unreliable resets, accumulation, or late asynchronous work are present. Do not infer it from matching time windows either.
 
-### 12.4 Hooks y recursos compartidos
+### 12.4 Hooks and shared resources
 
-El código de importación y bootstrap ejecutado antes de un caso se registra como cobertura de inicialización o de su grupo. La selección conserva las dependencias de ese grupo.
+Import and bootstrap code executed before a case is recorded as initialization coverage or coverage of its group. Selection preserves that group's dependencies.
 
-Los hooks compartidos no se asignan arbitrariamente al primer test. Un caso que no se ejecute no hereda cobertura de otro. Si el entorno reutiliza estado que depende del orden, la captura debe reproducir ese grupo o declarar esa limitación.
+Shared hooks are not arbitrarily assigned to the first test. A case that does not run does not inherit another case's coverage. If the environment reuses order-dependent state, capture must reproduce that group or declare the limitation.
 
-### 12.5 Reintentos y fallos
+### 12.5 Retries and failures
 
-Separar intentos, resultados y datasets. La unión de puntos observados entre intentos compatibles puede usarse como evidencia positiva, sin ocultar que el test es inestable.
+Separate attempts, results, and datasets. The union of points observed across compatible attempts may serve as positive evidence without concealing that the test is flaky.
 
-Una captura de un intento fallido puede conservar ejecución observada, pero no certificar por ausencia qué no ejecutaría un intento completo. Los fallos no eliminan enlaces históricos válidos. Un intento exitoso tampoco borra un fallo previo del informe.
+A failed attempt's capture may preserve observed execution, but cannot certify through absence what a complete attempt would not execute. Failures do not remove valid historical links. A successful attempt does not erase an earlier failure from the report.
 
-### 12.6 Navegador
+### 12.6 Browser
 
-El adaptador debe resolver navegación completa, SPA, iframes, popups, workers y cierre de página según su soporte real. No asumirá que un contexto nuevo garantiza que el backend o los workers estén aislados.
+The adapter must handle full navigation, SPAs, iframes, popups, workers, and page closure according to its actual support. It must not assume that a new context guarantees backend or worker isolation.
 
-La [API de cobertura de Playwright](https://playwright.dev/docs/api/class-coverage) está limitada a navegadores basados en Chromium y documenta limitaciones de navegación y scripts/estilos. El SDD del proyecto debe escoger esa vía u otra instrumentación compatible y validar cada target incluido. No se extrapola su resultado a Firefox o WebKit sin evidencia.
+The [Playwright coverage API](https://playwright.dev/docs/api/class-coverage) is limited to Chromium-based browsers and documents navigation and script/style limitations. The project SDD must choose that approach or other compatible instrumentation and validate every included target. Its results are not extrapolated to Firefox or WebKit without evidence.
 
-### 12.7 Fuentes, estilos y otros recursos
+### 12.7 Sources, styles, and other resources
 
-La cobertura se asocia al build instrumentado y al original exacto. Si un sourcemap mezcla fuentes, omite contenido o produce rangos ambiguos, degradar a archivo/paquete o ampliar ámbito.
+Coverage is associated with the instrumented build and exact original source. If a source map mixes sources, omits content, or produces ambiguous ranges, degrade to file/package granularity or broaden scope.
 
-Las líneas, instrucciones, funciones y ramas son métricas distintas. Si solo se observan funciones, no se presenta cobertura de ramas.
+Lines, instructions, functions, and branches are distinct metrics. If only functions are observed, branch coverage must not be reported.
 
-CSS, plantillas y assets pueden depender del producto sin ofrecer coverage equivalente. Las dependencias estáticas, los recursos cargados y la ejecución medida se conservan como evidencias distintas. Un estilo no observado en un recorrido sigue siendo una posible dependencia.
+CSS, templates, and assets may be product dependencies without offering equivalent coverage. Static dependencies, loaded resources, and measured execution remain separate evidence classes. A style not observed along a path remains a possible dependency.
 
-### 12.8 Mocks y datos
+### 12.8 Mocks and data
 
-Registrar bindings de mocks, fixtures y datos relevantes. Ejecutar una función mock no enlaza coverage a la implementación sustituida.
+Record mock bindings, fixtures, and relevant data. Executing a mock function does not link coverage to the replaced implementation.
 
-Un cambio en fixture, configuración de mock, generador de datos o semilla selecciona sus consumidores; si su alcance no es resoluble, amplía al grupo/runner correspondiente.
+A change in a fixture, mock configuration, data generator, or seed selects its consumers; if scope cannot be resolved, broaden to the corresponding group/runner.
 
-## 13. OpenTelemetry y correlación distribuida
+## 13. OpenTelemetry and distributed correlation
 
-### 13.1 Función dentro del sistema
+### 13.1 Role in the system
 
-OpenTelemetry correlaciona el test, sus peticiones, procesos y servicios. La cobertura procede del mecanismo del runtime o de instrumentación específica, identificado por separado.
+OpenTelemetry correlates the test, its requests, processes, and services. Coverage comes from a runtime mechanism or specific instrumentation, identified separately.
 
-Un span de un endpoint puede asociarse al recurso endpoint. Solo se asocia ejecución de una función o rango si existe instrumentación/localización que lo demuestre. No se inventa cobertura de todo un servicio a partir de un span HTTP.
+An endpoint span may be associated with the endpoint resource. Function or range execution is associated only when instrumentation/location evidence demonstrates it. Coverage for an entire service must not be invented from an HTTP span.
 
-### 13.2 Identidades
+### 13.2 Identities
 
-Cada intento crea una referencia a la unidad del catálogo. El contexto incluye o referencia proyecto, árbol de fuentes, ejecución, intento y variante. Se favorece un span raíz por intento y la correlación mediante trace/span IDs.
+Each attempt creates a reference to the catalogue unit. Context includes or references project, source tree, run, attempt, and variant. Prefer one root span per attempt and correlation through trace/span IDs.
 
-Usar convenciones semánticas existentes donde correspondan. El [registro de atributos de test de OpenTelemetry](https://opentelemetry.io/docs/specs/semconv/registry/attributes/test/) incluye atributos en estado Development; las versiones y su estabilidad deben fijarse. Los identificadores propios que falten tendrán un namespace documentado, por ejemplo `testimpact.*`, sin presentarlos como estándar.
+Use existing semantic conventions where applicable. The [OpenTelemetry test attribute registry](https://opentelemetry.io/docs/specs/semconv/registry/attributes/test/) includes attributes in Development status; versions and stability must be pinned. Missing custom identifiers use a documented namespace, such as `testimpact.*`, without being presented as standard.
 
-La identidad de código por proceso no se infiere del nombre del servicio. Debe enlazarse al build o imagen y al árbol de fuentes instrumentado.
+Code identity per process is not inferred from the service name. It must link to the build or image and the instrumented source tree.
 
-### 13.3 Propagación
+### 13.3 Propagation
 
-Usar propagadores OTel compatibles con W3C en HTTP y los carriers disponibles en mensajería. Propagar contexto por metadata de transporte cuando sea posible, conservando el contrato funcional del mensaje.
+Use W3C-compatible OTel propagators for HTTP and available messaging carriers. Propagate context through transport metadata where possible, preserving the message's functional contract.
 
-Para trabajo asíncrono y fan-out se mantienen parents o links según el patrón y sus convenciones. Compartir broker o ventana temporal no identifica qué test provocó un handler. Las correlaciones con varios posibles causantes se conservan como múltiples si están demostradas o como ambiguas.
+For asynchronous work and fan-out, preserve parents or links according to the pattern and its conventions. Sharing a broker or time window does not identify which test caused a handler to run. Correlations with multiple possible causes are retained as multiple when demonstrated, or as ambiguous.
 
-Baggage es opcional. No se presume que se copie automáticamente a atributos de spans; ese comportamiento debe implementarse y validarse cuando haga falta. Su alcance y exposición se documentan, conforme a las características descritas por [OpenTelemetry Baggage](https://opentelemetry.io/docs/concepts/signals/baggage/).
+Baggage is optional. Do not assume it is automatically copied into span attributes; implement and validate that behavior when required. Document its scope and exposure according to the characteristics described by [OpenTelemetry Baggage](https://opentelemetry.io/docs/concepts/signals/baggage/).
 
-### 13.4 Cobertura de backend compartido
+### 13.4 Shared backend coverage
 
-Si varios E2E usan el mismo proceso de backend, OTel puede separar trazas y aun así dejar mezclada la cobertura global del proceso.
+If multiple E2E tests use the same backend process, OTel may separate traces while global process coverage remains mixed.
 
-La captura debe aislar instancias, usar instrumentación de cobertura contextual validada o medir el grupo completo. No se anunciará cobertura por E2E del backend solo porque sus trazas llevan identidades diferentes.
+Capture must isolate instances, use validated contextual coverage instrumentation, or measure the entire group. Per-E2E backend coverage must not be claimed merely because traces carry different identities.
 
-### 13.5 Muestreo y pérdida
+### 13.5 Sampling and loss
 
-Si se pretende usar el conjunto de trazas para razonar sobre integridad de una captura, el entorno de captura debe evitar muestreo y comprobar recepción/cierre de las señales previstas. Incluso sin muestreo pueden perderse datos.
+If the trace set is to support reasoning about capture integrity, the capture environment must avoid sampling and verify receipt/closure of expected signals. Data may still be lost without sampling.
 
-Las trazas muestreadas o incompletas sirven como evidencia positiva. Su ausencia no autoriza una exclusión. Un fallo de Collector no rompe el flujo funcional del producto, pero puede invalidar el certificado de captura y ampliar tests.
+Sampled or incomplete traces serve as positive evidence. Their absence does not authorize exclusion. A Collector failure does not break the product's functional flow, but may invalidate the capture certificate and broaden test selection.
 
-Las decisiones de sampler y exportación se basarán en la [especificación del SDK de trazas](https://opentelemetry.io/docs/specs/otel/trace/sdk/) y se registrarán en el plan. El sistema no necesita trazar cada función cuando el proveedor de cobertura ya obtiene esa información.
+Sampler and export decisions will follow the [Tracing SDK specification](https://opentelemetry.io/docs/specs/otel/trace/sdk/) and be recorded in the plan. The system does not need to trace every function when the coverage provider already captures that information.
 
-## 14. Contratos como frontera
+## 14. Contracts as boundaries
 
-### 14.1 Identidad y visibilidad
+### 14.1 Identity and visibility
 
-Una frontera identifica consumidor, contrato, versión, operaciones y binding. Puede existir sin código del proveedor. El informe mostrará que la visibilidad termina en esa frontera.
+A boundary identifies consumer, contract, version, operations, and binding. It may exist without provider code. The report will indicate that visibility ends at that boundary.
 
-Un mock de proveedor verifica lo modelado por ese mock; no certifica al proveedor desplegado. La verificación de consumidor y proveedor se registra por separado, con sus versiones y disponibilidad.
+A provider mock verifies what the mock models; it does not certify the deployed provider. Consumer and provider verification are recorded separately, with their versions and availability.
 
-### 14.2 Condiciones para acotar propagación
+### 14.2 Conditions for bounding propagation
 
-La política debe declarar:
+The policy must declare:
 
-- Qué operación o superficie contractual está cubierta.
-- Qué versiones y variantes se comparan.
-- Qué comprobaciones de compatibilidad existen: estructura, tipos, generación, ejemplos, semántica verificable o contratos de consumidor.
-- Qué evidencia permite acotar a un lado y qué comprobaciones siguen siendo obligatorias.
-- Qué incertidumbre invalida el acotamiento.
+- Which operation or contractual surface is covered.
+- Which versions and variants are compared.
+- Which compatibility checks exist: structure, types, generation, examples, verifiable semantics, or consumer contracts.
+- Which evidence allows propagation to be bounded to one side and which checks remain mandatory.
+- Which uncertainty invalidates the bound.
 
-Un schema sin cambios no demuestra compatibilidad de comportamiento. El sistema puede detener propagación hacia código externo inaccesible como límite de análisis, pero debe expresarlo como falta de visibilidad, no como ausencia demostrada de impacto externo.
+An unchanged schema does not demonstrate behavioral compatibility. The system may stop propagation into inaccessible external code as an analysis boundary, but must describe that as lack of visibility, not demonstrated absence of external impact.
 
-### 14.3 Reglas iniciales
+### 14.3 Initial rules
 
-1. Cambio local interno: seleccionar por grafo y coverage locales; ejecutar los contratos locales alcanzados o exigidos por política.
-2. Cambio en contrato o cliente generado: seleccionar sus tests y consumidores; ampliar a variantes pertinentes y producir un aviso de compatibilidad externa cuando no haya proveedor verificable.
-3. Cambio de binding, ruta, autenticación, timeout o serialización: evaluar la frontera aunque el schema permanezca igual.
-4. Evidencia contractual ausente o caducada: no usar la frontera para excluir tests locales potencialmente afectados.
-5. Proveedor inaccesible: registrar verificación no disponible; no contar sus tests como ejecutados.
+1. Internal local change: select through local graph and coverage; run reached or policy-required local contracts.
+2. Contract or generated-client change: select its tests and consumers; broaden to relevant variants and issue an external compatibility notice when no verifiable provider is available.
+3. Binding, route, authentication, timeout, or serialization change: evaluate the boundary even when the schema is unchanged.
+4. Missing or stale contract evidence: do not use the boundary to exclude potentially affected local tests.
+5. Inaccessible provider: record verification as unavailable; do not count its tests as executed.
 
-Un proyecto exclusivamente de frontend puede así analizarse hasta sus contratos. Sus E2E locales conservan la cobertura observada del cliente; no heredan coverage interna de backend.
+A frontend-only project can therefore be analyzed up to its contracts. Its local E2E tests retain observed client coverage; they do not inherit internal backend coverage.
 
-## 15. Baseline inicial y mantenimiento
+## 15. Initial baseline and maintenance
 
 ### 15.1 Bootstrap
 
 ```text
-Inspección → SDD de incorporación → adaptadores/configuración
-    → inventario + grafo estático → catálogo/variantes
-    → suite instrumentada → validación de captura
-    → bundle inmutable → referencia de baseline
+Inspection → onboarding SDD → adapters/configuration
+    → inventory + static graph → catalogue/variants
+    → instrumented suite → capture validation
+    → immutable bundle → baseline reference
 ```
 
-La ejecución masiva recorre todas las unidades previstas de las suites y variantes registradas. «Toda la suite» significa todo ese catálogo, no todos los tests posibles del producto ni todos sus recorridos.
+The bulk run covers all planned units of registered suites and variants. “The full suite” means that entire catalogue, not every possible product test or all its paths.
 
-La captura puede distribuirse por shards, con identificadores únicos y un manifiesto de unidades esperadas. El agregador comprueba faltantes, duplicados y compatibilidad de entradas.
+Capture may be distributed across shards, with unique identifiers and a manifest of expected units. The aggregator checks missing units, duplicates, and input compatibility.
 
-### 15.2 Estados de baseline
+### 15.2 Baseline states
 
-- `building`: construcción sin publicación.
-- `partial`: hay ámbitos sin capturar, tests no disponibles o capturas inválidas.
-- `reference`: catálogo y capturas exigidos completos y comprobaciones requeridas superadas para el ámbito declarado.
-- `superseded`: sustituido como referencia activa; conservado para análisis históricos.
+- `building`: construction without publication.
+- `partial`: uncaptured scopes, unavailable tests, or invalid captures exist.
+- `reference`: required catalogue and captures are complete, and required checks passed for the declared scope.
+- `superseded`: replaced as the active reference; retained for historical analysis.
 
-Un baseline parcial puede utilizarse para mostrar evidencia y ampliar selección. No habilita exclusiones sustentadas en los ámbitos faltantes.
+A partial baseline may display evidence and broaden selection. It does not authorize exclusions based on missing scopes.
 
-La promoción a referencia registra qué tests quedaron fuera por disponibilidad y qué ámbitos quedan abiertos. Si una suite necesaria para certificar el ámbito no se ejecuta o falla, dicho ámbito no queda certificado. El estado global no oculta estados por suite.
+Promotion to reference records which tests were omitted due to availability and which scopes remain open. If a suite required to certify a scope does not run or fails, that scope is not certified. Global status does not conceal per-suite statuses.
 
-### 15.3 Actualización posterior
+### 15.3 Subsequent updates
 
-Un cambio ordinario no obliga a repetir la captura completa antes del check. Se extrae su nuevo grafo y se usa la evidencia anterior para seleccionar de forma conservadora.
+An ordinary change does not require repeating the full capture before checking impact. Extract its new graph and use previous evidence for conservative selection.
 
-Después de ejecutar, se incorporan nuevas evidencias con identidad de destino. Las de unidades no ejecutadas solo se heredan si se demuestra compatibilidad de sus inputs y closure. El certificado de herencia explica esa comprobación.
+After execution, incorporate new evidence under target identity. Evidence for unexecuted units is inherited only when compatibility of their inputs and closure is demonstrated. The inheritance certificate explains that check.
 
-Una colección de ejecuciones seleccionadas no se convierte automáticamente en un baseline completo. Debe cubrirse el catálogo requerido o justificarse la herencia de cada unidad pendiente.
+A collection of selected runs does not automatically become a complete baseline. The required catalogue must be covered or inheritance justified for every outstanding unit.
 
-### 15.4 Frecuencia
+### 15.4 Frequency
 
-Durante la adopción se recomienda suite completa en la rama principal y checks de PR en modo sombra. Después pueden configurarse actualización por cambios relevantes, barridos completos periódicos y ejecución completa en cambios de alto alcance.
+During adoption, full suites on the main branch and PR checks in shadow mode are recommended. Later, updates for relevant changes, periodic full sweeps, and full execution for broad changes may be configured.
 
-La frecuencia se fija con mediciones del proyecto y riesgo aceptado. No se impone reconstrucción masiva por cada commit ni se presupone que una captura antigua siga válida solo por su fecha reciente.
+Frequency is set using project measurements and accepted risk. A bulk rebuild is not mandated for every commit, and an older capture is not assumed valid merely because its timestamp is recent.
 
-## 16. Vigencia e invalidación
+## 16. Validity and invalidation
 
 ### 16.1 Fingerprints
 
-El fingerprint por unidad incluye, según corresponda: fuente del test, hooks/fixtures compartidos, resolución de mocks, variantes, datos relevantes, configuración de runner, instrumentación, build, runtime y closure de dependencias demostrada.
+The per-unit fingerprint includes, as applicable: test source, shared hooks/fixtures, mock resolution, variants, relevant data, runner configuration, instrumentation, build, runtime, and demonstrated dependency closure.
 
-Los hashes del código cubierto se guardan junto a sus rangos. Si cambian esos bytes, la cobertura histórica puede servir para seleccionar consumidores, pero sus posiciones no se presentan como coverage actual.
+Covered-code hashes are stored with their ranges. If those bytes change, historical coverage may select consumers, but its positions must not be presented as current coverage.
 
-La vigencia es estructural además de temporal. La edad puede activar un barrido por política; no demuestra por sí sola compatibilidad ni incompatibilidad.
+Validity is structural as well as temporal. Age may trigger a sweep by policy; it does not establish compatibility or incompatibility by itself.
 
-### 16.2 Matriz mínima
+### 16.2 Minimum matrix
 
-| Cambio | Acción inicial |
+| Change | Initial action |
 | --- | --- |
-| Implementación local con ámbito resoluble | Seleccionar consumidores antes/después y tests observados; recapturar lo ejecutado. |
-| Dependencia, export, inyección o ruta | Actualizar consumidores/resolución; considerar nuevos recorridos y ampliar más allá de los hits antiguos. |
-| Nuevo archivo conectado | Analizar su conexión y consumidores; no exigir que tuviera coverage anterior. |
-| Nuevo archivo desconectado | Inventariar y marcar alcance desconocido; ampliar al ámbito demostrado o catálogo disponible. |
-| Eliminación | Usar grafo/cobertura de base; no perder los tests por ausencia del nodo de destino. |
-| Renombrado ambiguo | Baja+alta con las ampliaciones correspondientes. |
-| Test nuevo o modificado | Ejecutarlo y revisar su grupo/fixtures; obtener nueva evidencia. |
-| Test eliminado | Actualizar catálogo y señalar pérdida de evidencia; no ejecutar una identidad inexistente. |
-| Configuración de runner/setup o instrumentación | Invalidar y ampliar a las suites que la usan. |
-| Lockfile, resolver, compilador o build | Aplicar diff de dependencia demostrado; si no existe ese análisis, invalidar el ámbito completo afectado. |
-| Contrato o generación de cliente | Seleccionar contratos y consumidores; reconstruir artefactos generados de forma reproducible. |
-| Flags, dataset o servicios de prueba | Invalidar las variantes dependientes; si no se conocen, ampliar. |
-| Sourcemaps, targets o cobertura sin atribución | Conservar evidencia positiva bruta; no usarla para exclusión precisa. |
-| Cambio de política/núcleo | Recalcular y, si cambia la interpretación de evidencia, exigir validación o nueva captura. |
-| Identidad de base o ancestro desconocida | No asumir equivalencia; recuperar base adecuada o ejecutar suite completa disponible. |
+| Local implementation with resolvable scope | Select before/after consumers and observed tests; recapture executed units. |
+| Dependency, export, injection, or route | Update consumers/resolution; consider new paths and broaden beyond old hits. |
+| New connected file | Analyze its connection and consumers; do not require previous coverage. |
+| New disconnected file | Inventory it and mark scope unknown; broaden to demonstrated scope or available catalogue. |
+| Deletion | Use base graph/coverage; do not lose tests because the target node is absent. |
+| Ambiguous rename | Deletion plus addition with corresponding expansions. |
+| New or modified test | Execute it and review its group/fixtures; obtain new evidence. |
+| Deleted test | Update catalogue and flag loss of evidence; do not execute a nonexistent identity. |
+| Runner/setup configuration or instrumentation | Invalidate and broaden to suites using it. |
+| Lockfile, resolver, compiler, or build | Apply demonstrated dependency diff; without that analysis, invalidate the entire affected scope. |
+| Contract or client generation | Select contracts and consumers; rebuild generated artifacts reproducibly. |
+| Flags, dataset, or test services | Invalidate dependent variants; broaden if they are unknown. |
+| Source maps, targets, or unattributable coverage | Preserve raw positive evidence; do not use it for precise exclusion. |
+| Policy/core change | Recalculate and require validation or recapture if evidence interpretation changes. |
+| Unknown base or ancestor identity | Do not assume equivalence; recover the appropriate base or run the full available suite. |
 
-### 16.3 Reutilización de evidencia no ejecutada
+### 16.3 Reusing evidence for unexecuted units
 
-Un certificado de herencia incluye bundle padre, unidad, fingerprints comparados, closure usada, hashes iguales y diagnósticos evaluados.
+An inheritance certificate includes parent bundle, unit, compared fingerprints, closure used, matching hashes, and evaluated diagnostics.
 
-Si el adaptador no puede demostrar una closure suficientemente completa, no hereda evidencia como vigente para excluir. Puede heredar la medición como histórica y mantener selección más amplia.
+If the adapter cannot demonstrate a sufficiently complete closure, it does not inherit evidence as current for exclusion. It may inherit the measurement as historical and preserve broader selection.
 
-El fingerprint de herencia no depende solo de los archivos que aparecieron en coverage. Una dependencia no ejecutada anteriormente puede alterar un recorrido futuro.
+The inheritance fingerprint does not depend only on files appearing in coverage. A dependency not previously executed may alter a future path.
 
-### 16.4 Contratos y evidencia externa
+### 16.4 Contracts and external evidence
 
-Fijar separadamente la revisión del proveedor y del consumidor, así como el contrato. No combinar resultados de un proveedor distinto solo porque comparta nombre o URL.
+Pin provider revision, consumer revision, and contract separately. Do not combine another provider's results merely because its name or URL matches.
 
-Un baseline de una rama diferente no se considera válido por ser el más reciente. La relación entre base, destino y artefacto debe verificarse mediante Git/contenido y las reglas de compatibilidad.
+A baseline from another branch is not valid merely because it is the newest. Verify the relationship between base, target, and artifact using Git/content and compatibility rules.
 
-## 17. Algoritmo de impacto
+## 17. Impact algorithm
 
-### 17.1 Entradas y salida
+### 17.1 Inputs and output
 
-Entradas: snapshot base y destino, diff capturado, catálogo antes/después, baseline de referencia, evidencia heredable, políticas y capacidades de adaptadores.
+Inputs: base and target snapshots, captured diff, before/after catalogue, reference baseline, inheritable evidence, policies, and adapter capabilities.
 
-Salida: selección por unidades reales de ejecución, razones causales, exclusiones justificadas dentro del ámbito, ampliaciones conservadoras, tests no disponibles, estado de confianza operativa y plan fijado.
+Output: selection by actual execution units, causal reasons, exclusions justified within scope, conservative expansions, unavailable tests, operational confidence status, and a pinned plan.
 
-No se etiqueta un subset como «seguro universalmente». El informe explica el ámbito soportado y las condiciones bajo las que se ha calculado.
+Do not label a subset “universally safe.” The report explains its supported scope and the conditions under which it was calculated.
 
-### 17.2 Pasos
+### 17.2 Steps
 
-1. Validar integridad, procedencia requerida, compatibilidad y relación del baseline con la base.
-2. Capturar diff completo: altas, modificaciones, bajas, permisos relevantes y configuración; incluir cambios locales si se pidió working tree.
-3. Actualizar inventario y resolver dependencias afectadas en el destino.
-4. Mapear cambios a rangos/símbolos en ambos estados; ampliar a archivo o paquete cuando la precisión no sea demostrable.
-5. Formar una vista de impacto que preserve relaciones de base y destino, sin convertir la unión en un grafo que se afirme existente en una sola revisión.
-6. Propagar por cada tipo de relación y política, manteniendo camino y origen temporal.
-7. Seleccionar tests con evidencia estática o cobertura positiva alcanzada; incluir siempre tests nuevos/modificados y consumidores de infraestructura cambiada.
-8. Evaluar nuevos destinos, comportamiento dinámico, recursos y variantes que la cobertura histórica podría no haber observado.
-9. Aplicar diagnósticos: ampliar al ámbito comprobable o a todo el catálogo disponible.
-10. Aplicar fronteras contractuales válidas y políticas que añaden comprobaciones obligatorias.
-11. Convertir casos a unidades que el runner ejecuta realmente, ampliando archivos/suites si hace falta.
-12. Emitir exclusiones solo cuando todas sus condiciones de ámbito, resolución y vigencia se cumplen.
-13. Ordenar y hashear el resultado, junto con el plan de ejecución y las entradas.
+1. Validate integrity, required provenance, compatibility, and the baseline's relationship to the base.
+2. Capture the complete diff: additions, modifications, deletions, relevant permissions, and configuration; include local changes when working-tree mode was requested.
+3. Update inventory and resolve affected dependencies in the target.
+4. Map changes to ranges/symbols in both states; broaden to file or package when precision cannot be demonstrated.
+5. Form an impact view preserving base and target relationships without claiming that their union exists as a graph in a single revision.
+6. Propagate by relationship type and policy, preserving path and temporal origin.
+7. Select tests reached through static evidence or positive coverage; always include new/modified tests and consumers of changed infrastructure.
+8. Evaluate new targets, dynamic behavior, resources, and variants that historical coverage may not have observed.
+9. Apply diagnostics: broaden to verifiable scope or the full available catalogue.
+10. Apply valid contract boundaries and policies adding mandatory checks.
+11. Convert cases into units the runner actually executes, expanding files/suites when necessary.
+12. Emit exclusions only when all scope, resolution, and validity conditions hold.
+13. Order and hash the result together with its execution plan and inputs.
 
-### 17.3 Precisión inicial y refinamientos
+### 17.3 Initial precision and refinements
 
-La política por defecto combina evidencia estática y observada conservadoramente. El análisis de símbolos no elimina automáticamente todos los demás tests de un archivo si hay efectos de módulo, closures compartidas o condiciones no modeladas.
+The default policy combines static and observed evidence conservatively. Symbol analysis does not automatically eliminate every other test in a file when module effects, shared closures, or unmodeled conditions exist.
 
-Para E2E, la cobertura histórica ofrece enlaces positivos; no ofrece un inventario completo de todos los futuros recorridos. Si el cambio introduce rutas, bindings o despacho no acotables con el modelo, seleccionar los E2E del ámbito comprobado o todos los disponibles.
+For E2E tests, historical coverage supplies positive links; it does not inventory all future paths. If a change introduces routes, bindings, or dispatch that the model cannot bound, select E2E tests in the verified scope or all available E2E tests.
 
-Una optimización basada solo en «tests que cubrieron líneas modificadas» puede existir como modo experimental de medición, separado del modo conservador y sin sustituir su gate de CI.
+An optimization based only on “tests that covered modified lines” may exist as an experimental measurement mode, separate from conservative mode and without replacing its CI gate.
 
-### 17.4 Regla de exclusión
+### 17.4 Exclusion rule
 
-Excluir un test requiere identificar su unidad, sus variantes y el ámbito de cambios, demostrar la validez de las dependencias usadas para acotar, resolver los diagnósticos pertinentes y comprobar vigencia suficiente.
+Excluding a test requires identifying its unit, variants, and change scope, demonstrating validity of dependencies used to bound scope, resolving relevant diagnostics, and checking sufficient validity.
 
-Cuando una de esas condiciones falta, el test se incluye por ampliación o queda como no disponible requerido. «No tiene camino en el grafo» solo justifica exclusión si el grafo demuestra que su ámbito está suficientemente representado.
+When any condition is missing, include the test through expansion or mark it as required but unavailable. “There is no path in the graph” justifies exclusion only if the graph demonstrates sufficient representation of its scope.
 
-### 17.5 Casos de referencia
+### 17.5 Reference cases
 
-| Caso | Comportamiento esperado |
+| Case | Expected behavior |
 | --- | --- |
-| Cambio local en función usada por un unitario | Selección por dependencia/coverage y explicación al símbolo o archivo. |
-| Cambio en función llamada indirectamente | Seguir dependencia demostrada; ampliar si el despacho queda abierto. |
-| Nueva rama que redirige a otro módulo | Usar topología posterior y consumidores; no limitarse a coverage anterior. |
-| E2E sin captura atribuible | Ampliar E2E pertinentes o todos; no enlazarlo por su título. |
-| Cambio de CSS de componente | Seguir dependencia del recurso o ampliar paquete/suite. |
-| Contrato externo incompatible | Contratos locales y consumidores seleccionados; proveedor inaccesible visible. |
-| Cambio solo en test | Ejecutar test/grupo y revisar infraestructura compartida. |
-| Cambio aparentemente documental | Excluir solo si las reglas verifican que no es entrada de build, docs ejecutables o tests. |
-| Ningún cambio efectivo | Resultado vacío válido si entradas, catálogo y baseline están verificados. |
-| Archivo cambiado sin ámbito probado | Selección completa disponible, con motivo. |
+| Local change to a function used by a unit test | Selection by dependency/coverage and explanation to symbol or file. |
+| Change to an indirectly called function | Follow demonstrated dependency; broaden if dispatch remains open. |
+| New branch redirecting to another module | Use subsequent topology and consumers; do not rely only on previous coverage. |
+| E2E without attributable capture | Broaden to relevant or all E2E tests; do not link by title. |
+| Component CSS change | Follow resource dependency or broaden package/suite. |
+| Incompatible external contract | Select local contracts and consumers; expose unavailable provider. |
+| Test-only change | Execute test/group and review shared infrastructure. |
+| Apparently documentary change | Exclude only if rules verify it is not a build input, executable documentation, or test input. |
+| No effective change | Empty result is valid when inputs, catalogue, and baseline are verified. |
+| Changed file without demonstrated scope | Full available selection, with a reason. |
 
-### 17.6 Propiedades del motor
+### 17.6 Engine properties
 
-Orden de entrada, duplicados de evidencia equivalentes y orden de shards no alteran la selección. Los ciclos terminan. La explicación conserva al menos un camino causal completo y permite consultar los demás.
+Input order, equivalent duplicate evidence, and shard order do not change selection. Cycles terminate. Explanations preserve at least one complete causal path and allow the others to be inspected.
 
-Con catálogo y política fijos, eliminar evidencia necesaria para excluir no puede reducir la selección. La versión incremental y la reconstrucción completa deben ser equivalentes en su salida normalizada.
+With a fixed catalogue and policy, removing evidence needed for exclusion cannot reduce selection. Incremental and full rebuild versions must have equivalent normalized output.
 
-### 17.7 Condiciones para aprovechar ausencia de hits
+### 17.7 Conditions for using absence of hits
 
-El proyecto debe declarar las hipótesis bajo las que una medición anterior sirve para acotar una futura ejecución: entradas identificables, aislamiento suficiente, cobertura de las unidades de código pertinentes y tratamiento de cambios estructurales.
+The project must declare the assumptions under which a previous measurement can bound future execution: identifiable inputs, sufficient isolation, coverage of relevant code units, and handling of structural changes.
 
-Si el test depende de estado externo no fijado, hora, aleatoriedad sin control o efectos concurrentes no modelados, no se puede convertir «no lo ejecutó antes» en una exclusión precisa. Se acumula evidencia positiva y se amplía la unidad o ámbito.
+If a test depends on unpinned external state, time, uncontrolled randomness, or unmodeled concurrent effects, “it did not execute this before” cannot justify precise exclusion. Accumulate positive evidence and broaden the unit or scope.
 
-Los cambios insertados en posiciones sin cobertura anterior se mapean al contenedor ejecutable o dependencia pertinente, no a un supuesto conjunto vacío de hits. La carga de módulos, inicialización, lectura de recursos y preparación del build deben estar modeladas o provocar ampliación.
+Changes inserted at positions without previous coverage are mapped to the relevant executable container or dependency, not to an assumed empty hit set. Module loading, initialization, resource reads, and build preparation must be modeled or trigger expansion.
 
-Los cambios pueden romper compilación, resolución o carga sin alcanzar una instrucción medida. El check no sustituye los gates de build, tipos o arquitectura que el proyecto ya requiera.
+Changes may break compilation, resolution, or loading without reaching a measured instruction. The check does not replace build, type, or architecture gates already required by the project.
 
-## 18. Actualización incremental y rendimiento
+## 18. Incremental updates and performance
 
-### 18.1 Tres niveles de reutilización
+### 18.1 Three levels of reuse
 
-- **Artefactos inmutables:** reutilizar bundles y resultados por hash.
-- **Extracción estática:** recalcular archivos modificados y consumidores cuya resolución/semántica pueda variar.
-- **Evidencia de tests:** recapturar unidades ejecutadas y heredar las demás solo cuando sea demostrable.
+- **Immutable artifacts:** reuse bundles and results by hash.
+- **Static extraction:** recalculate modified files and consumers whose resolution/semantics may change.
+- **Test evidence:** recapture executed units and inherit others only when demonstrable.
 
-La invalidación de un archivo puede alcanzar otros archivos no editados: reexports, resolución por configuración, APIs públicas, tipos y generación de código. El adaptador debe modelar ese alcance.
+Invalidating one file may affect unedited files: reexports, configuration-based resolution, public APIs, types, and code generation. The adapter must model that scope.
 
-### 18.2 Índices
+### 18.2 Indexes
 
-Mantener índices de hashes de archivo, grafo inverso, pertenencia a paquete, localizadores, coverage invertida y dependencias de configuración.
+Maintain indexes of file hashes, inverse graph, package membership, locators, inverted coverage, and configuration dependencies.
 
-Los índices incluyen versiones de esquema, extractor y políticas que afectan a su interpretación. Una caché incompatible se descarta; nunca se convierte en un grafo vacío válido.
+Indexes include schema, extractor, and policy versions affecting their interpretation. Discard incompatible caches; never turn them into a valid empty graph.
 
-### 18.3 Camino rápido
+### 18.3 Fast path
 
-El objetivo es que un check con baseline local, caché caliente y un cambio acotado use lectura/hash, resolución afectada y recorrido de índices. No requiere instrumentación física ni servicios externos.
+The objective is for a check with a local baseline, warm cache, and bounded change to use reads/hashing, affected resolution, and index traversal. It requires neither physical instrumentation nor external services.
 
-La sincronización remota de artefactos y la preparación de caché se miden por separado del tiempo del núcleo. Una CLI debe indicar si reconstruyó todo y por qué.
+Measure remote artifact synchronization and cache preparation separately from core processing time. The CLI must indicate whether it rebuilt everything and why.
 
-### 18.4 Presupuesto y medidas
+### 18.4 Budget and measurements
 
-P1 fija un presupuesto medible para el piloto: tamaño, variantes, hardware, latencia de check, memoria, overhead de captura y almacenamiento. Como objetivo inicial de producto, evaluar checks calientes de cambios pequeños en unos segundos; no es una cifra de rendimiento ya demostrada.
+P1 sets a measurable pilot budget: size, variants, hardware, check latency, memory, capture overhead, and storage. As an initial product objective, evaluate warm checks for small changes within a few seconds; this is not a demonstrated performance figure.
 
-Los ensayos publican mediana, p95, tamaño de entradas, caché fría/caliente y tiempo de I/O. Incluyen un proyecto grande o un corpus sintético claramente identificado como tal.
+Experiments publish median, p95, input size, cold/warm cache status, and I/O time. Include a large project or a synthetic corpus clearly identified as such.
 
-Si se agota el presupuesto de análisis, se amplía selección o se informa error recuperable según se pueda conservar corrección. No se devuelve un subset truncado.
+If the analysis budget is exhausted, broaden selection or report a recoverable error depending on whether correctness can be preserved. Do not return a truncated subset.
 
-## 19. Experiencia de CLI
+## 19. CLI experience
 
-### 19.1 Contrato de comandos propuesto
+### 19.1 Proposed command contract
 
-`impact` es un nombre conceptual de CLI. Su distribución y nombre definitivo se deciden en P6. Estos comandos describen comportamiento futuro y no deben confundirse con los comandos de la demo actual.
+`impact` is a conceptual CLI name. Its distribution and final name are decided in P6. These commands describe future behavior and must not be confused with commands in the current demo.
 
-| Comando | Función |
+| Command | Function |
 | --- | --- |
-| `impact inspect` | Leer proyecto y emitir perfil, capacidades, necesidades y decisiones pendientes. |
-| `impact init` | Materializar configuración a partir del perfil y adaptadores ya implementados; no ejecutar IA. |
-| `impact doctor` | Comprobar herramientas, versiones, catálogo, evidencia, permisos operativos y baseline. |
-| `impact graph build` | Construir grafo estático completo. |
-| `impact baseline create` | Enumerar y ejecutar la matriz instrumentada prevista, validar y construir baseline. |
-| `impact check` | Calcular impacto y plan; no ejecutar tests. |
-| `impact explain` | Mostrar la causa de selección/exclusión de una unidad o diagnóstico. |
-| `impact run` | Validar y ejecutar un análisis fijado con los runners declarados. |
-| `impact baseline update` | Incorporar resultados de una ejecución y verificar herencia de otras unidades. |
-| `impact baseline publish` | Promover un bundle que cumpla la política; sin transporte remoto implícito. |
-| `impact artifacts export/import` | Transportar bundles verificando esquema, hashes y procedencia exigida. |
-| `impact view` | Abrir UI de consulta sobre bundle/análisis. |
-| `impact gc` | Aplicar retención sin borrar artefactos referenciados por políticas de conservación. |
+| `impact inspect` | Read the project and emit its profile, capabilities, needs, and open decisions. |
+| `impact init` | Materialize configuration from the profile and implemented adapters; do not execute AI. |
+| `impact doctor` | Check tools, versions, catalogue, evidence, operational permissions, and baseline. |
+| `impact graph build` | Build the complete static graph. |
+| `impact baseline create` | Enumerate and execute the planned instrumented matrix, validate it, and build the baseline. |
+| `impact check` | Calculate impact and plan; do not run tests. |
+| `impact explain` | Show why a unit was selected/excluded or a diagnostic was emitted. |
+| `impact run` | Validate and execute a pinned analysis with declared runners. |
+| `impact baseline update` | Incorporate run results and verify inheritance for other units. |
+| `impact baseline publish` | Promote a policy-compliant bundle; no implicit remote transport. |
+| `impact artifacts export/import` | Transport bundles while verifying schema, hashes, and required provenance. |
+| `impact view` | Open the inspection UI for a bundle/analysis. |
+| `impact gc` | Apply retention without deleting artifacts referenced by preservation policies. |
 
-### 19.2 Primera incorporación
+### 19.2 Initial onboarding
 
-La skill comienza con inspección y un SDD de incorporación. Una vez implementado el adaptador:
+The skill begins with inspection and an onboarding SDD. Once the adapter is implemented:
 
 ```sh
 impact doctor
@@ -887,9 +887,9 @@ impact baseline create
 impact view
 ```
 
-El baseline prepara explícitamente su entorno; no reutiliza de forma invisible un servidor de desarrollo cuyo código o datos no puede verificar.
+The baseline explicitly prepares its environment; it does not invisibly reuse a development server whose code or data it cannot verify.
 
-### 19.3 Uso diario local
+### 19.3 Daily local use
 
 ```sh
 impact check --base origin/main --working-tree
@@ -898,815 +898,815 @@ impact run --analysis <analysis-id> --collect-coverage
 impact baseline update --run <run-id>
 ```
 
-El modo working tree incluye cambios staged, unstaged y archivos nuevos dentro de raíces registradas, sin contar dos veces el mismo cambio. Las exclusiones y archivos ignorados relevantes se muestran según la política de inventario.
+Working-tree mode includes staged changes, unstaged changes, and new files within registered roots without counting a change twice. Relevant exclusions and ignored files are shown according to inventory policy.
 
-Un análisis fija los bytes usados. Si el usuario modifica el árbol entre check y run, se recalcula o se ejecutan bytes capturados en un entorno aislado; nunca se aplica silenciosamente el plan anterior al código nuevo.
+An analysis pins the bytes used. If the user modifies the tree between check and run, recalculate or execute captured bytes in an isolated environment; never silently apply the previous plan to new code.
 
-### 19.4 Uso para commits
+### 19.4 Commit use
 
 ```sh
 impact check --base <base-sha> --head <target-sha> --baseline auto
 impact run --analysis <analysis-id> --collect-coverage
 ```
 
-Las referencias simbólicas se resuelven a SHAs antes de analizar. `auto` solo elige artefactos cuya compatibilidad esté demostrada; no elige el fichero más reciente de una carpeta.
+Resolve symbolic references to SHAs before analysis. `auto` selects only artifacts with demonstrated compatibility; it does not choose the most recent file in a directory.
 
-### 19.5 Resultado
+### 19.5 Result
 
-La salida humana debe resumir: base/destino, tests conocidos y disponibles, seleccionados, unidades adicionales por granularidad, exclusiones justificadas, fallback y tests requeridos no disponibles. Los conteos proceden del catálogo real.
+Human-readable output must summarize base/target, known and available tests, selected tests, additional units due to granularity, justified exclusions, fallback, and required unavailable tests. Counts come from the actual catalogue.
 
-La salida JSON conserva IDs, caminos, fingerprints, diagnósticos y plan. Un ejemplo conceptual de resumen es:
+JSON output preserves IDs, paths, fingerprints, diagnostics, and the plan. A conceptual summary example is:
 
 ```text
-Base/destino: estados fijados
-Baseline: referencia compatible o motivo de fallback
-Selección: casos y unidades reales de ejecución
-Ampliaciones: ámbito y diagnóstico causante
-No disponibles: unidades requeridas y consecuencia para el gate
-Siguiente operación: ejecutar el análisis identificado
+Base/target: pinned states
+Baseline: compatible reference or fallback reason
+Selection: cases and actual execution units
+Expansions: scope and triggering diagnostic
+Unavailable: required units and gate consequence
+Next operation: execute the identified analysis
 ```
 
-### 19.6 Estados y códigos de salida
+### 19.6 Statuses and exit codes
 
-El resultado de check distingue `selective`, `expanded`, `full`, `no-change` y `blocked`. El origen de una ampliación se expone en diagnósticos.
+Check results distinguish `selective`, `expanded`, `full`, `no-change`, and `blocked`. Diagnostics expose the cause of expansion.
 
-Contrato mínimo que P6 debe fijar en números:
+Minimum contract for P6 to assign numeric codes:
 
-- Análisis válido, incluso con fallback completo: éxito técnico y modo explícito.
-- Configuración inválida, entrada ilegible o artefacto incompatible sin recuperación: error de análisis.
-- Selección vacía solo válida cuando se demuestra por qué no hay tests afectados dentro del ámbito.
-- Test requerido no disponible: estado que bloquea la aceptación, salvo una excepción explícita registrada por el proyecto.
-- Ejecución: separar fallo de test, infraestructura, resultado incompleto y plan desactualizado.
+- Valid analysis, including full fallback: technical success and explicit mode.
+- Invalid configuration, unreadable input, or incompatible artifact without recovery: analysis error.
+- Empty selection is valid only when it is demonstrated why no tests are affected within scope.
+- Required unavailable test: acceptance-blocking status unless an explicit exception is recorded by the project.
+- Execution: distinguish test failure, infrastructure failure, incomplete result, and stale plan.
 
-Un código de salida cero del proceso runner no basta si faltan casos o reportes esperados. El adaptador compara plan y resultados.
+A zero exit code from the runner process is insufficient when expected cases or reports are missing. The adapter compares plan and results.
 
-## 20. CI y procedencia de artefactos
+## 20. CI and artifact provenance
 
-### 20.1 Núcleo neutral
+### 20.1 Neutral core
 
-La integración usa CLI, archivos y códigos de salida. El primer wrapper se elige después de inspeccionar la CI real. Los wrappers no incorporan una segunda implementación del selector.
+Integration uses the CLI, files, and exit codes. The first wrapper is chosen after inspecting the actual CI. Wrappers do not contain a second selector implementation.
 
-El pipeline debe poder operar en GitHub Actions, GitLab, Jenkins u otros sistemas que proporcionen checkout, ejecución y artefactos. Esa portabilidad contractual no equivale a que todos los wrappers estén entregados en P6.
+The pipeline must be able to operate in GitHub Actions, GitLab, Jenkins, or other systems providing checkout, execution, and artifacts. Contractual portability does not mean every wrapper is delivered in P6.
 
-### 20.2 Bootstrap de la rama de referencia
+### 20.2 Reference-branch bootstrap
 
-1. Checkout de revisión fijada y preparación reproducible del entorno.
-2. Instalación según lockfile y versiones registradas.
-3. Restauración de caché de herramientas compatible, separada de la autoridad del baseline.
-4. Inventario, grafo y catálogo.
-5. Captura instrumentada de suites/variantes requeridas, con shards cuando proceda.
-6. Agregación y validación de resultados y evidencia.
-7. Publicación de bundle inmutable como artefacto.
-8. Promoción de referencia únicamente si cumple los criterios.
+1. Check out the pinned revision and prepare the environment reproducibly.
+2. Install using the lockfile and recorded versions.
+3. Restore a compatible tool cache, separate from baseline authority.
+4. Build inventory, graph, and catalogue.
+5. Capture required suites/variants with instrumentation and shards where appropriate.
+6. Aggregate and validate results and evidence.
+7. Publish an immutable bundle as an artifact.
+8. Promote the reference only when criteria are met.
 
 ### 20.3 Pull request
 
-1. Resolver commits base/destino y la estrategia de comparación.
-2. Recuperar un baseline autorizado y compatible con la base.
-3. Comprobar hashes, procedencia, versiones y catálogo.
-4. Ejecutar check con el código de destino.
-5. Ejecutar selección ampliada si es necesario; capturar resultados y coverage de las unidades ejecutadas.
-6. Verificar que se ejecutó todo lo requerido.
-7. Publicar informe, análisis y evidencia como artefactos del job.
+1. Resolve base/target commits and the comparison strategy.
+2. Retrieve an authorized baseline compatible with the base.
+3. Check hashes, provenance, versions, and catalogue.
+4. Run the check against target code.
+5. Execute the expanded selection if necessary; capture results and coverage of executed units.
+6. Verify that everything required ran.
+7. Publish report, analysis, and evidence as job artifacts.
 
-La publicación de comentarios o estados mediante API requiere la integración y permisos del proyecto; no es necesaria para que el informe sea útil. El JSON y un resumen de job bastan para el primer wrapper.
+Publishing comments or statuses through an API requires project integration and permissions; it is not necessary for a useful report. JSON and a job summary suffice for the first wrapper.
 
-### 20.4 Base, merge y carreras
+### 20.4 Base, merge, and races
 
-P1 debe fijar si se analiza contra merge-base, punta actual de la rama destino o commit de merge simulado. El informe conserva la elección y los SHAs.
+P1 must establish whether analysis compares against the merge base, current target-branch tip, or a simulated merge commit. The report preserves that choice and the SHAs.
 
-Si la rama destino avanza después del análisis, el gate necesita recalcular en el nuevo merge o dejar explícito que validó otra combinación. En repositorios con cola de merges, integrar el check sobre el estado que la cola va a incorporar.
+If the target branch advances after analysis, the gate must recalculate on the new merge or explicitly indicate that it validated a different combination. Repositories with a merge queue integrate the check on the state the queue will merge.
 
-Si el historial es superficial y no permite hallar la base, ampliar fetch de manera explícita en CI o ejecutar la suite completa sobre el destino. No declarar diff vacío.
+If shallow history prevents finding the base, explicitly deepen the fetch in CI or run the full suite on the target. Do not declare an empty diff.
 
 ### 20.5 Fallback
 
-Si no hay baseline utilizable pero sí catálogo/configuración de ejecución fiables, el sistema ejecuta toda la suite disponible requerida y recoge evidencia. La ausencia de baseline no pasa el gate por omisión.
+When no usable baseline exists but catalogue/execution configuration are reliable, execute the entire required available suite and collect evidence. Absence of a baseline does not pass the gate by omission.
 
-Si ni siquiera se puede conocer o ejecutar el catálogo requerido, el job falla con diagnóstico. No se intenta «salvar» el pipeline ejecutando una lista parcial antigua como si fuera completa.
+If the required catalogue cannot even be determined or executed, the job fails with a diagnostic. Do not attempt to “save” the pipeline by running an old partial list as though it were complete.
 
-### 20.6 Refresco tras integración
+### 20.6 Refresh after integration
 
-El job de rama principal puede hacer captura completa o actualización con herencia demostrada, según la política de adopción. Publica una referencia para el commit realmente integrado.
+The main-branch job may perform a complete capture or an update with demonstrated inheritance, according to adoption policy. It publishes a reference for the commit actually merged.
 
-Un resultado de PR no se promueve por cambiarle la etiqueta a `main`. El merge puede cambiar código, resolución o contexto; se verifica la equivalencia del árbol y entradas o se vuelve a ejecutar.
+A PR result is not promoted merely by relabeling it `main`. A merge may change code, resolution, or context; verify tree/input equivalence or rerun.
 
-Las ramas de larga duración y releases pueden mantener referencias propias. Retención y elección de baseline respetan ese namespace.
+Long-lived branches and releases may maintain their own references. Retention and baseline selection respect that namespace.
 
-### 20.7 Integridad y confianza
+### 20.7 Integrity and trust
 
-Un hash acredita que los bytes no cambiaron respecto al manifiesto; no acredita quién los produjo ni que la evidencia sea honesta.
+A hash establishes that bytes have not changed relative to the manifest; it does not establish who produced them or whether the evidence is honest.
 
-Los artefactos autorizados para excluir tests deben proceder del canal de referencia configurado: por ejemplo jobs de la rama protegida, identidad de workflow y revisión comprobadas. La política debe impedir que una PR reemplace el baseline compartido con un dataset arbitrario.
+Artifacts authorized to exclude tests must originate from the configured reference channel: for example, protected-branch jobs with verified workflow identity and revision. Policy must prevent a PR from replacing the shared baseline with an arbitrary dataset.
 
-Los cambios de adaptador o política que afectan exclusiones requieren sus comprobaciones de conformidad y el mecanismo de revisión que el proyecto ya utilice. Los checks de PR pueden generar bundles de candidato, separados de las referencias promovidas.
+Adapter or policy changes affecting exclusions require their conformance checks and the review mechanism already used by the project. PR checks may generate candidate bundles separate from promoted references.
 
-### 20.8 Concurrencia y shards
+### 20.8 Concurrency and shards
 
-Cada job tiene directorio, namespace, puertos y datasets propios cuando arranca servicios. No limpia recursos de otro job.
+Each job has its own directory, namespace, ports, and datasets when starting services. It does not clean another job's resources.
 
-El agregador comprueba que todos los shards corresponden a las mismas fuentes/configuración y cubren las unidades esperadas. Un shard perdido, repetido o de otra revisión impide certificar el ámbito.
+The aggregator verifies that every shard corresponds to the same sources/configuration and covers expected units. A missing, duplicate, or different-revision shard prevents scope certification.
 
-Las actualizaciones de punteros usan compare-and-swap o mecanismo equivalente para impedir que un job antiguo sobrescriba una referencia más reciente de la rama.
+Pointer updates use compare-and-swap or an equivalent mechanism to prevent an older job from overwriting a newer branch reference.
 
-### 20.9 Adopción progresiva
+### 20.9 Progressive adoption
 
-- **Observación:** construir evidencia y medir sin cambiar el conjunto de tests que exige la CI.
-- **Sombra:** calcular selección, ejecutar la suite completa y contrastar resultados/casos afectados.
-- **Aplicación:** ejecutar selección conservadora, fallback y barridos completos según política.
+- **Observation:** build evidence and measure without changing the tests required by CI.
+- **Shadow:** calculate selection, run the full suite, and compare results/affected cases.
+- **Enforcement:** execute conservative selection, fallback, and full sweeps according to policy.
 
-El paso a aplicación requiere criterios de P8. Un resultado satisfactorio de una única PR no es suficiente. La vuelta a suite completa debe poder activarse mediante configuración sin borrar el historial.
+Moving to enforcement requires P8 criteria. A successful result from a single PR is insufficient. Returning to the full suite must be possible through configuration without deleting history.
 
-### 20.10 Secuencia neutral ilustrativa
+### 20.10 Illustrative neutral sequence
 
 ```text
 prepare:
-  checkout(base y target fijados)
-  prepare(toolchain y dependencias fijadas)
-  restore(reference bundle autorizado)
+  checkout(pinned base and target)
+  prepare(pinned toolchain and dependencies)
+  restore(authorized reference bundle)
 
 analyze:
   impact check --base BASE_SHA --head TARGET_SHA --baseline auto
-  export(analysis-id y execution-plan)
+  export(analysis-id and execution-plan)
 
 execute:
   impact run --analysis ANALYSIS_ID --collect-coverage
-  assert(expected results completos)
+  assert(complete expected results)
 
 report:
   upload(impact, results, coverage, diagnostics)
 
 refresh-on-reference-branch:
-  verify(promoción y compatibilidad del estado integrado)
+  verify(promotion and merged-state compatibility)
   update-or-rebuild(baseline)
-  publish(artefacto y referencia)
+  publish(artifact and reference)
 ```
 
-Es pseudocódigo de responsabilidades. La implementación fijará sintaxis, versiones y mecanismo de descarga del proveedor escogido.
+This is responsibility pseudocode. Implementation will pin syntax, versions, and the chosen provider's download mechanism.
 
-### 20.11 Comprobaciones independientes de la selección
+### 20.11 Checks independent of selection
 
-La inspección identifica gates existentes de compilación, tipos, lint, seguridad, arquitectura u otras comprobaciones globales. La primera integración conserva su ejecución según la política del proyecto.
+Inspection identifies existing build, type, lint, security, architecture, and other global gates. The first integration preserves their execution according to project policy.
 
-Reducir esos gates necesita un adaptador o análisis de alcance propio y una aceptación específica. El hecho de que no aparezcan en coverage de tests no permite omitirlos.
+Reducing those gates requires an adapter or dedicated scope analysis and specific acceptance. Their absence from test coverage does not permit omitting them.
 
-Las reglas que exigen ejecutar siempre una suite o gate son políticas visibles de ampliación. No se presentan como cobertura ni como asociaciones inferidas.
+Rules requiring a suite or gate to always run are visible expansion policies. They are not presented as coverage or inferred associations.
 
-## 21. UI común y grafos grandes
+## 21. Common UI and large graphs
 
-### 21.1 Función y fuente
+### 21.1 Function and source
 
-La UI consulta los bundles y análisis. Reutiliza el contrato; no recalcula impacto con reglas distintas ni necesita conocer el stack del proyecto.
+The UI queries bundles and analyses. It reuses the contract; it does not recalculate impact using different rules or need knowledge of the project's stack.
 
-Puede servirse localmente o empaquetarse como reporte de CI. Un reporte que incluya fuentes o datos de ejecución debe respetar la visibilidad configurada del artefacto. El modo inicial es de lectura.
+It may be served locally or packaged as a CI report. A report containing sources or execution data must respect configured artifact visibility. The initial mode is read-only.
 
-### 21.2 Vistas mínimas
+### 21.2 Minimum views
 
-1. **Resumen:** ámbito, revisión, capacidades, estado del baseline, evidencia faltante y tests disponibles.
-2. **Dependencias:** grafo por paquete/archivo y navegación hacia símbolos, recursos y contratos.
-3. **Tests y cobertura:** unidades conocidas, código observado y áreas sin evidencia.
-4. **Impacto:** diff, seleccionados/excluidos, causas y ampliaciones.
-5. **Evidencia:** fragmento/localizador, revisión, productor, captura, vigencia y diagnósticos.
+1. **Summary:** scope, revision, capabilities, baseline status, missing evidence, and available tests.
+2. **Dependencies:** graph by package/file and navigation to symbols, resources, and contracts.
+3. **Tests and coverage:** known units, observed code, and areas without evidence.
+4. **Impact:** diff, selected/excluded tests, reasons, and expansions.
+5. **Evidence:** fragment/locator, revision, producer, capture, validity, and diagnostics.
 
-Se puede reutilizar la presentación del explorador actual si supera la compatibilidad y las necesidades de escala. No se importa su catálogo fijo ni su flujo de escenarios de demo.
+The current explorer's presentation may be reused if it meets compatibility and scaling requirements. Its fixed catalogue and demo-scenario workflow are not imported.
 
-### 21.3 Filtros y agregación
+### 21.3 Filters and aggregation
 
-Filtros por repositorio, workspace/paquete, ruta, lenguaje, tipo de nodo, tipo de relación, categoría de test, runner, variante, clase de evidencia, vigencia, cambios e incertidumbre.
+Filter by repository, workspace/package, path, language, node type, relationship type, test category, runner, variant, evidence class, validity, changes, and uncertainty.
 
-El grafo abre en una agregación legible de paquetes/ámbitos. Permite expandir vecinos a profundidad limitada, buscar cualquier nodo, aislar un camino causal y volver a la vista anterior.
+The graph opens at a readable package/scope aggregation level. It allows expansion of neighbors to a limited depth, search for any node, isolation of a causal path, and return to the previous view.
 
-La agregación muestra cuántos nodos/aristas representa y permite consultar sus miembros. Un filtro indica cuántos hechos oculta. Limitar el canvas nunca borra hechos del modelo.
+Aggregation shows how many nodes/edges it represents and allows its members to be inspected. A filter indicates how many facts it hides. Limiting the canvas never deletes model facts.
 
-### 21.4 Datos y rendimiento
+### 21.4 Data and performance
 
-El navegador no debe descargar todas las capturas brutas ni hacer layout de todo un grafo grande para mostrar un resumen. Usar índices, búsqueda, paginación y consultas por vecindario con límites explícitos.
+The browser must not download all raw captures or lay out an entire large graph to display a summary. Use indexes, search, pagination, and neighborhood queries with explicit limits.
 
-Un servidor local puede leer el bundle completo o mantener índices; la UI solo recibe lo solicitado. Un reporte estático puede incorporar particiones precomputadas y un índice de búsqueda.
+A local server may read the full bundle or maintain indexes; the UI receives only what is requested. A static report may include precomputed partitions and a search index.
 
-Las tablas de muchos tests se virtualizan. Los layouts son derivados y no afectan IDs ni hashes semánticos. Se preservan zoom, selección y filtros durante la navegación.
+Tables containing many tests are virtualized. Layouts are derived and do not affect IDs or semantic hashes. Preserve zoom, selection, and filters during navigation.
 
-### 21.5 Presentación de cobertura
+### 21.5 Coverage presentation
 
-Separar:
+Distinguish:
 
-- Cobertura de líneas/instrucciones, funciones y ramas cuando se mida.
-- Cobertura atribuible a un caso frente a una suite.
-- Archivos/puntos sin ejecución observada.
-- Archivos fuera del ámbito o sin instrumentación.
-- Evidencia histórica, heredada, actual, parcial o incompatible.
-- Dependencias estáticas que no constituyen ejecución medida.
+- Line/instruction, function, and branch coverage where measured.
+- Coverage attributable to a case versus a suite.
+- Files/points without observed execution.
+- Files outside scope or without instrumentation.
+- Historical, inherited, current, partial, or incompatible evidence.
+- Static dependencies that do not constitute measured execution.
 
-Un porcentaje de coverage usa un denominador conocido de puntos instrumentables; no solo los archivos que aparecieron en el reporte. Si el denominador es desconocido, se indica y no se muestra un «100 %» de todo el proyecto.
+A coverage percentage uses a known denominator of instrumentable points, not merely files appearing in a report. If the denominator is unknown, indicate that and do not display “100%” for the whole project.
 
-### 21.6 Accesibilidad y aceptación
+### 21.6 Accessibility and acceptance
 
-Cada relación y motivo debe ser consultable mediante una tabla o lista, además del canvas. Navegación por teclado, etiquetas comprensibles y ausencia de dependencia exclusiva del color.
+Every relationship and reason must be inspectable through a table or list as well as the canvas. Support keyboard navigation, understandable labels, and communication that does not rely solely on color.
 
-La aceptación incluye un bundle ajeno a la demo, filtros combinados, búsqueda de nodos no renderizados, locators históricos, una captura parcial y un grafo de tamaño acordado en P1.
+Acceptance includes a bundle unrelated to the demo, combined filters, searching for unrendered nodes, historical locators, a partial capture, and a graph of the size agreed in P1.
 
-## 22. Skill y SDD de incorporación
+## 22. Skill and onboarding SDD
 
-### 22.1 Responsabilidad de la skill
+### 22.1 Skill responsibility
 
-La skill es el mecanismo para aplicar este método a un proyecto y producir herramientas repetibles. La IA puede escribir un nuevo extractor o fixture, pero la corrección de sus hechos se demuestra con el corpus y los checks.
+The skill applies this method to a project and produces repeatable tools. AI may write a new extractor or fixture, but the correctness of its facts is demonstrated through the corpus and checks.
 
-El resultado instalado funciona desde CLI y CI sin sesión de chat, acceso al modelo ni intervención de la skill para cada commit.
+The installed result works through CLI and CI without a chat session, model access, or skill intervention on every commit.
 
-### 22.2 Flujo de incorporación
+### 22.2 Onboarding workflow
 
-1. Leer reglas del repositorio y ubicar su estado de trabajo.
-2. Inspeccionar sin asumir tecnología ni modificar el producto.
-3. Reutilizar adaptadores compatibles y documentar diferencias.
-4. Crear perfil de necesidades y SDD de incorporación.
-5. Preguntar solo decisiones materiales que el repositorio no resuelva.
-6. Implementar adaptadores/configuración por fases, con evidencias de conformidad.
-7. Ejecutar baseline en el entorno previsto y revisar integridad/atribución.
-8. Incorporar CLI, wrapper de CI y UI común.
-9. Validar selección frente a ejecución completa y cambios controlados.
-10. Entregar operación, límites, actualización y estado reanudable.
+1. Read repository rules and locate its working state.
+2. Inspect without assuming technology or modifying the product.
+3. Reuse compatible adapters and document differences.
+4. Create a needs profile and onboarding SDD.
+5. Ask only about material decisions the repository does not resolve.
+6. Implement adapters/configuration in phases, with conformance evidence.
+7. Run the baseline in the intended environment and review integrity/attribution.
+8. Add the CLI, CI wrapper, and common UI.
+9. Validate selection against full execution and controlled changes.
+10. Deliver operation, limitations, updates, and resumable state.
 
-Si el usuario autoriza toda la incorporación, esa autorización puede abarcar sus fases. Si limita la instrucción a una fase, se respeta ese alcance. El SDD de incorporación debe expresar el modo elegido.
+If the user authorizes the entire onboarding, that authorization may span its phases. If the instruction is limited to one phase, respect that scope. The onboarding SDD must state the chosen mode.
 
-### 22.3 Contenido del paquete
+### 22.3 Package contents
 
-`SKILL.md` con flujo e invariantes; referencias por ecosistema cargadas a demanda; esquemas y ejemplos del bundle; plantillas de SDD/perfil/estado; corpus común; herramientas para generar o validar adaptadores; guía de CI y recuperación.
+`SKILL.md` with workflow and invariants; ecosystem references loaded on demand; bundle schemas and examples; SDD/profile/state templates; common corpus; adapter generation or validation tools; CI and recovery guidance.
 
-Las referencias no se cargan todas en cada turno. La skill debe localizar primero el stack y leer únicamente los recursos pertinentes. La distribución de núcleo/UI se fija en P8 y debe poder actualizarse sin copiar implementaciones divergentes por proyecto.
+Do not load every reference on every turn. The skill first identifies the stack and reads only relevant resources. Core/UI distribution is established in P8 and must support updates without copying divergent implementations into each project.
 
-### 22.4 Límites de generación asistida
+### 22.4 Assisted-generation limits
 
-- No reemplazar una construcción desconocida por un enlace plausible.
-- No crear una lista fija de tests esperados para que una demo parezca correcta.
-- No modificar lógica del producto para obtener una selección más pequeña.
-- No introducir instrumentación funcionalmente intrusiva sin justificarla y comprobar equivalencia.
-- No declarar soporte de versión por haber instalado el paquete.
-- No reducir el fallback para cumplir un objetivo de ahorro.
+- Do not replace an unknown construct with a plausible link.
+- Do not create a fixed list of expected tests to make a demo look correct.
+- Do not modify product logic to obtain a smaller selection.
+- Do not introduce functionally intrusive instrumentation without justification and equivalence checks.
+- Do not declare version support merely because the package was installed.
+- Do not reduce fallback to meet a savings target.
 
-La misma inspección capturada debe alimentar de forma determinista el núcleo. La redacción libre del informe o el código propuesto por la skill pueden variar; esa variación no forma parte del algoritmo autoritativo de producción.
+The same captured inspection must feed the core deterministically. Free-form report wording or code proposed by the skill may vary; that variation is not part of the authoritative production algorithm.
 
-### 22.5 Mantenimiento
+### 22.5 Maintenance
 
-Una nueva versión de adaptador, esquema o policy publica migración, corpus superado y regla de invalidación. Los proyectos fijan su versión; no cambian de comportamiento por una actualización silenciosa de la skill.
+A new adapter, schema, or policy version publishes its migration, passed corpus, and invalidation rule. Projects pin their versions; behavior must not change through silent skill updates.
 
-La instalación repetida debe reconocer los archivos administrados y cambios locales. Si hay divergencias, produce un diff y una migración concreta; no sobrescribe trabajo ajeno de forma ciega.
+Repeated installation must recognize managed files and local changes. If they diverge, produce a diff and concrete migration; do not blindly overwrite others' work.
 
-## 23. Diagnósticos y comportamiento ante fallos
+## 23. Diagnostics and failure behavior
 
-Todo diagnóstico debe incluir: código estable, mensaje, localizador cuando exista, capacidad afectada, ámbito, acción de selección y recuperación sugerida.
+Every diagnostic must include a stable code, message, locator where available, affected capability, scope, selection action, and suggested recovery.
 
-| Código conceptual | Ejemplo | Consecuencia |
+| Conceptual code | Example | Consequence |
 | --- | --- | --- |
-| `unsupported-pattern` | Registro dinámico no soportado. | Ampliar ámbito demostrable o catálogo. |
-| `ambiguous-resolution` | Varios destinos sin conjunto cerrado. | No elegir uno; ampliar. |
-| `parse-failed` | Archivo que el adaptador no puede analizar. | No conservar silenciosamente extracción antigua como actual. |
-| `source-unavailable` | Proveedor o fuente histórica ausente. | Declarar límite y tests no disponibles. |
-| `catalogue-incomplete` | Enumeración parcial o parametrización no identificable. | Grupo más amplio o ejecución completa del runner. |
-| `capture-incomplete` | Falta un worker, shard o volcado. | No certificar exclusiones de ese ámbito. |
-| `attribution-ambiguous` | Contadores compartidos entre casos. | Medir/seleccionar grupo o aislar captura. |
-| `source-map-invalid` | Build y source map no coinciden. | Cobertura sin precisión de origen; ampliar. |
-| `stale-evidence` | Cambió test/setup/dependencia relevante. | Selección por histórico más ampliación; recaptura. |
-| `baseline-incompatible` | Otra base, versión o entorno. | Recuperar compatible o suite completa. |
-| `artifact-untrusted` | Procedencia no autorizada para exclusión. | No usarlo como referencia; fallback o error. |
-| `required-test-unavailable` | Suite seleccionada sin servicio necesario. | Gate incompleto, nunca pasado. |
-| `execution-mismatch` | Resultados no corresponden al plan. | Ejecución inválida. |
-| `resource-limit` | Presupuesto de análisis agotado. | Ampliar si puede hacerse correctamente o fallar. |
+| `unsupported-pattern` | Unsupported dynamic registry. | Broaden demonstrated scope or catalogue. |
+| `ambiguous-resolution` | Multiple targets without a closed set. | Do not choose one; broaden. |
+| `parse-failed` | File the adapter cannot analyze. | Do not silently preserve old extraction as current. |
+| `source-unavailable` | Missing provider or historical source. | Declare the boundary and unavailable tests. |
+| `catalogue-incomplete` | Partial enumeration or unidentifiable parameterization. | Use a larger group or full runner execution. |
+| `capture-incomplete` | Missing worker, shard, or flush. | Do not certify exclusions for that scope. |
+| `attribution-ambiguous` | Shared counters across cases. | Measure/select a group or isolate capture. |
+| `source-map-invalid` | Build and source map do not match. | Coverage lacks source precision; broaden. |
+| `stale-evidence` | Relevant test/setup/dependency changed. | Historical selection plus expansion; recapture. |
+| `baseline-incompatible` | Different base, version, or environment. | Recover a compatible baseline or run the full suite. |
+| `artifact-untrusted` | Provenance not authorized for exclusion. | Do not use as reference; fallback or error. |
+| `required-test-unavailable` | Selected suite lacks a required service. | Incomplete gate, never passed. |
+| `execution-mismatch` | Results do not match the plan. | Invalid execution. |
+| `resource-limit` | Analysis budget exhausted. | Broaden if correctness can be preserved, or fail. |
 
-Un diagnóstico puede tener ámbito de nodo, paquete, suite, runner, repositorio o catálogo. Acotarlo requiere evidencia; el tamaño conveniente de un subset no es una justificación.
+A diagnostic may be scoped to a node, package, suite, runner, repository, or catalogue. Bounding it requires evidence; a convenient subset size is not justification.
 
-Los fallos operativos también se conservan en los reportes. Reintentar con éxito no elimina la explicación del intento fallido.
+Operational failures are also retained in reports. A successful retry does not remove the failed attempt's explanation.
 
-## 24. Validación y medición
+## 24. Validation and measurement
 
-### 24.1 Tres capas
+### 24.1 Three layers
 
-**Conformidad del adaptador:** comprobar que los hechos y diagnósticos emitidos corresponden al corpus y las versiones declaradas.
+**Adapter conformance:** verify that emitted facts and diagnostics match the corpus and declared versions.
 
-**Corrección del núcleo:** invariantes, normalización, vigencia, unión temporal, propagación y equivalencia incremental/completa.
+**Core correctness:** invariants, normalization, validity, temporal union, propagation, and incremental/full equivalence.
 
-**Validación empírica del proyecto:** comparar selección y suite completa sobre las mismas entradas y condiciones, con cambios reales o controlados.
+**Empirical project validation:** compare selection and full suite on the same inputs and conditions, using real or controlled changes.
 
-Ninguna capa por sí sola demuestra que todos los comportamientos del producto estén cubiertos por tests.
+No layer alone proves that tests cover every product behavior.
 
-### 24.2 Corpus obligatorio
+### 24.2 Required corpus
 
-Como mínimo: imports y reexports; alias/exports condicionales; símbolos homónimos; ciclos; archivos desconectados; altas/bajas/renombres; errores de parseo; llamadas dinámicas; efectos de módulo; recursos; fixtures; mocks; tests parametrizados; duplicados de identidad; variantes; generación de código; límites de contrato.
+At minimum: imports and reexports; aliases/conditional exports; namesake symbols; cycles; disconnected files; additions/deletions/renames; parse errors; dynamic calls; module effects; resources; fixtures; mocks; parameterized tests; duplicate identities; variants; code generation; contract boundaries.
 
-La instrumentación añade: hooks comunes, concurrencia intercalada, procesos hijos, worker tardío, retry, fallo antes del flush, pérdida de telemetría, navegación, sourcemap inválido y agrupación por suite.
+Instrumentation adds: shared hooks, interleaved concurrency, child processes, late workers, retries, failure before flush, telemetry loss, navigation, invalid source maps, and suite grouping.
 
-Cada caso define el hecho esperado o el diagnóstico conservador esperado. Un negativo no puede aprobar porque el extractor inventó un enlace que casualmente selecciona más tests.
+Each case defines the expected fact or conservative diagnostic. A negative case cannot pass because the extractor invented a link that happens to select more tests.
 
-### 24.3 Comparación selected/full
+### 24.3 Selected/full comparison
 
-Para cada cambio de ensayo:
+For each experimental change:
 
-1. Fijar base, destino, baseline, catálogo, variantes y entorno.
-2. Calcular selección antes de ver el resultado de la suite completa.
-3. Ejecutar selected y full sobre el mismo código, con entornos de datos independientes y equivalentes.
-4. Comparar resultados por unidad y conservar los reportes.
-5. Investigar diferencias, flakiness y fallos previos.
+1. Pin base, target, baseline, catalogue, variants, and environment.
+2. Calculate selection before seeing full-suite results.
+3. Execute selected and full runs on the same code, using independent equivalent data environments.
+4. Compare results per unit and preserve reports.
+5. Investigate differences, flakiness, and pre-existing failures.
 
-Un fallo relevante detectado por full cuyo test quedó fuera de selected es una omisión que impide cerrar aceptación hasta corregir el sistema o ampliar el ámbito. Un fallo de infraestructura se clasifica y no se convierte en evidencia de corrección.
+A relevant failure found by full whose test was excluded from selected is an omission that prevents acceptance until the system is corrected or scope broadened. Infrastructure failures are classified and do not become correctness evidence.
 
-### 24.4 Cambios controlados
+### 24.4 Controlled changes
 
-Usar mutaciones o defectos representativos de comportamiento, resolución y configuración. Deben incluir cambios que alteren rutas antes no observadas, borrados, contratos, estilos/recursos y condiciones dinámicas.
+Use mutations or defects representative of behavior, resolution, and configuration. Include changes affecting previously unobserved paths, deletions, contracts, styles/resources, and dynamic conditions.
 
-Registrar mutantes que full no detecta: revelan límites de los tests, no aciertos del selector. Los resultados del selector se evalúan sobre defectos detectables por la suite completa.
+Record mutants that full does not detect: they reveal test limitations, not selector successes. Evaluate selector results on defects detectable by the full suite.
 
-No diseñar solo mutantes triviales dentro de líneas que ya aparecen en coverage ni introducir reglas de producción para sus nombres.
+Do not design only trivial mutants within lines already present in coverage or introduce production rules for their names.
 
-### 24.5 Métricas
+### 24.5 Metrics
 
-- Tests/casos/unidades conocidos, disponibles y medidos.
-- Evidencia por clase, vigencia y completitud.
-- Referencias no resueltas y porcentaje de cambios que causan fallback.
-- Omisiones observadas y fallos detectados por full que selected habría perdido.
-- Tests y tiempo seleccionados frente a full.
-- Coste total: análisis, descarga, preparación, ejecución, captura y refresco.
-- Overhead de instrumentación y variación de comportamiento.
-- Latencia de check, memoria, tamaño de artefactos y caché.
-- Áreas instrumentables sin ejecución observada y áreas no instrumentadas.
+- Known, available, and measured tests/cases/units.
+- Evidence by class, validity, and completeness.
+- Unresolved references and percentage of changes causing fallback.
+- Observed omissions and full-detected failures that selected would miss.
+- Selected tests and duration versus full.
+- Total cost: analysis, download, preparation, execution, capture, and refresh.
+- Instrumentation overhead and behavioral variation.
+- Check latency, memory, artifact size, and cache.
+- Instrumentable areas without observed execution and uninstrumented areas.
 
-Los porcentajes deben mostrar denominadores y ámbito. «Cero omisiones» se informa sobre un corpus y periodo concretos, con su tamaño; no es una garantía universal.
+Percentages must show denominators and scope. “Zero omissions” is reported for a specific corpus and period, with its size; it is not a universal guarantee.
 
-### 24.6 Equivalencia y reproducibilidad
+### 24.6 Equivalence and reproducibility
 
-Dos reconstrucciones de las mismas entradas producen el mismo grafo normalizado. Replay de los mismos artefactos produce el mismo análisis. Caché caliente/fría y orden de shards no alteran resultado.
+Two rebuilds from the same inputs produce the same normalized graph. Replaying the same artifacts produces the same analysis. Warm/cold cache and shard order do not change results.
 
-La actualización incremental se compara con reconstrucción completa en secuencias de ediciones. Si difieren, se bloquea esa optimización y se usa reconstrucción completa hasta resolverlo.
+Compare incremental updates with complete rebuilds across edit sequences. If they differ, block that optimization and use full rebuilding until resolved.
 
-### 24.7 Validación de UI y CI
+### 24.7 UI and CI validation
 
-UI: búsqueda global, filtros, conteos ocultos, locators históricos, teclado y rendimiento del tamaño acordado.
+UI: global search, filters, hidden counts, historical locators, keyboard access, and performance at the agreed size.
 
-CI: baseline ausente, artefacto incompatible, procedencia inválida, merge base ausente, destino avanzado, shard perdido, resultado parcial y test requerido no disponible.
+CI: missing baseline, incompatible artifact, invalid provenance, missing merge base, advanced target, lost shard, partial result, and required unavailable test.
 
-Cada fase ejecuta las comprobaciones pertinentes a su cambio; no repite todas las suites por una edición documental.
+Each phase runs checks relevant to its changes; it does not repeat every suite for a documentation edit.
 
-## 25. Relación con la implementación actual
+## 25. Relationship to the current implementation
 
-El laboratorio de origen aporta patrones que deben evaluarse antes de reutilizar. Estas rutas describen el antecedente y no son dependencias de la distribución:
+The source lab provides patterns to evaluate before reuse. These paths describe the antecedent and are not distribution dependencies:
 
-- `packages/impact-engine/src/schema-v2.ts`: clases de evidencia, localizadores, snapshots y diagnósticos.
-- `scripts/graph`: inventario/extracción, normalización, archivos y persistencia.
-- `scripts/graph/analyze.ts`: análisis anterior/posterior y fallback conservador.
-- `packages/impact-engine/src/index.ts`: propagación y explicaciones.
-- `packages/telemetry/src`: contexto y spans.
-- `apps/demo/src/components/DiscoveryExplorer.tsx`: navegación de evidencia.
-- `docs/G9-FINAL-AUDIT.md`: límites y evidencias de la demo.
+- `packages/impact-engine/src/schema-v2.ts`: evidence classes, locators, snapshots, and diagnostics.
+- `scripts/graph`: inventory/extraction, normalization, files, and persistence.
+- `scripts/graph/analyze.ts`: before/after analysis and conservative fallback.
+- `packages/impact-engine/src/index.ts`: propagation and explanations.
+- `packages/telemetry/src`: context and spans.
+- `apps/demo/src/components/DiscoveryExplorer.tsx`: evidence navigation.
+- `docs/G9-FINAL-AUDIT.md`: demo limitations and evidence.
 
-La arquitectura actual usa una proyección de compatibilidad y sujetos revisados de tests. El schema admite coverage, pero esa representación no prueba que haya captura por test implementada. G7 describe trazas y deja explícito que no equivalen a coverage.
+The current architecture uses a compatibility projection and reviewed test subjects. The schema permits coverage, but that representation does not prove that per-test capture is implemented. G7 describes traces and explicitly states that they are not coverage.
 
-El diseño portable elimina la dependencia obligatoria del catálogo de login, sus títulos con IDs y las relaciones manuales de sujetos como base de exclusión. La identidad de los nuevos catálogos se deriva del runner o de claves reproducibles.
+The portable design removes mandatory dependence on the login catalogue, its ID-bearing titles, and manual subject relationships as an exclusion basis. New catalogue identities derive from the runner or reproducible keys.
 
-P1 comprobará qué componentes se reutilizan sin arrastrar supuestos de la demo; P2 fijará si el contrato portable es una evolución o un formato nuevo con importador. No se modifica `impact/graph.json` ni se reetiquetan sus declaraciones como cobertura medida por haber escrito esta especificación.
+P1 will determine which components can be reused without carrying demo assumptions; P2 will establish whether the portable contract evolves the existing format or introduces a new one with an importer. Writing this specification does not modify `impact/graph.json` or relabel its declarations as measured coverage.
 
-La UI puede reutilizar diseño y componentes, conservando solo lo que funcione con los artefactos comunes y sus filtros. Las restricciones del SDD de demo sobre presentación o tamaños no se transfieren automáticamente al producto portable.
+The UI may reuse design and components, retaining only what works with common artifacts and filters. Demo-SDD presentation or size restrictions do not automatically transfer to the portable product.
 
-E0 extrae canonicalización/hash y añade una interfaz de consulta independiente. El importador v2 conserva evidencia y localizadores, pero no importa políticas legacy como garantía de selección. No se ha extraído todavía el motor de selección ni el descubridor completo porque dependen de sujetos revisados y configuración específica del laboratorio.
+E0 extracts canonicalization/hashing and adds an independent inspection interface. The v2 importer preserves evidence and locators but does not import legacy policies as selection guarantees. The selection engine and full discoverer have not yet been extracted because they depend on reviewed subjects and lab-specific configuration.
 
-## 26. Fases de desarrollo y nivel de razonamiento
+## 26. Development phases and reasoning level
 
-### 26.1 Protocolo de trabajo
+### 26.1 Working protocol
 
-La petición inicial autorizó redactar el SDD y su estado inicial. La instrucción posterior de empaquetarlo en la rama disponible autoriza E0: preparar una raíz independiente exportable, una interfaz común y su forma de uso. P1–P8 se ejecutan cuando el usuario indique una fase o un alcance mayor.
+The initial request authorized drafting the SDD and its initial state. The subsequent instruction to package it on the available branch authorizes E0: prepare an independent exportable root, a common interface, and its usage. P1–P8 run when the user specifies a phase or broader scope.
 
-Una instrucción «sigue» sin otro alcance inicia la siguiente fase pendiente, con sus correcciones, validación y documentación. Una autorización más amplia del usuario prevalece y permite continuar dentro de ese alcance. No se repiten solicitudes de permiso para trabajo ya autorizado.
+An instruction to “continue” without another scope starts the next pending phase, including corrections, validation, and documentation. Broader user authorization takes precedence and allows work within that scope. Do not repeat permission requests for already authorized work.
 
-Cada fase debe:
+Each phase must:
 
-1. Leer este SDD y el estado vigente, identificar entradas y dependencias.
-2. Registrar decisiones, archivos, límites y criterios concretos del ámbito.
-3. Implementar y comprobar lo autorizado.
-4. Registrar comandos y resultados reales, incluidos fallos e incidencias.
-5. Declarar completa solo si cumple aceptación; documentar pendientes sin convertirlos en éxitos.
-6. Entregar cambios, evidencia, limitaciones y siguiente acción.
+1. Read this SDD and current state, identifying inputs and dependencies.
+2. Record decisions, files, limitations, and specific scope criteria.
+3. Implement and verify authorized work.
+4. Record actual commands and results, including failures and incidents.
+5. Declare completion only when acceptance is met; document pending work without presenting it as success.
+6. Deliver changes, evidence, limitations, and the next action.
 
-El registro debe permitir continuar en otro hilo sin depender del historial de chat. Las correcciones a una fase pertenecen a esa fase.
+The log must allow continuation in another thread without relying on chat history. Corrections to a phase belong to that phase.
 
-El agente no cambia automáticamente de modelo ni crea subagentes. El usuario elige la herramienta y su capacidad. Los niveles siguientes son recomendaciones de razonamiento, no requisitos de un proveedor.
+The agent does not automatically change models or create subagents. The user chooses the tool and its capability. The following levels are reasoning recommendations, not provider requirements.
 
-### 26.2 Coste y niveles
+### 26.2 Cost and levels
 
-- **Bajo:** cambios mecánicos con contrato y ejemplos ya definidos: documentación, plantillas, filtros simples y wiring.
-- **Medio:** implementación acotada, uso de APIs documentadas, adaptación de un runner conocido y corrección con corpus disponible.
-- **Alto:** decisiones sobre identidad/vigencia, atribución concurrente, reglas que excluyen tests y diagnóstico de omisiones.
+- **Low:** mechanical changes with an established contract and examples: documentation, templates, simple filters, and wiring.
+- **Medium:** scoped implementation, documented APIs, adapting a known runner, and corrections with an available corpus.
+- **High:** decisions on identity/validity, concurrent attribution, test-exclusion rules, and omission diagnosis.
 
-Usar nivel medio como punto de partida de implementación. Reservar nivel alto para la decisión o revisión concreta que lo requiera; no implica mantenerlo durante toda la fase. Reducir contexto a interfaces, evidencia y archivos pertinentes.
+Use medium as the implementation starting point. Reserve high reasoning for the specific decision or review requiring it; this does not mean maintaining it throughout the phase. Limit context to relevant interfaces, evidence, and files.
 
-| Fase | Entrega | Nivel recomendado |
+| Phase | Delivery | Recommended level |
 | --- | --- | --- |
-| P0 | Este SDD y estado inicial | Medio; revisión alta puntual de invariantes. |
-| E0 | Raíz exportable, CLI de inspección, visor y skill inicial | Medio; bajo para empaquetado mecánico. |
-| P1 | Inspección, necesidades y selección del primer ámbito | Medio. |
-| P2 | Contrato portable, corpus y núcleo de validación | Medio; alto en identidad, vigencia y compatibilidad. |
-| P3 | Grafo estático y catálogo del primer adaptador | Medio. |
-| P4 | Cobertura atribuible y correlación OTel necesaria | Medio; alto si hay atribución concurrente/distribuida. |
-| P5 | Motor de impacto, exclusión e incrementalidad | Medio; revisión alta puntual de las condiciones de exclusión. |
-| P6 | CLI operativa, mantenimiento y primer wrapper CI | Medio; bajo para plantillas ya definidas. |
-| P7 | UI común, filtros y escala | Medio; bajo para presentación mecánica. |
-| P8 | Skill, segunda incorporación y auditoría de salida | Medio; revisión alta de omisiones y límites antes de aplicación. |
+| P0 | This SDD and initial state | Medium; targeted high-level invariant review. |
+| E0 | Exportable root, inspection CLI, viewer, and initial skill | Medium; low for mechanical packaging. |
+| P1 | Inspection, needs, and first-scope selection | Medium. |
+| P2 | Portable contract, corpus, and validation core | Medium; high for identity, validity, and compatibility. |
+| P3 | First adapter's static graph and catalogue | Medium. |
+| P4 | Attributable coverage and necessary OTel correlation | Medium; high for concurrent/distributed attribution. |
+| P5 | Impact engine, exclusion, and incrementality | Medium; targeted high-level review of exclusion conditions. |
+| P6 | Operational CLI, maintenance, and first CI wrapper | Medium; low for established templates. |
+| P7 | Common UI, filters, and scale | Medium; low for mechanical presentation changes. |
+| P8 | Skill, second onboarding, and exit audit | Medium; high-level review of omissions and limitations before enforcement. |
 
-No es necesario aumentar capacidad para errores de sintaxis, ajustes de formato o tareas con solución conocida. Escalar cuando haya ambigüedad semántica no resuelta, resultados contradictorios, nueva política de exclusión o una omisión que el corpus no explique.
+There is no need to increase capability for syntax errors, formatting adjustments, or tasks with known solutions. Escalate for unresolved semantic ambiguity, contradictory results, a new exclusion policy, or an omission the corpus cannot explain.
 
-### P0 — Especificación general
+### P0 — General specification
 
-**Entrada:** conversación de definición y autorización de generar el SDD.
+**Input:** definition conversation and authorization to generate the SDD.
 
-**Trabajo:** recoger decisiones, estándares, invariantes, interfaces, operación local/CI, fases y aceptación. Revisar antecedentes y documentación oficial pertinente.
+**Work:** capture decisions, standards, invariants, interfaces, local/CI operation, phases, and acceptance. Review background and relevant official documentation.
 
-**Entregables:** este documento, registro inicial y enlace desde README.
+**Deliverables:** this document, initial log, and a README link.
 
-**Aceptación:** requisitos R01–R18 trazables; determinismo y límites diferenciados; flujo de baseline/check/CI definido; fases con nivel de razonamiento sin modelos concretos. No se exige implementación para cerrar P0.
+**Acceptance:** traceable R01–R18 requirements; distinguished determinism and limitations; defined baseline/check/CI workflow; phases recommending reasoning levels without specific models. Implementation is not required to close P0.
 
-**Siguiente:** P1 necesita uno o varios repositorios de referencia accesibles. La propuesta no los presupone.
+**Next:** P1 needs one or more accessible reference repositories. The proposal does not assume them.
 
-### E0 — Extracción y empaquetado independiente
+### E0 — Independent extraction and packaging
 
-**Entrada:** autorización posterior a P0 para preparar una base exportable desde la rama de trabajo.
+**Input:** authorization after P0 to prepare an exportable base from the working branch.
 
-**Trabajo:** crear una raíz autocontenida, mover SDD/estado, documentar uso final, separar UI genérica de escenarios/servicios, incorporar puente de datos v2 y empaquetar una skill inicial. Añadir un exportador a directorio vacío y comprobar que la copia funciona sin el laboratorio.
+**Work:** create a self-contained root, move SDD/state, document final usage, separate generic UI from scenarios/services, add a v2 data bridge, and package an initial skill. Add an exporter to an empty directory and verify the copy works without the lab.
 
-**Entregables:** paquete Node sin dependencias de la demo, CLI de inspección/consulta, visor con filtros y paginación, skill y exportador. Los comandos no implementados deben fallar explícitamente.
+**Deliverables:** Node package without demo dependencies, inspection/query CLI, viewer with filters and pagination, skill, and exporter. Unimplemented commands must fail explicitly.
 
-**Aceptación:** exportación completa a directorio vacío; ninguna importación de runtime fuera de la raíz; ejemplo señalado como ilustrativo; declaraciones v2 preservadas como declaraciones; UI sin servicios del laboratorio; documentación y skill autocontenidas. Validación de exportación, API/CLI, filtros y contratos de integridad.
+**Acceptance:** complete export to an empty directory; no runtime imports outside the root; sample clearly marked illustrative; v2 declarations preserved as declarations; UI without lab services; self-contained documentation and skill. Validate export, API/CLI, filters, and integrity contracts.
 
-**Nivel:** medio para separar interfaces; bajo para estructura y documentación. No habilita declarar P1–P8 completas.
+**Level:** medium for separating interfaces; low for structure and documentation. This does not authorize declaring P1–P8 complete.
 
-### P1 — Inspección y necesidades
+### P1 — Inspection and needs
 
-**Entrada:** P0 y un repositorio/checkout que el usuario designe. Si aún no está disponible, se puede auditar la reutilización interna, pero no completar la inspección de un piloto inexistente.
+**Input:** P0 and a repository/checkout designated by the user. If unavailable, internal reuse can be audited, but inspection of a nonexistent pilot cannot be completed.
 
-**Trabajo:**
+**Work:**
 
-- Auditar capacidades reales del código actual que se pretenda reutilizar.
-- Inspeccionar el repositorio piloto conforme a la sección 7.
-- Identificar rutas estáticas, zonas dinámicas, categorías de tests y variantes.
-- Verificar cómo enumera, selecciona y reporta cada runner.
-- Evaluar mecanismos nativos de cobertura y posibilidades de atribución.
-- Identificar contratos y disponibilidad de proveedores.
-- Medir baseline operativo de duración/tamaño con las comprobaciones autorizadas.
-- Elegir el primer adaptador y definir ámbito soportado.
-- Acordar presupuesto de rendimiento y almacenamiento.
-- Redactar SDD de incorporación, matriz de capacidades y ADR de herramientas.
+- Audit actual capabilities of current code considered for reuse.
+- Inspect the pilot repository according to section 7.
+- Identify static paths, dynamic areas, test categories, and variants.
+- Verify how each runner enumerates, selects, and reports.
+- Evaluate native coverage mechanisms and attribution possibilities.
+- Identify contracts and provider availability.
+- Measure the operational duration/size baseline using authorized checks.
+- Choose the first adapter and define its supported scope.
+- Agree on a performance and storage budget.
+- Draft the onboarding SDD, capability matrix, and tool ADR.
 
-**Entregables:** perfil de proyecto, necesidades, alcance, plan de adaptador, diseño de entorno y criterios cuantificables.
+**Deliverables:** project profile, needs, scope, adapter plan, environment design, and quantifiable criteria.
 
-**Aceptación:**
+**Acceptance:**
 
-- Las capacidades se sustentan en archivos/documentación o ensayos identificados.
-- Se conoce qué se puede medir por caso y qué queda a nivel de grupo.
-- No hay dependencias obligatorias del ejemplo frontend de esta conversación.
-- La elección de herramientas se justifica por compatibilidad, precisión y coste.
-- Las preguntas materiales pendientes tienen efecto y siguiente acción explícitos.
+- Capabilities are supported by files/documentation or identified experiments.
+- Per-case versus group-level measurement possibilities are known.
+- There is no mandatory dependency on this conversation's frontend example.
+- Tool choices are justified by compatibility, precision, and cost.
+- Pending material questions have explicit effects and next actions.
 
-**Nivel:** medio; alto puntual si varias alternativas requieren cambiar las garantías de exclusión.
+**Level:** medium; targeted high reasoning if alternatives require changing exclusion guarantees.
 
-### P2 — Contrato, corpus y validación
+### P2 — Contract, corpus, and validation
 
-**Entrada:** P1, salvo partes del contrato común que puedan desarrollarse sin detalles del piloto.
+**Input:** P1, except common-contract parts that can be developed without pilot details.
 
-**Trabajo:**
+**Work:**
 
-- Publicar esquemas de bundle, grafo, catálogo, evidencia, diagnósticos, análisis y resultados.
-- Fijar identidad, rangos, canonicalización y cálculo de hashes.
-- Definir versionado, extensiones, compatibilidad y rechazo de capacidades desconocidas.
-- Implementar validador de hashes, referencias, duplicados y estados.
-- Crear corpus común y corpus inicial del adaptador, con negativos.
-- Establecer certificados de captura e herencia.
-- Definir propagación por tipo de relación y precondiciones de exclusión.
-- Resolver mediante ADR si se evoluciona el contrato v2 o se introduce formato portable con importación explícita.
-- Crear bundles de ejemplo independientes del login, al menos uno con coverage parcial y otro con frontera externa.
+- Publish bundle, graph, catalogue, evidence, diagnostic, analysis, and result schemas.
+- Pin identity, ranges, canonicalization, and hash calculation.
+- Define versioning, extensions, compatibility, and rejection of unknown capabilities.
+- Implement validation of hashes, references, duplicates, and statuses.
+- Create the common corpus and initial adapter corpus, including negatives.
+- Establish capture and inheritance certificates.
+- Define propagation by relationship type and exclusion preconditions.
+- Decide through an ADR whether to evolve the v2 contract or introduce a portable format with explicit import.
+- Create example bundles independent of login, including at least one with partial coverage and one with an external boundary.
 
-**Entregables:** esquemas, normalizador/validador, fixtures, contrato de adaptadores y ADR.
+**Deliverables:** schemas, normalizer/validator, fixtures, adapter contract, and ADR.
 
-**Aceptación:**
+**Acceptance:**
 
-- Un bundle válido se lee sin conocimiento de su proyecto.
-- Se rechazan colisiones, hashes incorrectos, referencias colgantes y versiones incompatibles.
-- Artefactos equivalentes producen identidad semántica igual.
-- Una declaración humana no puede presentarse como measured coverage.
-- Un conjunto de observaciones no puede hacerse pasar por captura completa sin sus comprobaciones.
-- Existe representación explícita de unidad de ejecución más gruesa que caso.
+- A valid bundle can be read without knowledge of its project.
+- Collisions, incorrect hashes, dangling references, and incompatible versions are rejected.
+- Equivalent artifacts produce equal semantic identity.
+- A human declaration cannot be presented as measured coverage.
+- An observation set cannot masquerade as a complete capture without its checks.
+- Execution units coarser than cases have an explicit representation.
 
-**Nivel:** medio para esquemas y código mecánico; alto para cerrar identidad, herencia y condiciones de compatibilidad.
+**Level:** medium for schemas and mechanical code; high to finalize identity, inheritance, and compatibility conditions.
 
-### P3 — Grafo estático y catálogo
+### P3 — Static graph and catalogue
 
-**Entrada:** contrato validable y adaptador elegido.
+**Input:** a validatable contract and chosen adapter.
 
-**Trabajo:**
+**Work:**
 
-- Inventariar todas las raíces, incluidos archivos desconectados.
-- Implementar resolución con herramientas del stack, conservando localizadores.
-- Emitir relaciones de módulos/símbolos/recursos soportadas y diagnósticos del resto.
-- Descubrir tests desde el runner o un mecanismo comprobado.
-- Modelar parametrización, grupos, mocks, hooks y variantes.
-- Asociar dependencias estáticas de tests sin convertirlas en ejecución.
-- Implementar reconstrucción completa reproducible y caché por contenido.
-- Medir la construcción; declarar si la actualización inicial es completa o incremental.
+- Inventory every root, including disconnected files.
+- Implement resolution with stack tools, preserving locators.
+- Emit supported module/symbol/resource relationships and diagnostics for the rest.
+- Discover tests through the runner or a verified mechanism.
+- Model parameterization, groups, mocks, hooks, and variants.
+- Associate static test dependencies without turning them into execution.
+- Implement reproducible full rebuilding and content-based caching.
+- Measure construction; declare whether initial updates are full or incremental.
 
-**Entregables:** primer adaptador estático, catálogo, snapshots y resultados del corpus.
+**Deliverables:** first static adapter, catalogue, snapshots, and corpus results.
 
-**Aceptación:**
+**Acceptance:**
 
-- Altas, bajas, reexports, alias y archivos desconectados se representan.
-- Los negativos generan diagnósticos, sin enlaces autoritativos falsos.
-- No se necesitan listas manuales de sujetos de tests ni IDs del login.
-- Un E2E no obtiene coverage de producto por lectura de título/selectores/URL.
-- Reconstrucciones equivalentes producen el mismo grafo.
-- Los hechos permiten navegar a bytes/rangos o configuración verificables.
+- Additions, deletions, reexports, aliases, and disconnected files are represented.
+- Negatives emit diagnostics without false authoritative links.
+- Manual test-subject lists and login IDs are unnecessary.
+- An E2E test does not acquire product coverage by reading its title/selectors/URL.
+- Equivalent rebuilds produce the same graph.
+- Facts allow navigation to verifiable bytes/ranges or configuration.
 
-**Nivel:** medio. Escalar solo decisiones de resolución que alteren las garantías.
+**Level:** medium. Escalate only resolution decisions affecting guarantees.
 
-### P4 — Instrumentación y evidencia por test
+### P4 — Instrumentation and per-test evidence
 
-**Entrada:** catálogo y fuentes/build identificables.
+**Input:** catalogue and identifiable sources/build.
 
-**Trabajo:**
+**Work:**
 
-- Implementar captura con mecanismo nativo o instrumentación mínima justificada.
-- Fijar protocolo de unidad, intento, hooks, procesos y cierre.
-- Verificar atribución con casos intercalados y trabajo tardío.
-- Implementar aislamiento o agrupación cuando no haya contadores contextuales fiables.
-- Normalizar puntos y sourcemaps, preservando reportes originales.
-- Vincular coverage con el catálogo y la revisión exacta.
-- Incorporar OTel donde haya una necesidad de contexto/observación real.
-- Validar pérdida de contexto, pérdida de exportación y revisión externa incompatible.
-- Generar baseline instrumentado con estados completos/parciales por ámbito.
-- Medir overhead y equivalencia funcional respecto al entorno habitual.
+- Implement capture with a native mechanism or justified minimal instrumentation.
+- Pin the protocol for units, attempts, hooks, processes, and closure.
+- Verify attribution with interleaved cases and late work.
+- Implement isolation or grouping without reliable contextual counters.
+- Normalize points and source maps, preserving original reports.
+- Link coverage to the catalogue and exact revision.
+- Add OTel where there is a real context/observation need.
+- Validate context loss, export loss, and incompatible external revisions.
+- Generate an instrumented baseline with complete/partial states per scope.
+- Measure overhead and functional equivalence against the normal environment.
 
-**Entregables:** adaptadores de captura/runner, datasets reales, informe de atribución y baseline.
+**Deliverables:** capture/runner adapters, real datasets, attribution report, and baseline.
 
-**Aceptación:**
+**Acceptance:**
 
-- Código exclusivo de dos tests no aparece atribuido al contrario en el corpus de aislamiento.
-- Una captura global mezclada degrada a grupo o provoca diagnóstico.
-- Retry, skip, fallo y flush perdido tienen estados diferentes.
-- La cobertura apunta al original correcto o declara degradación.
-- Las trazas no se presentan como coverage de funciones sin evidencia adicional.
-- En los tipos de test presentes y soportados se obtiene medición real; el resto queda con fallback visible.
-- No se exige infraestructura distribuida si el piloto no la necesita.
+- Code exclusive to either of two tests is not attributed to the other in the isolation corpus.
+- A mixed global capture degrades to a group or emits a diagnostic.
+- Retry, skip, failure, and missing flush have distinct statuses.
+- Coverage points to the correct original or declares degradation.
+- Traces are not presented as function coverage without additional evidence.
+- Present and supported test types have actual measurements; the remainder has visible fallback.
+- Distributed infrastructure is not required if the pilot does not need it.
 
-**Nivel:** medio. Alto para diseñar o revisar atribución concurrente/distribuida que no resuelva el ecosistema.
+**Level:** medium. High for designing or reviewing concurrent/distributed attribution not resolved by the ecosystem.
 
-### P5 — Impacto e incrementalidad
+### P5 — Impact and incrementality
 
-**Entrada:** grafo, catálogo, evidencia e invariantes disponibles.
+**Input:** available graph, catalogue, evidence, and invariants.
 
-**Trabajo:**
+**Work:**
 
-- Implementar diff de commits y working tree.
-- Analizar rangos base/destino, nuevas dependencias y eliminaciones.
-- Implementar propagación, ampliaciones, fronteras y explicaciones.
-- Incluir tests modificados/nuevos y dependencias de fixtures/configuración.
-- Validar exclusiones con alcance y vigencia.
-- Implementar herencia con certificados.
-- Añadir índices y extracción incremental cuando el adaptador pueda demostrar su invalidación.
-- Mantener reconstrucción completa como referencia de equivalencia.
-- Validar casos de cambio de flujo no observado por coverage anterior.
+- Implement commit and working-tree diffing.
+- Analyze base/target ranges, new dependencies, and deletions.
+- Implement propagation, expansions, boundaries, and explanations.
+- Include modified/new tests and fixture/configuration dependencies.
+- Validate exclusions with scope and validity.
+- Implement inheritance with certificates.
+- Add indexes and incremental extraction when the adapter can demonstrate its invalidation.
+- Retain full rebuilding as the equivalence reference.
+- Validate control-flow changes not observed by previous coverage.
 
-**Entregables:** núcleo de impacto, índices, análisis reproducibles y validación selected/full inicial.
+**Deliverables:** impact core, indexes, reproducible analyses, and initial selected/full validation.
 
-**Aceptación:**
+**Acceptance:**
 
-- Cada seleccionado tiene causa o regla conservadora explícita.
-- Cada exclusión identifica las condiciones que la permiten.
-- Pérdida de evidencia no reduce indebidamente selección.
-- Eliminaciones y rewiring no pierden consumidores anteriores.
-- Un cambio sin ámbito probado no devuelve vacío.
-- Check no ejecuta tests ni requiere modelo/servicios.
-- Incremental y full producen el mismo resultado en secuencias de edición.
-- Se publican medidas de rendimiento sobre el presupuesto de P1.
+- Every selected unit has an explicit cause or conservative rule.
+- Every exclusion identifies the conditions permitting it.
+- Evidence loss does not improperly reduce selection.
+- Deletions and rewiring do not lose previous consumers.
+- A change without demonstrated scope does not return an empty result.
+- Check runs no tests and requires no model/services.
+- Incremental and full versions produce the same result across edit sequences.
+- Performance measurements against the P1 budget are published.
 
-**Nivel:** medio para implementación; alto para revisar la lógica de exclusión y cualquier omisión.
+**Level:** medium for implementation; high for reviewing exclusion logic and any omission.
 
-### P6 — CLI, ciclo de baseline y CI
+### P6 — CLI, baseline lifecycle, and CI
 
-**Entrada:** núcleo y adaptadores operativos.
+**Input:** operational core and adapters.
 
-**Trabajo:**
+**Work:**
 
-- Materializar los comandos de la sección 19 y códigos de salida.
-- Fijar planes, entradas y validación frente a cambios entre check/run.
-- Traducir selección a argv de runner con matching exacto o ampliación explícita.
-- Implementar agregación de shards y verificación de resultados esperados.
-- Implementar create/update/publish, export/import, procedencia y retención.
-- Añadir un primer wrapper de CI elegido por evidencia de P1.
-- Resolver merge-base, merges simulados, baselines ausentes y carreras de publicación.
-- Mantener modos observación/sombra/aplicación.
-- Documentar operación local y CI en un checkout limpio.
+- Materialize section 19's commands and exit codes.
+- Pin plans, inputs, and validation against changes between check/run.
+- Translate selection into runner argv with exact matching or explicit expansion.
+- Implement shard aggregation and expected-result verification.
+- Implement create/update/publish, export/import, provenance, and retention.
+- Add a first CI wrapper chosen using P1 evidence.
+- Resolve merge bases, simulated merges, missing baselines, and publication races.
+- Preserve observation/shadow/enforcement modes.
+- Document local and CI operation in a clean checkout.
 
-**Entregables:** CLI distribuible, wrapper, pipeline de ejemplo del piloto y guía operativa.
+**Deliverables:** distributable CLI, wrapper, pilot example pipeline, and operational guide.
 
-**Aceptación:**
+**Acceptance:**
 
-- El usuario obtiene un baseline, calcula impacto y ejecuta el plan sin sesión de IA.
-- El plan no se ejecuta sobre bytes distintos sin recalcular/capturar.
-- Un runner que ejecuta más casos de los pedidos lo muestra y valida sus resultados.
-- Baseline ausente/incompatible conduce a fallback completo o fallo explicado.
-- Shard o reporte faltante impide un éxito falso.
-- Artefactos de candidato no sustituyen una referencia autorizada.
-- El job completo se ha ejecutado en el proveedor elegido o queda explícitamente pendiente de aceptación; un YAML sin ejecutar no cuenta como integración validada.
+- The user obtains a baseline, calculates impact, and executes the plan without an AI session.
+- The plan does not run on different bytes without recalculation/capture.
+- A runner executing more cases than requested exposes that and validates their results.
+- A missing/incompatible baseline leads to full fallback or explained failure.
+- A missing shard or report prevents false success.
+- Candidate artifacts do not replace an authorized reference.
+- The complete job has run on the chosen provider or remains explicitly pending acceptance; unexecuted YAML is not validated integration.
 
-**Nivel:** medio; bajo para plantillas y documentación con contrato cerrado.
+**Level:** medium; low for templates and documentation under a finalized contract.
 
-### P7 — UI común
+### P7 — Common UI
 
-**Entrada:** bundle/análisis y acceso a sus fuentes o localizadores.
+**Input:** bundle/analysis and access to its sources or locators.
 
-**Trabajo:**
+**Work:**
 
-- Implementar resumen, grafo, tabla de tests/cobertura e impacto.
-- Añadir inspector de evidencia y causas.
-- Incorporar filtros y agregación de la sección 21.
-- Implementar consultas paginadas/por vecindario e índices para búsqueda global.
-- Reutilizar componentes de la demo solo si consumen el contrato común.
-- Medir tamaño acordado, navegación y accesibilidad.
-- Generar modo local y formato de reporte de CI según alcance.
+- Implement summary, graph, test/coverage table, and impact views.
+- Add evidence and cause inspection.
+- Add section 21's filters and aggregation.
+- Implement paginated/neighborhood queries and global-search indexes.
+- Reuse demo components only if they consume the common contract.
+- Measure agreed size, navigation, and accessibility.
+- Generate local mode and CI report format according to scope.
 
-**Entregables:** UI mínima portable y evidencia de navegación/rendimiento.
+**Deliverables:** minimum portable UI and navigation/performance evidence.
 
-**Aceptación:**
+**Acceptance:**
 
-- Se abren bundles de al menos dos estructuras de proyecto sin cambiar código de UI.
-- Se encuentran nodos que no están renderizados y se explican conteos filtrados.
-- Se distingue cobertura medida, alcance estático, observación y evidencia caducada.
-- No se muestra cobertura total cuando el denominador o la instrumentación son desconocidos.
-- El resultado del motor no cambia por filtros o layout.
-- Consulta por teclado y rendimiento cumplen el presupuesto.
+- Bundles from at least two project structures open without changing UI code.
+- Unrendered nodes are discoverable and filtered counts are explained.
+- Measured coverage, static scope, observation, and stale evidence are distinguished.
+- Total coverage is not displayed when the denominator or instrumentation is unknown.
+- Filters and layout do not alter engine results.
+- Keyboard inspection and performance meet the budget.
 
-**Nivel:** medio; bajo para ajustes visuales mecánicos. No hace falta nivel alto por defecto.
+**Level:** medium; low for mechanical visual adjustments. High reasoning is unnecessary by default.
 
-### P8 — Skill, segunda incorporación y auditoría
+### P8 — Skill, second onboarding, and audit
 
-**Entrada:** CLI/UI/adaptador y validación funcional del piloto.
+**Input:** CLI/UI/adapter and functional pilot validation.
 
-**Trabajo:**
+**Work:**
 
-- Empaquetar skill, referencias, plantillas y herramientas compartidas.
-- Probar incorporación desde inspección hasta CI sobre otro proyecto designado.
-- Documentar necesidades nuevas y generalizar sin reglas por nombre de proyecto.
-- Ejecutar corpus final y casos selected/full con defectos controlados.
-- Medir latencia, ahorro, fallback, overhead y coste de mantenimiento.
-- Revisar omisiones, procedencia, vigencia y afirmaciones de soporte.
-- Publicar matriz de compatibilidad real y criterios para pasar a aplicación.
-- Entregar guías de actualización, rollback y recuperación.
+- Package the skill, references, templates, and shared tools.
+- Test onboarding from inspection to CI on another designated project.
+- Document new needs and generalize without project-name rules.
+- Run the final corpus and selected/full cases with controlled defects.
+- Measure latency, savings, fallback, overhead, and maintenance cost.
+- Review omissions, provenance, validity, and support claims.
+- Publish the actual compatibility matrix and criteria for entering enforcement.
+- Deliver update, rollback, and recovery guides.
 
-**Entregables:** skill reutilizable, informe de portabilidad, auditoría y decisión de adopción por proyecto.
+**Deliverables:** reusable skill, portability report, audit, and per-project adoption decision.
 
-**Aceptación:**
+**Acceptance:**
 
-- La skill parte de un repo sin grafo predefinido y genera un plan específico.
-- El output cumple los mismos esquemas y la UI común lo consume.
-- El sistema posterior funciona sin IA en CI.
-- No se detectan omisiones sin resolver en el corpus y ensayos acordados.
-- Los defectos que full no detecta se separan de la evaluación del selector.
-- Se conocen las limitaciones de los stacks realmente implementados.
-- Hay una ruta operativa para ejecutar siempre full si se desactiva selección.
-- Si falta una segunda incorporación o CI real, la fase permanece incompleta en esos criterios.
+- The skill starts with a repository without a predefined graph and generates a specific plan.
+- Output satisfies the same schemas and is consumed by the common UI.
+- The resulting system works without AI in CI.
+- No unresolved omissions are found in the agreed corpus and experiments.
+- Defects undetected by full are separated from selector evaluation.
+- Limitations of the stacks actually implemented are known.
+- There is an operational way to always run full if selection is disabled.
+- Without a second onboarding or real CI, those phase criteria remain incomplete.
 
-**Nivel:** medio para empaquetado/segundo proyecto conocido; alto en la revisión final de omisiones y límites.
+**Level:** medium for packaging/a familiar second project; high for the final omission and limitation review.
 
-P8 cierra este alcance. La ampliación a nuevas tecnologías o un servicio alojado requiere una nueva instrucción y un plan de extensión.
+P8 closes this scope. New technologies or a hosted service require a new instruction and extension plan.
 
-## 27. Aceptación global
+## 27. Overall acceptance
 
-### 27.1 Trazabilidad
+### 27.1 Traceability
 
-| Requisitos | Fases principales | Evidencia de cierre |
+| Requirements | Main phases | Closure evidence |
 | --- | --- | --- |
-| R01–R02 | P1, P8 | Perfiles/SDD de incorporación y segundo proyecto. |
-| R03–R04 | P2, P3, P5 | Replay determinista, corpus y CI sin LLM. |
-| R05–R07 | P1, P3, P4 | Catálogo por categorías, atribución y agrupación explícita. |
-| R08–R09 | P1, P4 | ADR de herramientas, cobertura y correlación con límites probados. |
-| R10 | P2, P7 | Validadores y bundles abiertos por UI común. |
-| R11 | P5, P6 | Bootstrap/check/run separados y medidas de latencia. |
-| R12 | P6 | Job real, artefactos autorizados y fallbacks. |
-| R13 | P3, P5 | Casos contract-only y verificación de compatibilidad acotada. |
-| R14 | P2, P5, P6 | Negativos, degradación y no disponibles. |
-| R15 | P7 | Filtros, agregación y medición a escala acordada. |
-| R16 | P0–P8 | Niveles recomendados y escalado por decisión, sin modelos fijados. |
-| R17 | P3, P5, P8 | Generación sin listas de sujetos manuales ni escenarios codificados. |
-| R18 | P4, P6, P8 | Datos y ensayos reales, incidencias y matriz de soporte. |
+| R01–R02 | P1, P8 | Onboarding profiles/SDDs and a second project. |
+| R03–R04 | P2, P3, P5 | Deterministic replay, corpus, and CI without an LLM. |
+| R05–R07 | P1, P3, P4 | Catalogue by category, attribution, and explicit grouping. |
+| R08–R09 | P1, P4 | Tool ADRs, coverage, and correlation with tested limitations. |
+| R10 | P2, P7 | Validators and bundles opened by the common UI. |
+| R11 | P5, P6 | Separate bootstrap/check/run and latency measurements. |
+| R12 | P6 | Real job, authorized artifacts, and fallbacks. |
+| R13 | P3, P5 | Contract-only cases and bounded compatibility verification. |
+| R14 | P2, P5, P6 | Negatives, degradation, and unavailable tests. |
+| R15 | P7 | Filters, aggregation, and measurement at the agreed scale. |
+| R16 | P0–P8 | Recommended levels and decision-specific escalation without prescribed models. |
+| R17 | P3, P5, P8 | Generation without manual subject lists or hardcoded scenarios. |
+| R18 | P4, P6, P8 | Real data and experiments, incidents, and support matrix. |
 
-### 27.2 Condiciones de salida
+### 27.2 Exit conditions
 
-El alcance se considera implementado cuando un usuario puede:
+The scope is considered implemented when a user can:
 
-1. Entregar un repositorio sin grafo predefinido.
-2. Obtener inspección, necesidades y SDD de incorporación verificables.
-3. Generar un grafo estático y catálogo mediante adaptadores cuyo soporte esté documentado.
-4. Obtener cobertura atribuible de las categorías/variantes incluidas o ver un límite conservador explícito.
-5. Calcular impacto rápidamente sin ejecutar tests para obtener la selección.
-6. Ejecutar el plan real, sin resultados simulados ni identidades ambiguas.
-7. Llevarlo a CI con referencias reproducibles y fallback operativo.
-8. Consultar los mismos artefactos desde la UI común.
-9. Incorporar un segundo proyecto con las mismas interfaces.
-10. Conocer los límites de la evidencia y volver a full sin rediseñar el pipeline.
+1. Supply a repository without a predefined graph.
+2. Obtain verifiable inspection, needs, and an onboarding SDD.
+3. Generate a static graph and catalogue through adapters with documented support.
+4. Obtain attributable coverage for included categories/variants or see an explicit conservative boundary.
+5. Calculate impact quickly without running tests to determine selection.
+6. Execute the actual plan without simulated results or ambiguous identities.
+7. Integrate it into CI with reproducible references and operational fallback.
+8. Inspect the same artifacts through the common UI.
+9. Onboard a second project using the same interfaces.
+10. Understand evidence limitations and return to full execution without redesigning the pipeline.
 
-Ningún ahorro mínimo justifica cerrar con omisiones conocidas. La precisión de selección y el ahorro se evalúan dentro del ámbito probado y se presentan conjuntamente.
+No minimum savings target justifies closure with known omissions. Selection precision and savings are assessed within the tested scope and presented together.
 
-## 28. Decisiones pendientes y riesgos
+## 28. Open decisions and risks
 
-### 28.1 Decisiones que P1 debe resolver
+### 28.1 Decisions P1 must resolve
 
-| Decisión | Suposición inicial | Cuándo reconsiderar |
+| Decision | Initial assumption | When to reconsider |
 | --- | --- | --- |
-| Primer stack/piloto | Se elige tras inspección de un repo designado. | Si su coverage/runner no permite un piloto de coste razonable. |
-| Unidad de cobertura | Caso cuando es demostrable; grupo cuando no. | Si aislamiento o overhead hacen inviable el nivel individual. |
-| Distribución del núcleo | Herramienta local versionada con formatos comunes. | Al preparar instalación y actualización en P6/P8. |
-| Primer wrapper CI | El que utilice el piloto. | Si no puede validar procedencia, artefactos o base. |
-| Reutilización de v2 | Evaluación antes de migrar. | Si la compatibilidad legacy impide identidad o evidencia portable. |
-| Política de refresco | Full en rama principal durante adopción. | Tras medir herencia, coste y omisiones en sombra. |
-| Retención de fuentes | Configurable; local/CI con acceso previsto. | Si políticas del proyecto impiden adjuntar código. |
-| Almacenamiento inicial | Bundles de archivos e índices reconstruibles. | Si tamaño y tiempos medidos justifican otro backend. |
-| Repositorios externos | Contract-only o código/revisión fijados explícitamente. | Si se pide ejecución coordinada entre repositorios. |
+| First stack/pilot | Chosen after inspecting a designated repository. | If its coverage/runner cannot support a reasonably priced pilot. |
+| Coverage unit | Case when demonstrable; group otherwise. | If isolation or overhead makes individual granularity infeasible. |
+| Core distribution | Versioned local tool with common formats. | When preparing installation and updates in P6/P8. |
+| First CI wrapper | The pilot's provider. | If it cannot validate provenance, artifacts, or base. |
+| v2 reuse | Evaluate before migration. | If legacy compatibility prevents portable identity or evidence. |
+| Refresh policy | Full on the main branch during adoption. | After measuring inheritance, cost, and omissions in shadow mode. |
+| Source retention | Configurable; local/CI with intended access. | If project policies prohibit attaching code. |
+| Initial storage | File bundles and rebuildable indexes. | If measured size and timing justify another backend. |
+| External repositories | Contract-only or explicitly pinned code/revision. | If coordinated cross-repository execution is requested. |
 
-Estas decisiones no bloquean redactar el SDD general; sí pueden limitar el cierre de fases de implementación.
+These decisions do not block drafting the general SDD; they may limit completion of implementation phases.
 
-### 28.2 Riesgos y respuesta
+### 28.2 Risks and response
 
-- **Coverage histórica incompleta:** complementar con dependencias, invalidación y fallback; validar cambios de recorrido.
-- **Atribución falsa por concurrencia:** aislamiento o grupo; nunca suponer que trace ID separa contadores.
-- **Resolución diferente al build:** usar herramientas y configuración reales y comparar en corpus.
-- **Configuración y recursos invisibles:** inventariar entradas y ampliar cuando no exista extractor.
-- **Contratos tratados como garantía semántica:** declarar comprobaciones y límites; mantener desconocido lo externo.
-- **Baseline equivocado o manipulado:** comprobar relación con base, fingerprints y procedencia.
-- **Instrumentación demasiado costosa:** medir unidades y variantes, agrupar cuando sea necesario y evitar tracing de cada función si coverage ya la mide.
-- **Skill que copia demasiada lógica:** núcleo y esquemas compartidos, adaptadores versionados y migraciones.
-- **UI saturada:** agregación inicial y consultas acotadas, con búsqueda sobre el conjunto completo.
-- **Promesa universal:** publicar matriz de soporte y tamaño de ensayos; nuevos patrones empiezan como diagnósticos.
+- **Incomplete historical coverage:** complement with dependencies, invalidation, and fallback; validate path changes.
+- **False attribution from concurrency:** isolation or grouping; never assume a trace ID separates counters.
+- **Resolution differing from the build:** use actual tools/configuration and compare against the corpus.
+- **Invisible configuration and resources:** inventory inputs and broaden where no extractor exists.
+- **Contracts treated as semantic guarantees:** declare checks and limitations; preserve unknown external scope.
+- **Wrong or manipulated baseline:** verify its relationship to the base, fingerprints, and provenance.
+- **Overly expensive instrumentation:** measure units and variants, group when needed, and avoid tracing every function if coverage already measures it.
+- **Skill copying too much logic:** shared core/schemas, versioned adapters, and migrations.
+- **Overloaded UI:** initial aggregation and bounded queries, with search over the complete set.
+- **Universal promise:** publish support matrix and experiment sizes; new patterns begin as diagnostics.
 
-## 29. Operación y recuperación
+## 29. Operation and recovery
 
-### 29.1 Información de diagnóstico
+### 29.1 Diagnostic information
 
-`doctor` debe explicar: configuración efectiva, versiones, referencia seleccionada, raíz/base/destino, catálogo, variantes, estado de captura, incompatibilidades y recuperación posible.
+`doctor` must explain effective configuration, versions, selected reference, root/base/target, catalogue, variants, capture status, incompatibilities, and possible recovery.
 
-Los informes distinguen «hay que recapturar esta suite» de «hay que reconstruir todo». Cuando no se puede acotar esa diferencia, lo indican y usan la acción conservadora.
+Reports distinguish “this suite must be recaptured” from “everything must be rebuilt.” When that distinction cannot be bounded, indicate it and use the conservative action.
 
-### 29.2 Recuperación
+### 29.2 Recovery
 
-| Incidencia | Acción |
+| Incident | Action |
 | --- | --- |
-| Caché corrupta | Eliminar índice derivado y reconstruir desde artefactos verificados. |
-| Bundle incompleto | Conservarlo como fallo de captura; mantener referencia anterior sin llamarla actual. |
-| Baseline ausente | Recuperar referencia autorizada o ejecutar full y crear evidencia. |
-| Extractor defectuoso | Fijar versión anterior compatible o desactivar optimización afectada. |
-| Cambio de schema | Migración explícita con validador o reconstrucción. |
-| Omisión detectada | Volver a full en el ámbito; añadir caso de corpus y corregir antes de reactivar selección. |
-| Coste excesivo de captura | Medir agrupación/shards/variantes; mantener los límites de atribución visibles. |
+| Corrupt cache | Remove the derived index and rebuild from verified artifacts. |
+| Incomplete bundle | Preserve it as a capture failure; keep the previous reference without calling it current. |
+| Missing baseline | Recover an authorized reference or execute full and create evidence. |
+| Defective extractor | Pin a compatible previous version or disable the affected optimization. |
+| Schema change | Explicit migration with a validator or rebuilding. |
+| Detected omission | Return to full within scope; add a corpus case and fix before re-enabling selection. |
+| Excessive capture cost | Measure grouping/shards/variants; keep attribution limits visible. |
 
-### 29.3 Retención
+### 29.3 Retention
 
-Los bundles son inmutables; los punteros activos y los manifiestos de análisis mantienen sus referencias. La recolección no debe borrar evidencia requerida para un análisis que la política conserva.
+Bundles are immutable; active pointers and analysis manifests retain their references. Garbage collection must not delete evidence required by an analysis preserved under policy.
 
-Definir por proyecto periodo, cuota, conservación de fallos y baselines de release. La retención nunca cambia un resultado histórico para que apunte al baseline actual.
+Define per-project retention period, quota, failure preservation, and release baselines. Retention never changes a historical result to point at the current baseline.
 
-### 29.4 Ejecución reproducible
+### 29.4 Reproducible execution
 
-Los comandos del runner se construyen como ejecutable y argv, con cwd y entorno fijados. Los identificadores y filtros se escapan según el runner; un match ambiguo amplía al grupo verificable o falla.
+Runner commands are built as executable plus argv, with pinned cwd and environment. Identifiers and filters are escaped according to the runner; ambiguous matches expand to a verifiable group or fail.
 
-Se conservan las entradas de build, dependencias fijadas y preparación de servicios. La herramienta ejecuta código del repositorio con las capacidades del entorno CI/local; cualquier aislamiento adicional debe proporcionarlo ese entorno y documentarse.
+Preserve build inputs, pinned dependencies, and service preparation. The tool executes repository code with the capabilities of its CI/local environment; any additional isolation must be supplied by that environment and documented.
 
-Los endpoints de recolección o consulta local se limitan al uso previsto. La ejecución desde la UI, si se añadiese, requeriría un alcance posterior; la UI mínima de este SDD es de consulta.
+Local collection or query endpoints are restricted to their intended use. UI-triggered execution, if added, would require a subsequent scope; this SDD's minimum UI is for inspection.
 
-## 30. Glosario
+## 30. Glossary
 
-| Término | Significado en este SDD |
+| Term | Meaning in this SDD |
 | --- | --- |
-| Grafo estático | Dependencias obtenidas sin medir una ejecución de tests. |
-| Coverage | Evidencia de puntos de código ejecutados bajo un plan concreto. |
-| Aserción/assertion | Comprobación que realiza un test; coverage no demuestra su sensibilidad. |
-| Observación | Actividad medida, por ejemplo un span o recurso solicitado. |
-| Baseline | Bundle de referencia con ámbito, catálogo y evidencia fijados. |
-| Bundle | Unidad portable e inmutable de artefactos verificables. |
-| Closure | Conjunto transitivo de entradas/dependencias relevantes bajo el modelo soportado. |
-| Unidad de ejecución | Menor conjunto que el runner puede ejecutar y reportar fiablemente. |
-| Variante | Entorno, plataforma, browser, flags o datos que cambian condiciones relevantes. |
-| Captura completa | Se recibieron las señales prometidas por el plan para su ámbito; no exhaustividad de recorridos posibles. |
-| Vigencia | Compatibilidad demostrada entre evidencia y entradas analizadas. |
-| Fallback | Ampliación de selección por falta de evidencia suficiente. |
-| Contract-only | Visibilidad del contrato sin acceso verificable a la implementación externa. |
-| Modo sombra | Calcular selección y ejecutar full para contrastarla sin reducir el gate. |
-| Determinismo | Igualdad de salida normalizada dadas las mismas entradas fijadas. |
+| Static graph | Dependencies obtained without measuring a test run. |
+| Coverage | Evidence of code points executed under a specific plan. |
+| Assertion | A check performed by a test; coverage does not demonstrate its sensitivity. |
+| Observation | Measured activity, such as a span or requested resource. |
+| Baseline | Reference bundle with pinned scope, catalogue, and evidence. |
+| Bundle | Portable, immutable unit of verifiable artifacts. |
+| Closure | Transitive set of relevant inputs/dependencies under the supported model. |
+| Execution unit | Smallest set the runner can execute and report reliably. |
+| Variant | Environment, platform, browser, flags, or data changing relevant conditions. |
+| Complete capture | Signals promised by the plan for its scope were received; not exhaustiveness over possible paths. |
+| Validity | Demonstrated compatibility between evidence and analyzed inputs. |
+| Fallback | Broader selection due to insufficient evidence. |
+| Contract-only | Contract visibility without verifiable access to the external implementation. |
+| Shadow mode | Calculate selection and execute full for comparison without reducing the gate. |
+| Determinism | Equal normalized output given identical pinned inputs. |
 
-## 31. Referencias oficiales
+## 31. Official references
 
-Consultadas al redactar esta versión el 2026-10-19. Las implementaciones deben volver a verificar las páginas/versiones pertinentes y fijar las dependencias que utilicen.
+Consulted when drafting this version on 2026-10-19. Implementations must recheck relevant pages/versions and pin the dependencies they use.
 
-- [OpenTelemetry: especificación](https://opentelemetry.io/docs/specs/otel/): arquitectura y APIs.
-- [OpenTelemetry: propagación de contexto](https://opentelemetry.io/docs/concepts/context-propagation/): correlación entre componentes.
-- [W3C Trace Context](https://www.w3.org/TR/trace-context/): formato y procesamiento de contexto de trazas.
-- [OpenTelemetry Protocol](https://opentelemetry.io/docs/specs/otlp/): transporte interoperable.
-- [OpenTelemetry: Tracing SDK](https://opentelemetry.io/docs/specs/otel/trace/sdk/): muestreo y procesamiento de spans.
-- [OpenTelemetry: Baggage](https://opentelemetry.io/docs/concepts/signals/baggage/): propagación de valores de contexto y sus límites.
-- [OpenTelemetry: atributos de test](https://opentelemetry.io/docs/specs/semconv/registry/attributes/test/): convenciones y estabilidad declarada.
-- [Vitest: coverage](https://vitest.dev/guide/coverage.html): proveedores nativos e instrumentados del ecosistema JavaScript.
-- [Playwright: Coverage](https://playwright.dev/docs/api/class-coverage): captura de JS/CSS y límites de navegador/targets.
-- [Coverage.py: measurement contexts](https://coverage.readthedocs.io/en/latest/contexts.html): contextos de medición en el ecosistema Python.
-- [JSON Schema Draft 2020-12](https://json-schema.org/draft/2020-12): dialecto propuesto para artefactos.
-- [RFC 8785: JSON Canonicalization Scheme](https://www.rfc-editor.org/rfc/rfc8785.html): serialización para hashes reproducibles.
-- [ECMA-426: source map format](https://tc39.es/ecma426/): mapeo de código transformado a fuentes.
+- [OpenTelemetry specification](https://opentelemetry.io/docs/specs/otel/): architecture and APIs.
+- [OpenTelemetry context propagation](https://opentelemetry.io/docs/concepts/context-propagation/): correlation between components.
+- [W3C Trace Context](https://www.w3.org/TR/trace-context/): trace-context format and processing.
+- [OpenTelemetry Protocol](https://opentelemetry.io/docs/specs/otlp/): interoperable transport.
+- [OpenTelemetry Tracing SDK](https://opentelemetry.io/docs/specs/otel/trace/sdk/): sampling and span processing.
+- [OpenTelemetry Baggage](https://opentelemetry.io/docs/concepts/signals/baggage/): context-value propagation and its limitations.
+- [OpenTelemetry test attributes](https://opentelemetry.io/docs/specs/semconv/registry/attributes/test/): conventions and declared stability.
+- [Vitest coverage](https://vitest.dev/guide/coverage.html): native and instrumented JavaScript ecosystem providers.
+- [Playwright Coverage](https://playwright.dev/docs/api/class-coverage): JS/CSS capture and browser/target limitations.
+- [Coverage.py measurement contexts](https://coverage.readthedocs.io/en/latest/contexts.html): measurement contexts in the Python ecosystem.
+- [JSON Schema Draft 2020-12](https://json-schema.org/draft/2020-12): proposed artifact dialect.
+- [RFC 8785 JSON Canonicalization Scheme](https://www.rfc-editor.org/rfc/rfc8785.html): serialization for reproducible hashes.
+- [ECMA-426 source map format](https://tc39.es/ecma426/): mapping transformed code to sources.

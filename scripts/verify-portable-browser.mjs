@@ -29,10 +29,10 @@ try {
   const selected = snapshot.nodes.find(node => node.id === edge.from);
   await page.locator('#search').fill(selected.id);
   const expectedSearch = queryGraph(createIndex(snapshot), { q: selected.id }).matchedNodes;
-  await page.waitForFunction(count => document.getElementById('visibility').textContent.includes(count + ' coinciden'), expectedSearch);
+  await page.waitForFunction(count => document.getElementById('visibility').textContent.includes(count + ' matching'), expectedSearch);
   await page.locator('#nodes button').filter({ hasText: selected.label }).first().click();
-  await page.getByRole('button', { name: 'Ver evidencia', exact: true }).first().waitFor();
-  await page.getByRole('button', { name: 'Ver evidencia', exact: true }).first().click();
+  await page.getByRole('button', { name: 'View evidence', exact: true }).first().waitFor();
+  await page.getByRole('button', { name: 'View evidence', exact: true }).first().click();
   await page.locator('#selection details').waitFor();
   assert.equal(await page.locator('#selection-title').textContent(), selected.label);
   await page.locator('#reset').click();
@@ -41,7 +41,7 @@ try {
   const evidenceKind = snapshot.evidence.some(item => item.kind === 'declaration') ? 'declaration' : snapshot.evidence[0].kind;
   const expected = queryGraph(createIndex(snapshot), { evidence: evidenceKind, limit: 40 }).matchedNodes;
   await page.locator('#evidence').selectOption(evidenceKind);
-  await page.waitForFunction(count => document.getElementById('visibility').textContent.includes(count + ' coinciden'), expected);
+  await page.waitForFunction(count => document.getElementById('visibility').textContent.includes(count + ' matching'), expected);
   if (snapshot.diagnostics.length > 10) {
     await page.locator('#diagnostics-next').click();
     await page.waitForFunction(() => document.getElementById('diagnostics-count').textContent.startsWith('11–'));
