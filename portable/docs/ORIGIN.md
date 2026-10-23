@@ -23,3 +23,11 @@ The historical dependency SDDs, v2 contract, and G9 audit provide background. Th
 `test-impact-view/1` is the E0 extraction's reading/visualization format. It is not yet P2's complete bundle and does not certify coverage or test exclusion.
 
 The general SDD and skill are designed to evolve through explicit versions. Public distribution and licensing will be decided later; this package is marked private and UNLICENSED.
+
+## Viewer presentation
+
+Only the reusable Code / Graph / Tests UI, its minimal read-only presentation
+backend and build/export definitions are incorporated from the viewer
+continuation. The original inspection core, CLI, specification phases and
+onboarding skill remain authoritative. Consuming-project measurements, profiles,
+audits, execution engines and development reports are excluded.

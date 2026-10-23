@@ -4,14 +4,34 @@
   "private": true,
   "description": "Portable test-impact toolkit: project inspection and evidence viewer.",
   "type": "module",
-  "bin": { "impact": "bin/impact.mjs" },
-  "exports": { ".": "./src/core.mjs" },
-  "engines": { "node": ">=22" },
+  "bin": {
+    "impact": "bin/impact.mjs"
+  },
+  "exports": {
+    ".": "./src/core.mjs",
+    "./viewer/createExplorer": "./lib/viewer/createExplorer.js",
+    "./viewer/exportReport": "./lib/viewer/exportReport.js",
+    "./viewer/types": "./lib/viewer/types.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "inspect": "node bin/impact.mjs inspect",
     "view": "node bin/impact.mjs view examples/system.json",
     "test": "node --test"
   },
-  "files": ["bin", "src", "ui", "skills", "docs", "examples", "scripts", "test", "README.md"],
+  "files": [
+    "bin",
+    "src",
+    "lib",
+    "ui",
+    "skills",
+    "docs",
+    "examples",
+    "scripts",
+    "test",
+    "README.md"
+  ],
   "license": "UNLICENSED"
 }

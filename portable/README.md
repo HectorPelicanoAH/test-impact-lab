@@ -22,14 +22,16 @@ Inspection reads manifests and enumerates candidates by pattern. It does not exe
 
 ## Using the common UI
 
-- Search every node by name, ID, or path.
-- Filter by group/repository, node type, relationship, and evidence class.
-- Paginate without losing nodes from the model.
-- Open a node, navigate its dependencies/consumers, and inspect each evidence record.
-- View archived sources when explicitly included.
-- Browse paginated diagnostics and distinguish declarations, static evidence, observations, and measured execution.
+The default UI is **Code / Graph / Tests**, starting with the complete graph.
+Search centers a node without removing graph facts; pan, zoom, minimap and
+framing preserve stable positions. The auxiliary node table stays paginated.
+The inspector shows archived source and the recorded origin of a relationship
+when available. Missing source bytes or exact ranges stay explicit.
 
-The canvas shows links between nodes on the visible page; the inspector retains every link for a node with its own pagination. The UI does not calculate overall coverage percentages with an unknown denominator.
+The CLI and v2 bridge retain their original inspection-only behavior. This UI
+does not add baseline capture, impact selection or native test execution.
+Precompiled browser and viewer assets are included in every standalone export;
+no runtime dependency installation or build is required. See [viewer](docs/VIEWER.md).
 
 ## Open lab data
 

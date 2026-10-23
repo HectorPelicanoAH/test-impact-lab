@@ -1710,3 +1710,11 @@ Consulted when drafting this version on 2026-10-19. Implementations must recheck
 - [JSON Schema Draft 2020-12](https://json-schema.org/draft/2020-12): proposed artifact dialect.
 - [RFC 8785 JSON Canonicalization Scheme](https://www.rfc-editor.org/rfc/rfc8785.html): serialization for reproducible hashes.
 - [ECMA-426 source map format](https://tc39.es/ecma426/): mapping transformed code to sources.
+
+## Default viewer presentation
+
+The portable viewer uses Code / Graph / Tests with a complete continuous graph,
+search-to-node, stable positions, pan/zoom and minimap. Node and edge inspection
+exposes supplied source and recorded relationship origins. Packaged/exported
+copies include the same precompiled UI. Project onboarding results, profiles
+and development evidence stay in their consuming repository.

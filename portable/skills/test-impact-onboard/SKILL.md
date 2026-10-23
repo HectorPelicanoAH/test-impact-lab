@@ -40,3 +40,11 @@ Use medium reasoning for bounded implementation and higher reasoning only for un
 ## Deliver
 
 Leave project configuration, versioned adapters, reproducible commands, CI integration within scope, validation evidence and a resumable state document. Distinguish implemented operations, untested integrations and planned work. Runtime selection must work without an LLM.
+
+## Common viewer requirement
+
+Use the packaged Code / Graph / Tests viewer, including its precompiled browser
+and presentation backend, when exporting or onboarding the toolkit. Preserve
+full graph exploration and inline source/relationship-origin inspection. Keep
+project-specific profiles, measurements and development evidence in the
+consuming repository; never promote those into the reusable toolkit.

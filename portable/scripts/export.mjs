@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const source = fileURLToPath(new URL('../', import.meta.url));
 const excluded = new Set(['.git', 'node_modules', '.test-impact', 'coverage', '.DS_Store']);
-const entries = ['package.json', '.gitignore', 'README.md', 'bin', 'src', 'ui', 'docs', 'skills', 'examples', 'scripts', 'test'];
+const entries = ['package.json', '.gitignore', 'README.md', 'bin', 'src', 'lib', 'ui', 'docs', 'skills', 'examples', 'scripts', 'test'];
 
 async function physicalTarget(target) {
   try { return await realpath(target); }

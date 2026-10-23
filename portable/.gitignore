@@ -3,3 +3,7 @@ node_modules/
 coverage/
 *.tgz
 .DS_Store
+
+!ui/dist/
+!ui/dist/explorer.js
+!ui/dist/explorer.css

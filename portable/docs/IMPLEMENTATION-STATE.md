@@ -96,3 +96,13 @@ Resolved incidents: the initial sandbox prevented the HTTP test from opening its
 Read the SDD and this state first. After E0, the next work is P1: audit reuse and inspect the repository designated by the user, producing capabilities, needs, and an onboarding SDD.
 
 Without an accessible pilot repository, authorized internal auditing can proceed while actual inspection remains pending. Do not invent results or mark P1 complete.
+
+## Viewer presentation update
+
+The default inspection viewer now uses Code / Graph / Tests, a full-topology
+canvas and inline source/relationship-origin previews. Its compiled assets and
+minimal read-only presentation backend ship with the exporter. The original
+CLI, inspection contract, onboarding workflow and P1–P8 statuses above remain
+in effect. No capture, selection or operational engine was imported.
+Project-specific profiles, development evidence and acceptance reports are
+excluded. UI scale/accessibility acceptance remains pending.
